@@ -1,19 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProjectNodes } from '../../hooks/useProjectNodes';
+import { useNodeTypes } from '../../hooks/useNodeTypes';
+import { NodeType } from '../../types/project_nodes.types';
 import styles from './CreateProject.module.scss';
 
 const CreateProject: React.FC = () => {
   const navigate = useNavigate();
   const { createProject } = useProjectNodes();
+  const { data: nodeTypes, isLoading: isLoadingNodeTypes } = useNodeTypes();
+
+  // Buscar el tipo 'Proyecto Principal'
+  const mainNodeType = nodeTypes?.find((nt: NodeType) => nt.name === 'Proyecto Principal');
 
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     is_active: true,
-    type: 'project' as const,
+    type: undefined as number | undefined,
     status: 'en_estudio' as const,
   });
+
+  // Cuando se cargue el tipo, actualizar el formData
+  useEffect(() => {
+    if (mainNodeType && formData.type !== mainNodeType.id) {
+      setFormData(prev => ({ ...prev, type: mainNodeType.id }));
+    }
+  }, [mainNodeType]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -25,8 +38,9 @@ const CreateProject: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.type) return;
     try {
-      await createProject.mutateAsync(formData);
+      await createProject.mutateAsync({ ...formData, type: formData.type as number });
       navigate('/proyectos/lista');
     } catch (error) {
       console.error('Error al crear el proyecto:', error);
@@ -90,7 +104,7 @@ const CreateProject: React.FC = () => {
           <button type="button" onClick={() => navigate('/proyectos/lista')}>
             Cancelar
           </button>
-          <button type="submit" className={styles.saveButton}>
+          <button type="submit" className={styles.saveButton} disabled={isLoadingNodeTypes || !formData.type}>
             Crear Proyecto
           </button>
         </div>

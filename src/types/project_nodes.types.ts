@@ -1,15 +1,9 @@
-export type NodeType =
-  | 'project'
-  | 'architecture_subproject'
-  | 'budget'
-  | 'document'
-  | 'form'
-  | 'certificate'
-  | 'construction_solution'
-  | 'layer'
-  | 'external_link'
-  | 'list'
-  | 'stage';
+export interface NodeType {
+  id: number;
+  name: string;
+  description: string | null;
+  is_active: boolean;
+}
 
 export type NodeStatus = 'en_estudio' | 'pendiente' | 'finalizado';
 
@@ -55,7 +49,7 @@ export interface ProjectNode {
 export interface CreateProjectNodeDto {
   name: string;
   description?: string;
-  type: NodeType;
+  type: number; // ID of NodeType
   file_type?: number;
   parent?: number | null;
   properties?: number[];
