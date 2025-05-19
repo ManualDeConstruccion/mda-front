@@ -78,7 +78,7 @@ function generateTableRowsWithAccordion({
 }): React.ReactNode[] {
   let rows: React.ReactNode[] = [];
   nodes.forEach((node: any) => {
-    if (node.type === 'list') {
+    if (node.type_code === 'list') {
       rows.push(
         <React.Fragment key={node.id}>
           <tr className={styles.listadoRow}>
@@ -134,7 +134,7 @@ function generateTableRowsWithAccordion({
             <>
               {/* Primero renderiza los listados hijos recursivamente */}
               {generateTableRowsWithAccordion({
-                nodes: (node.children || []).filter((n: any) => n.type === 'list'),
+                nodes: (node.children || []).filter((n: any) => n.type_code === 'list'),
                 depth: depth + 1,
                 openAccordions,
                 handleAccordionToggle,
@@ -152,7 +152,7 @@ function generateTableRowsWithAccordion({
                 stageId,
               })}
               {/* Luego renderiza los documentos hijos de este listado */}
-              {(node.children || []).filter((n: any) => n.type !== 'list').map((doc: any) => {
+              {(node.children || []).filter((n: any) => n.type_code !== 'list').map((doc: any) => {
                 return (
                   <tr key={doc.id}>
                     <td className={`${styles.tableCellIndent} ${styles[`indent-${depth + 2}`]}`}>
@@ -172,7 +172,7 @@ function generateTableRowsWithAccordion({
                     <td className={styles.tableCellRight}>
                       <IconButton size="small" onClick={e => {
                         e.stopPropagation();
-                        if (doc.type === 'construction_solution') {
+                        if (doc.type_code === 'construction_solution') {
                           if (typeof setNodeData === 'function' && typeof setSelectedForm === 'function' && typeof navigate === 'function') {
                             setNodeData({
                               ...doc,
@@ -249,7 +249,9 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
   if (!tree) return <Typography>No hay datos.</Typography>;
 
   // Obtener los lists hijos del stage
-  const lists = (tree.children || []).filter((n: any) => n.type === 'list');
+  const lists = (tree.children || [])
+    .filter((n: any) => n.type_code === 'list')
+    .sort((a: any, b: any) => a.name.localeCompare(b.name));
 
   const handleAccordionToggle = (listId: number) => {
     setOpenAccordions(prev => ({ ...prev, [listId]: !prev[listId] }));

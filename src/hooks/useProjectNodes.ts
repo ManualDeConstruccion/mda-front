@@ -35,27 +35,46 @@ export const useProjectNodes = <T extends ProjectNode = ProjectNode>(filters?: P
 
   const createProject = useMutation({
     mutationFn: async (data: CreateProjectNodeDto) => {
-      const formData = new FormData();
-      Object.entries(data).forEach(([key, value]) => {
-        if (value !== null && value !== undefined) {
-          if (value instanceof File) {
-            formData.append(key, value);
-          } else if (typeof value === 'boolean') {
-            formData.append(key, value.toString());
-          } else {
-            formData.append(key, value);
+      // Check if there are any File objects in the data
+      const hasFiles = Object.values(data).some(value => value instanceof File);
+      
+      console.log('Data being sent to backend:', data);
+      
+      if (hasFiles) {
+        const formData = new FormData();
+        Object.entries(data).forEach(([key, value]) => {
+          if (value !== null && value !== undefined) {
+            if (value instanceof File) {
+              formData.append(key, value);
+            } else if (typeof value === 'boolean') {
+              formData.append(key, value.toString());
+            } else {
+              formData.append(key, value);
+            }
           }
-        }
-      });
+        });
 
-      const response = await axios.post(`${API_URL}/project-nodes/`, formData, {
-        ...axiosConfig,
-        headers: {
-          ...axiosConfig.headers,
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      return response.data;
+        console.log('FormData being sent:', Object.fromEntries(formData));
+
+        const response = await axios.post(`${API_URL}/project-nodes/`, formData, {
+          ...axiosConfig,
+          headers: {
+            ...axiosConfig.headers,
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+        return response.data;
+      } else {
+        // If no files, send as JSON
+        const response = await axios.post(`${API_URL}/project-nodes/`, data, {
+          ...axiosConfig,
+          headers: {
+            ...axiosConfig.headers,
+            'Content-Type': 'application/json',
+          },
+        });
+        return response.data;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projectNodes'] });

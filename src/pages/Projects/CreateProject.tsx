@@ -75,6 +75,19 @@ const CreateProject: React.FC = () => {
         </div>
 
         <div className={styles.formGroup}>
+          <label htmlFor="type">Tipo de Proyecto</label>
+          <select
+            id="type"
+            name="type"
+            value={formData.type}
+            onChange={handleInputChange}
+          >
+            <option value="project">Proyecto</option>
+            <option value="other">Otro</option>
+          </select>
+        </div>
+
+        <div className={styles.formGroup}>
           <label>
             <input
               type="checkbox"
