@@ -30,6 +30,17 @@ const api = axios.create({
   withCredentials: true,
 });
 
+// Función para obtener el token CSRF
+const getCsrfToken = async () => {
+  try {
+    const response = await api.get('/api/auth/social/csrf/');
+    return response.data.csrfToken;
+  } catch (error) {
+    console.error('Error obteniendo CSRF token:', error);
+    throw error;
+  }
+};
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const navigate = useNavigate();
   const [accessToken, setAccessToken] = useState<string | null>(
@@ -99,13 +110,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const loginWithGoogle = async (googleToken: string) => {
     try {
-      // 1. Hacer GET para obtener la cookie CSRF
-      await api.get('/api/auth/social/hello/');
+      // 1. Obtener el token CSRF
+      const csrfToken = await getCsrfToken();
 
-      // 2. Hacer el POST de login social
-      const response = await api.post('/api/auth/social/google/', { 
-        access_token: googleToken 
-      });
+      // 2. Hacer el POST de login social con el token CSRF
+      const response = await api.post('/api/auth/social/google/', 
+        { access_token: googleToken },
+        {
+          headers: {
+            'X-CSRFToken': csrfToken,
+          }
+        }
+      );
       
       const { token, user } = response.data;
       

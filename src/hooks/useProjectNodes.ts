@@ -30,7 +30,7 @@ export const useProjectNodes = <T extends ProjectNode = ProjectNode>(filters?: P
       const response = await axios.get(`${API_URL}/project-nodes/?${params.toString()}`, axiosConfig);
       return Array.isArray(response.data) ? response.data.map(mapProjectNode) as T[] : [];
     },
-    enabled: !!accessToken,
+    enabled: !!accessToken && (!!filters?.parent || !!filters?.type),
   });
 
   const createProject = useMutation({
