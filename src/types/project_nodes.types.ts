@@ -1,15 +1,10 @@
-export type NodeType =
-  | 'project'
-  | 'architecture_subproject'
-  | 'budget'
-  | 'document'
-  | 'form'
-  | 'certificate'
-  | 'construction_solution'
-  | 'layer'
-  | 'external_link'
-  | 'list'
-  | 'stage';
+export interface NodeTypeObject {
+  id: number;
+  name: string;
+  code: string;
+}
+
+export type NodeType = string;
 
 export type NodeStatus = 'en_estudio' | 'pendiente' | 'finalizado';
 
@@ -29,7 +24,8 @@ export interface ProjectNode {
   id: number;
   name: string;
   description: string | null;
-  type: NodeType;
+  type: NodeTypeObject;
+  type_code: string;
   file_type: FileType | null;
   parent: number | null;
   children: ProjectNode[];

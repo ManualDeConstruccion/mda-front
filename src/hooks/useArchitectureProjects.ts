@@ -22,7 +22,7 @@ export const useProjectArchitectureProjects = (projectId?: number) => {
     queryKey: ['architectureProjects', projectId],
     queryFn: async () => {
       const response = await axios.get(`${API_URL}/project-nodes/?node_parent=${projectId}`, axiosConfig);
-      return response.data.filter((node: ProjectNode) => node.type === 'architecture_subproject') as ArchitectureProjectNode[];
+      return response.data.filter((node: ProjectNode) => node.type_code === 'architecture_subproject') as ArchitectureProjectNode[];
     },
     enabled: !!projectId,
   });

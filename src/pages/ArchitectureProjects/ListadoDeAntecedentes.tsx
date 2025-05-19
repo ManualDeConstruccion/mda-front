@@ -18,13 +18,17 @@ import EditListNode from '../EditArchitectureNodes/EditListNode';
 import { useFormNode } from '../../context/FormNodeContext';
 import { useNavigate } from 'react-router-dom';
 
+// Importar componentes refactorizados
+import NodeTree from './components/NodeTree';
+import NodeTypeMenu from './components/NodeTypeMenu';
+
 interface ListadoDeAntecedentesProps {
   stageId: number;
   projectId: number;
   architectureProjectId: number;
 }
 
-// Agregar función para extraer el error del backend
+// Función para extraer el error del backend
 function extractBackendError(err: any): string {
   if (err?.response?.data && typeof err.response.data === 'object') {
     const values = Object.values(err.response.data);
@@ -36,204 +40,22 @@ function extractBackendError(err: any): string {
   return err?.response?.data?.detail || err?.message || 'Error desconocido';
 }
 
-// Restaurar la interfaz para el tipado de generateTableRowsWithAccordion
-interface GenerateTableRowsProps {
-  nodes: any[];
-  depth?: number;
-  setAnchorEl: React.Dispatch<React.SetStateAction<null | HTMLElement>>;
-  setSelectedListId: React.Dispatch<React.SetStateAction<number | null>>;
-  setCreatingList: React.Dispatch<React.SetStateAction<boolean>>;
-  setError: React.Dispatch<React.SetStateAction<string | null>>;
-  setDeleteTarget: React.Dispatch<React.SetStateAction<any | null>>;
-  setShowDeleteModal: React.Dispatch<React.SetStateAction<boolean>>;
-  setEditingListNode: React.Dispatch<React.SetStateAction<ProjectNode | null>>;
-  setEditingNode: React.Dispatch<React.SetStateAction<ProjectNode | null>>;
-  setNodeData: (data: any) => void;
-  setSelectedForm: (form: any) => void;
-  navigate: (path: string) => void;
-  stageId: number;
-}
-
-// Generar filas de la tabla mezclando documentos y listados hijos, con indentación y controles y acordeón
-function generateTableRowsWithAccordion({
-  nodes,
-  depth = 0,
-  openAccordions,
-  handleAccordionToggle,
-  setAnchorEl,
-  setSelectedListId,
-  setCreatingList,
-  setError,
-  setDeleteTarget,
-  setShowDeleteModal,
-  setEditingListNode,
-  setEditingNode,
-  setNodeData,
-  setSelectedForm,
-  navigate,
-  stageId,
-}: GenerateTableRowsProps & {
-  openAccordions: { [key: number]: boolean };
-  handleAccordionToggle: (listId: number) => void;
-}): React.ReactNode[] {
-  let rows: React.ReactNode[] = [];
-  nodes.forEach((node: any) => {
-    if (node.type_code === 'list') {
-      rows.push(
-        <React.Fragment key={node.id}>
-          <tr className={styles.listadoRow}>
-            <td className={styles.listadoCellNombre + ' ' + (depth > 0 ? styles.listadoCellNombreIndent : '')} onClick={() => handleAccordionToggle(node.id)}>
-              <Box display="flex" alignItems="center" gap={1}>
-                <IconButton size="small" onClick={e => { e.stopPropagation(); handleAccordionToggle(node.id); }}>
-                  {openAccordions[node.id] ? <ExpandMoreIcon sx={{ transform: 'rotate(180deg)' }} /> : <ExpandMoreIcon />}
-                </IconButton>
-                <Typography className={styles.textNombre}>{node.name}</Typography>
-              </Box>
-            </td>
-            <td className={styles.listadoCell}></td>
-            <td className={styles.listadoCell}></td>
-            <td className={styles.listadoCell}></td>
-            <td className={styles.listadoCell}>{node.status || '-'}</td>
-            <td className={styles.listadoCell}>{node.progress_percent ?? 0}%</td>
-            <td className={styles.acciones}>
-              <IconButton size="small" onClick={e => { e.stopPropagation(); setEditingListNode(node); }}>
-                <EditIcon />
-              </IconButton>
-              <IconButton
-                size="small"
-                onClick={e => { e.stopPropagation(); setAnchorEl(e.currentTarget); setSelectedListId(node.id); setCreatingList(false); setError(null); }}
-                className={styles.botonAzul}
-              >
-                <AddIcon />
-              </IconButton>
-              <IconButton
-                size="small"
-                color="error"
-                onClick={e => {
-                  e.stopPropagation();
-                  setDeleteTarget(node);
-                  setShowDeleteModal(true);
-                }}
-                className={styles.botonRojo}
-              >
-                <DeleteIcon />
-              </IconButton>
-            </td>
-          </tr>
-          {/* Fila para la descripción del listado */}
-          <tr className={styles.listadoRow}>
-            <td colSpan={7} className={styles.listadoCellDescripcionIndent}>
-              {node.description && (
-                <Typography variant="body2" className={styles.textDescripcion}>
-                  {node.description}
-                </Typography>
-              )}
-            </td>
-          </tr>
-          {openAccordions[node.id] && (
-            <>
-              {/* Primero renderiza los listados hijos recursivamente */}
-              {generateTableRowsWithAccordion({
-                nodes: (node.children || []).filter((n: any) => n.type_code === 'list'),
-                depth: depth + 1,
-                openAccordions,
-                handleAccordionToggle,
-                setAnchorEl,
-                setSelectedListId,
-                setCreatingList,
-                setError,
-                setDeleteTarget,
-                setShowDeleteModal,
-                setEditingListNode,
-                setEditingNode,
-                setNodeData,
-                setSelectedForm,
-                navigate,
-                stageId,
-              })}
-              {/* Luego renderiza los documentos hijos de este listado */}
-              {(node.children || []).filter((n: any) => n.type_code !== 'list').map((doc: any) => {
-                return (
-                  <tr key={doc.id}>
-                    <td className={`${styles.tableCellIndent} ${styles[`indent-${depth + 2}`]}`}>
-                      {doc.file_url ? (
-                        <a href={doc.file_url} target="_blank" rel="noopener noreferrer" className={styles.textDocument}>
-                          {doc.name}
-                        </a>
-                      ) : (
-                        <Typography className={styles.textDocument}>{doc.name}</Typography>
-                      )}
-                    </td>
-                    <td className={styles.tableCell}>{doc.type_display}</td>
-                    <td className={styles.tableCell}>{doc.start_date ? new Date(doc.start_date).toLocaleDateString() : '-'}</td>
-                    <td className={styles.tableCell}>{doc.end_date ? new Date(doc.end_date).toLocaleDateString() : '-'}</td>
-                    <td className={styles.tableCell}>{doc.status || '-'}</td>
-                    <td className={styles.tableCell}>{doc.progress_percent ?? 0}%</td>
-                    <td className={styles.tableCellRight}>
-                      <IconButton size="small" onClick={e => {
-                        e.stopPropagation();
-                        if (doc.type_code === 'construction_solution') {
-                          if (typeof setNodeData === 'function' && typeof setSelectedForm === 'function' && typeof navigate === 'function') {
-                            setNodeData({
-                              ...doc,
-                              stageId: stageId,
-                              isEditing: true
-                            });
-                            setSelectedForm({ 
-                              id: doc.form_id, 
-                              name: doc.form_name,
-                              isEditing: true
-                            });
-                            navigate('/constructive/create');
-                          }
-                        } else {
-                          setEditingNode(doc);
-                        }
-                      }}>
-                        <EditIcon />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        color="error"
-                        onClick={e => {
-                          e.stopPropagation();
-                          setDeleteTarget(doc);
-                          setShowDeleteModal(true);
-                        }}
-                        className={styles.tableCellRightButton}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </td>
-                  </tr>
-                );
-              })}
-            </>
-          )}
-        </React.Fragment>
-      );
-    } else {
-      // Fila para documento
-      // Solo renderizar documentos en el nivel raíz (si es necesario, pero normalmente no)
-    }
-  });
-  return rows;
-}
-
 const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, projectId, architectureProjectId }) => {
   const queryClient = useQueryClient();
-  // Usar el árbol completo del stage
   const { data: tree, isLoading } = useProjectNodeTree(stageId);
-  // State for which accordions are open
+  
+  // Estados para el manejo de acordeones
   const [openAccordions, setOpenAccordions] = useState<{ [key: number]: boolean }>({});
-  // State for add antecedent menu
+  
+  // Estados para el menú de tipos de nodos
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedListId, setSelectedListId] = useState<number | null>(null);
   const [newListName, setNewListName] = useState('');
   const [creatingList, setCreatingList] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Estados para edición y eliminación
   const [editingListNode, setEditingListNode] = useState<ProjectNode | null>(null);
-  // Estado para eliminar
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -253,6 +75,7 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
     .filter((n: any) => n.type_code === 'list')
     .sort((a: any, b: any) => a.name.localeCompare(b.name));
 
+  // Manejadores de eventos
   const handleAccordionToggle = (listId: number) => {
     setOpenAccordions(prev => ({ ...prev, [listId]: !prev[listId] }));
   };
@@ -273,7 +96,7 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
     setError(null);
     try {
       const result = await createList.mutateAsync({
-        parent: stageId,
+        parent: selectedListId || stageId,
         name: newListName,
         description: '',
         is_active: true,
@@ -310,16 +133,20 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
       navigate('/constructive/select');
       return;
     }
-    // ... resto para otros tipos (document, etc)
+
     try {
-      // Crear un nodo temporal con el tipo seleccionado
       const tempNode: ProjectNode = {
-        id: -1, // ID temporal
+        id: -1,
         parent: selectedListId,
         name: '',
         description: '',
         is_active: true,
-        type,
+        type: {
+          id: -1,
+          name: type,
+          code: type
+        },
+        type_code: type,
         children: [],
         file_type: null,
         properties: [],
@@ -346,7 +173,6 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
     }
   };
 
-  
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
@@ -366,7 +192,6 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
     <div>
       <Typography variant="h5" gutterBottom>Listado de antecedentes</Typography>
       <div className={styles.container}>
-        {/* Tabla raíz de documentos y listados hijos con acordeón */}
         <Box className={styles.tableContainer}>
           <table className={styles.listadoTable}>
             <thead>
@@ -381,24 +206,22 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
               </tr>
             </thead>
             <tbody>
-              {generateTableRowsWithAccordion({
-                nodes: lists,
-                depth: 0,
-                openAccordions,
-                handleAccordionToggle,
-                setAnchorEl,
-                setSelectedListId,
-                setCreatingList,
-                setError,
-                setDeleteTarget,
-                setShowDeleteModal,
-                setEditingListNode,
-                setEditingNode,
-                setNodeData,
-                setSelectedForm,
-                navigate,
-                stageId,
-              })}
+              <NodeTree
+                nodes={lists}
+                openAccordions={openAccordions}
+                onToggleAccordion={handleAccordionToggle}
+                onAddNode={(nodeId) => {
+                  setAnchorEl(document.activeElement as HTMLElement);
+                  setSelectedListId(nodeId);
+                  setCreatingList(false);
+                  setError(null);
+                }}
+                onEditNode={setEditingListNode}
+                onDeleteNode={(node) => {
+                  setDeleteTarget(node);
+                  setShowDeleteModal(true);
+                }}
+              />
             </tbody>
           </table>
         </Box>
@@ -406,12 +229,18 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
           variant="contained" 
           color="primary" 
           startIcon={<AddIcon />} 
-          onClick={(e) => { setAnchorEl(e.currentTarget); setSelectedListId(null); setCreatingList(true); setError(null); }} 
+          onClick={(e) => { 
+            setAnchorEl(e.currentTarget); 
+            setSelectedListId(null); 
+            setCreatingList(true); 
+            setError(null); 
+          }} 
           className={styles.addButton}
         >
           Agregar Listado
         </Button>
       </div>
+
       {/* Popover para agregar listado o antecedentes */}
       <Popover
         open={!!anchorEl && Boolean(creatingList || selectedListId)}
@@ -420,75 +249,18 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
-        <Box className={styles.popoverContent}>
-          {/* Si estamos creando un listado y no hay listado seleccionado */}
-          {creatingList && !selectedListId && (
-            <Box className={styles.popoverSection}>
-              <TextField
-                label="Nombre del listado"
-                value={newListName}
-                onChange={e => setNewListName(e.target.value)}
-                size="small"
-                fullWidth
-              />
-              <Button onClick={handleCreateList} variant="contained" color="primary" size="small" className={styles.popoverButton}>
-                Crear Listado
-              </Button>
-            </Box>
-          )}
-          {/* Si hay un listado seleccionado, mostrar opciones para agregar antecedentes o crear listado contenedor */}
-          {selectedListId && !creatingList && (
-            <>
-              <MenuItem disabled>Selecciona el tipo de antecedente a crear:</MenuItem>
-              <MenuItem onClick={() => handleCreateAntecedent('document')}>Documento</MenuItem>
-              <MenuItem onClick={() => handleCreateAntecedent('form')}>Formulario</MenuItem>
-              <MenuItem onClick={() => handleCreateAntecedent('certificate')}>Certificado</MenuItem>
-              <MenuItem onClick={() => handleCreateAntecedent('construction_solution')}>Solución Constructiva</MenuItem>
-              <MenuItem onClick={() => handleCreateAntecedent('external_link')}>Enlace Externo</MenuItem>
-              <MenuItem divider />
-              <MenuItem onClick={() => { setCreatingList(true); setNewListName(''); }}>+ Agregar Listado Contenedor</MenuItem>
-            </>
-          )}
-          {/* Si estamos creando un listado contenedor dentro de otro listado */}
-          {creatingList && selectedListId && (
-            <Box className={styles.popoverSection}>
-              <TextField
-                label="Nombre del listado contenedor"
-                value={newListName}
-                onChange={e => setNewListName(e.target.value)}
-                size="small"
-                fullWidth
-              />
-              <Button onClick={async () => {
-                if (!newListName.trim()) {
-                  setError('El nombre del listado es obligatorio');
-                  return;
-                }
-                setError(null);
-                try {
-                  await createList.mutateAsync({
-                    parent: selectedListId,
-                    name: newListName,
-                    description: '',
-                    is_active: true,
-                    type: 'list' as NodeType,
-                  });
-                  setCreatingList(false);
-                  setNewListName('');
-                  setSelectedListId(null);
-                  setAnchorEl(null);
-                  queryClient.invalidateQueries({ queryKey: ['projectNodeTree', stageId] });
-                } catch (err: any) {
-                  setError(extractBackendError(err));
-                }
-              }} variant="contained" color="primary" size="small" className={styles.popoverButton}>
-                Crear Listado Contenedor
-              </Button>
-            </Box>
-          )}
-          {error && <MenuItem disabled className={styles.errorText}>{error}</MenuItem>}
-        </Box>
+        <NodeTypeMenu
+          isCreatingList={creatingList}
+          selectedListId={selectedListId}
+          newListName={newListName}
+          onNewListNameChange={setNewListName}
+          onCreateList={handleCreateList}
+          onCreateAntecedent={handleCreateAntecedent}
+          onStartCreatingList={() => { setCreatingList(true); setNewListName(''); }}
+          error={error}
+        />
       </Popover>
+
       {/* Modal de confirmación para eliminar */}
       <Dialog open={showDeleteModal} onClose={() => setShowDeleteModal(false)}>
         <DialogTitle>Eliminar {deleteTarget?.type === 'list' ? 'Listado' : 'Documento'}</DialogTitle>
@@ -506,6 +278,7 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
           <Button onClick={handleDelete} color="error" disabled={deleting} variant="contained">Eliminar</Button>
         </DialogActions>
       </Dialog>
+
       <ModalDocumentNode
         open={!!editingNode}
         onClose={() => setEditingNode(null)}
