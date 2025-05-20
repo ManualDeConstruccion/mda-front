@@ -1,4 +1,5 @@
-@import '../../styles/_variables.scss';
+@use '../../styles/_variables.scss' as *;
+@use "sass:color";
 
 .container {
   min-height: 100vh;
@@ -116,6 +117,6 @@
   transition: background-color 0.2s ease;
 
   &:hover {
-    background-color: darken(#1e3d59, 10%);
+    background-color: color.adjust(#1e3d59, $lightness: -10%);
   }
 } 
