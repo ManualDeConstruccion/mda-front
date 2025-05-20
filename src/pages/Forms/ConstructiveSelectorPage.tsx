@@ -45,7 +45,11 @@ export default function ConstructiveSelectorPage() {
   console.log(categories);
 
   const handleSelectForm = (form: any) => {
-    setSelectedForm(form);
+    setSelectedForm({
+      ...form,
+      node_type: form.node_type,
+      model_name: form.model_name
+    });
     navigate('/constructive/create');
   };
 
