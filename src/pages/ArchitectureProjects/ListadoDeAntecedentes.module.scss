@@ -8,6 +8,7 @@
 .listadoRow {
   background: $background-color;
   padding-bottom: 10px;
+  border-bottom: 2px solid $border-color;
 }
 
 .listadoCell {
@@ -33,10 +34,10 @@
 
 .textDescripcion {
   color: $primary-color;
-  font-size: $font-size-xs;
-  margin-top: 0;
-  margin-bottom: 1rem;
-  padding-left: 20px;
+  font-size: $font-size-sm !important;
+  margin-top: 0 !important;
+  margin-bottom: 0.5rem !important;
+  padding-left: 40px !important;
 
 }
 

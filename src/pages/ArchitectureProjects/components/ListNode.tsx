@@ -47,6 +47,11 @@ const ListNode: React.FC<ListNodeProps> = ({
             </IconButton>
             <Typography className={styles.textNombre}>{node.name}</Typography>
           </Box>
+          {node.description && (
+            <Typography className={styles.textDescripcion}>
+              {node.description}
+            </Typography>
+          )}
         </td>
         <td className={styles.listadoCell}></td>
         <td className={styles.listadoCell}></td>
@@ -84,16 +89,6 @@ const ListNode: React.FC<ListNodeProps> = ({
           >
             <DeleteIcon />
           </IconButton>
-        </td>
-      </tr>
-      {/* Fila para la descripción del listado */}
-      <tr className={styles.listadoRow}>
-        <td colSpan={7} className={styles.listadoCellDescripcionIndent}>
-          {node.description && (
-            <Typography variant="body2" className={styles.textDescripcion}>
-              {node.description}
-            </Typography>
-          )}
         </td>
       </tr>
       {isOpen && children}
