@@ -25,7 +25,7 @@ const NodeRow: React.FC<NodeRowProps> = ({ node, onEdit, onDelete, indentClass }
           <Typography className={styles.textDocument}>{node.name}</Typography>
         )}
       </td>
-      <td className={styles.tableCell}>{node.type}</td>
+      <td className={styles.tableCell}>{node.type_name}</td>
       <td className={styles.tableCell}>{node.start_date ? new Date(node.start_date).toLocaleDateString() : '-'}</td>
       <td className={styles.tableCell}>{node.end_date ? new Date(node.end_date).toLocaleDateString() : '-'}</td>
       <td className={styles.tableCell}>{node.status || '-'}</td>

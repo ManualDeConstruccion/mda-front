@@ -55,11 +55,8 @@ const NodeTypeMenu: React.FC<NodeTypeMenuProps> = ({
           <MenuItem onClick={() => onCreateAntecedent('document')}>Documento</MenuItem>
           <MenuItem onClick={() => onCreateAntecedent('form')}>Formulario</MenuItem>
           <MenuItem onClick={() => onCreateAntecedent('certificate')}>Certificado</MenuItem>
-          <MenuItem onClick={() => onCreateAntecedent('construction_solution')}>Solución Constructiva</MenuItem>
-          <MenuItem onClick={() => onCreateAntecedent('layer')}>Capa</MenuItem>
           <MenuItem onClick={() => onCreateAntecedent('external_link')}>Enlace Externo</MenuItem>
-          <MenuItem divider />
-          <MenuItem onClick={onStartCreatingList}>+ Agregar Listado Contenedor</MenuItem>
+          <MenuItem onClick={onStartCreatingList}>Listado</MenuItem>
         </>
       )}
 

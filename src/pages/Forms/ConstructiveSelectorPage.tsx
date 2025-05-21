@@ -1,9 +1,21 @@
 import React, { useState } from 'react';
 import { useFormNode } from '../../context/FormNodeContext';
 import { useNavigate } from 'react-router-dom';
-import { Accordion, AccordionSummary, AccordionDetails, Typography, TextField, Box, List, ListItem, CircularProgress } from '@mui/material';
+import { 
+  Accordion, 
+  AccordionSummary, 
+  AccordionDetails, 
+  Typography, 
+  TextField, 
+  Box, 
+  List, 
+  ListItem, 
+  CircularProgress,
+  Chip,
+  Stack
+} from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { useFormCategoriesTree } from '../../hooks/useFormCategoriesTree';
+import { useFormCategoriesTree, NodeTypeCategoryGroup } from '../../hooks/useFormCategoriesTree';
 
 function ConstructiveCategoryAccordion({ category, depth = 0, onSelectForm }: any) {
   return (
@@ -39,23 +51,36 @@ function ConstructiveCategoryAccordion({ category, depth = 0, onSelectForm }: an
 export default function ConstructiveSelectorPage() {
   const { setSelectedForm } = useFormNode();
   const [search, setSearch] = useState('');
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const navigate = useNavigate();
   const { categories, isLoading } = useFormCategoriesTree(search);
-
-  console.log(categories);
 
   const handleSelectForm = (form: any) => {
     setSelectedForm({
       ...form,
       node_type: form.node_type,
-      model_name: form.model_name
+      model_name: form.model_name,
+      type: form.type,
     });
-    navigate('/constructive/create');
+    navigate('/constructive/node/create');
   };
+
+  const handleTypeFilter = (typeName: string) => {
+    setSelectedTypes(prev => 
+      prev.includes(typeName) 
+        ? prev.filter(t => t !== typeName)
+        : [...prev, typeName]
+    );
+  };
+
+  const filteredCategories = (categories as NodeTypeCategoryGroup[] | undefined)?.filter(cat => 
+    selectedTypes.length === 0 || selectedTypes.includes(cat.node_type_name)
+  );
 
   return (
     <Box p={3}>
       <Typography variant="h5" gutterBottom>Selecciona el tipo de formulario</Typography>
+      
       <TextField
         label="Buscar formulario"
         value={search}
@@ -63,12 +88,37 @@ export default function ConstructiveSelectorPage() {
         fullWidth
         sx={{ mb: 2 }}
       />
+
+      {/* Filtros de tipo */}
+      <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+        {(categories as NodeTypeCategoryGroup[] | undefined)?.map((cat) => (
+          <Chip
+            key={cat.node_type_name}
+            label={cat.node_type_name}
+            onClick={() => handleTypeFilter(cat.node_type_name)}
+            color={selectedTypes.includes(cat.node_type_name) ? "primary" : "default"}
+            variant={selectedTypes.includes(cat.node_type_name) ? "filled" : "outlined"}
+          />
+        ))}
+      </Stack>
+
       {isLoading ? (
         <CircularProgress />
       ) : (
         <Box>
-          {categories?.map((cat: any) => (
-            <ConstructiveCategoryAccordion key={cat.id} category={cat} onSelectForm={handleSelectForm} />
+          {filteredCategories?.map((nodeType) => (
+            <Box key={nodeType.node_type_name} sx={{ mb: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                {nodeType.node_type_name}
+              </Typography>
+              {nodeType.categories?.map((cat) => (
+                <ConstructiveCategoryAccordion 
+                  key={cat.id} 
+                  category={cat} 
+                  onSelectForm={handleSelectForm} 
+                />
+              ))}
+            </Box>
           ))}
         </Box>
       )}

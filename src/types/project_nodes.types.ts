@@ -62,6 +62,7 @@ export interface CreateProjectNodeDto {
   status?: NodeStatus;
   progress_percent?: number;
   model_name?: string; // Nombre del modelo de formulario asociado
+  content_type?: number; // ID del modelo de formulario asociado
 }
 
 export interface UpdateProjectNodeDto extends Partial<CreateProjectNodeDto> {}

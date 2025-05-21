@@ -117,9 +117,9 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
       case 'document':
         setEditingNode(node); // Modal para documentos
         break;
-      case 'construction_solution':
-        // Aquí puedes abrir un modal específico para construction_solution en el futuro
-        // setEditingConstructionSolutionNode(node);
+      case 'form':
+        setNodeData(node);
+        navigate(`/constructive/node/edit/${node.id}`);
         break;
       default:
         // Aquí puedes manejar otros tipos en el futuro
@@ -135,14 +135,13 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
     setError(null);
 
     switch (type) {
-      case 'construction_solution':
-        // Lógica para crear construction_solution
+      case 'form':
         setNodeData({
           parent: selectedListId,
           name: '',
           description: '',
           is_active: true,
-          type: 'construction_solution',
+          type: 'form',
           project_id: projectId,
           architecture_project_id: architectureProjectId,
         });
@@ -153,11 +152,13 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
       case 'document':
         // Lógica para crear documento
         break;
-      case 'list':
-        // Lógica para crear listado
+      case 'certificate':
+        // Lógica para crear certificado
+        break;
+      case 'external_link':
+        // Lógica para crear enlace externo
         break;
       default:
-        // Aquí puedes manejar otros tipos en el futuro
         break;
     }
 
