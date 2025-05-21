@@ -1,11 +1,8 @@
 import React, { useState } from 'react';
 import { useProjectNodeTree } from '../../hooks/useProjectNodes';
 import { NodeType, ProjectNode } from '../../types/project_nodes.types';
-import { Button, Popover, MenuItem, TextField, Typography, IconButton, Box, } from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { Button, Popover, Typography, Box, } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -72,7 +69,7 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
 
   // Obtener los lists hijos del stage
   const lists = (tree.children || [])
-    .filter((n: any) => n.type_code === 'list')
+    .filter((n: any) => n.type === 'list')
     .sort((a: any, b: any) => a.name.localeCompare(b.name));
 
   // Manejadores de eventos
@@ -95,19 +92,38 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
     }
     setError(null);
     try {
-      const result = await createList.mutateAsync({
+      await createList.mutateAsync({
         parent: selectedListId || stageId,
         name: newListName,
         description: '',
         is_active: true,
         type: 'list' as NodeType,
       });
-      setSelectedListId(result.id);
       setCreatingList(false);
       setNewListName('');
+      handleMenuClose();
       queryClient.invalidateQueries({ queryKey: ['projectNodeTree', stageId] });
     } catch (err: any) {
       setError(extractBackendError(err));
+    }
+  };
+
+  // --- Handler para editar nodos según su tipo ---
+  const handleEditNode = (node: ProjectNode) => {
+    switch (node.type) {
+      case 'list':
+        setEditingListNode(node);
+        break;
+      case 'document':
+        setEditingNode(node); // Modal para documentos
+        break;
+      case 'construction_solution':
+        // Aquí puedes abrir un modal específico para construction_solution en el futuro
+        // setEditingConstructionSolutionNode(node);
+        break;
+      default:
+        // Aquí puedes manejar otros tipos en el futuro
+        break;
     }
   };
 
@@ -118,20 +134,31 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
     }
     setError(null);
 
-    if (type === 'construction_solution') {
-      setNodeData({
-        parent: selectedListId,
-        name: '',
-        description: '',
-        is_active: true,
-        type: 'construction_solution',
-        project_id: projectId,
-        architecture_project_id: architectureProjectId,
-      });
-      setSelectedForm(undefined);
-      handleMenuClose();
-      navigate('/constructive/select');
-      return;
+    switch (type) {
+      case 'construction_solution':
+        // Lógica para crear construction_solution
+        setNodeData({
+          parent: selectedListId,
+          name: '',
+          description: '',
+          is_active: true,
+          type: 'construction_solution',
+          project_id: projectId,
+          architecture_project_id: architectureProjectId,
+        });
+        setSelectedForm(undefined);
+        handleMenuClose();
+        navigate('/constructive/select');
+        return;
+      case 'document':
+        // Lógica para crear documento
+        break;
+      case 'list':
+        // Lógica para crear listado
+        break;
+      default:
+        // Aquí puedes manejar otros tipos en el futuro
+        break;
     }
 
     try {
@@ -141,12 +168,8 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
         name: '',
         description: '',
         is_active: true,
-        type: {
-          id: -1,
-          name: type,
-          code: type
-        },
-        type_code: type,
+        type: type,
+        type_name: '',
         children: [],
         file_type: null,
         properties: [],
@@ -216,7 +239,7 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
                   setCreatingList(false);
                   setError(null);
                 }}
-                onEditNode={setEditingListNode}
+                onEditNode={handleEditNode}
                 onDeleteNode={(node) => {
                   setDeleteTarget(node);
                   setShowDeleteModal(true);
@@ -279,18 +302,28 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
         </DialogActions>
       </Dialog>
 
+      {/* --- Modales de edición según tipo de nodo --- */}
+      {/* Modal para editar nodos tipo 'document' */}
       <ModalDocumentNode
-        open={!!editingNode}
+        open={!!editingNode && editingNode.type === 'document'}
         onClose={() => setEditingNode(null)}
         node={editingNode}
         stageId={stageId}
       />
+      {/* Modal para editar nodos tipo 'list' */}
       <EditListNode
-        open={!!editingListNode}
+        open={!!editingListNode && editingListNode.type === 'list'}
         onClose={() => setEditingListNode(null)}
         node={editingListNode}
         stageId={stageId}
       />
+      {/* Aquí puedes agregar el modal para 'construction_solution' en el futuro */}
+      {/* <EditConstructionSolutionNode
+        open={!!editingConstructionSolutionNode}
+        onClose={() => setEditingConstructionSolutionNode(null)}
+        node={editingConstructionSolutionNode}
+        stageId={stageId}
+      /> */}
     </div>
   );
 };

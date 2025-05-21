@@ -40,6 +40,7 @@ const ProjectDetail: React.FC = () => {
     start_date: project?.start_date || '',
     end_date: project?.end_date || '',
     cover_image: null as File | null,
+    type: 'project' as const,
   });
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(project?.cover_image_url || null);

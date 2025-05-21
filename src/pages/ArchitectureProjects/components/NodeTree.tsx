@@ -26,7 +26,7 @@ const NodeTree: React.FC<NodeTreeProps> = ({
   return (
     <>
       {nodes.map((node) => {
-        if (node.type_code === 'list') {
+        if (node.type === 'list') {
           return (
             <ListNode
               key={node.id}
@@ -40,7 +40,7 @@ const NodeTree: React.FC<NodeTreeProps> = ({
             >
               {/* Renderizar listados hijos recursivamente */}
               <NodeTree
-                nodes={node.children?.filter(n => n.type_code === 'list') || []}
+                nodes={node.children?.filter(n => n.type === 'list') || []}
                 depth={depth + 1}
                 openAccordions={openAccordions}
                 onToggleAccordion={onToggleAccordion}
@@ -50,7 +50,7 @@ const NodeTree: React.FC<NodeTreeProps> = ({
               />
               {/* Renderizar documentos hijos */}
               {node.children
-                ?.filter(n => n.type_code !== 'list')
+                ?.filter(n => n.type !== 'list')
                 .map((doc) => (
                   <NodeRow
                     key={doc.id}

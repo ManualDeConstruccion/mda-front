@@ -1,9 +1,3 @@
-export interface NodeTypeObject {
-  id: number;
-  name: string;
-  code: string;
-}
-
 export type NodeType = string;
 
 export type NodeStatus = 'en_estudio' | 'pendiente' | 'finalizado';
@@ -24,8 +18,8 @@ export interface ProjectNode {
   id: number;
   name: string;
   description: string | null;
-  type: NodeTypeObject;
-  type_code: string;
+  type: NodeType;
+  type_name?: string;
   file_type: FileType | null;
   parent: number | null;
   children: ProjectNode[];

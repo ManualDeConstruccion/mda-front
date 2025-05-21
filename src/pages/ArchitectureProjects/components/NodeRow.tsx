@@ -13,7 +13,7 @@ interface NodeRowProps {
   indentClass?: string;
 }
 
-const NodeRow: React.FC<NodeRowProps> = ({ node, depth, onEdit, onDelete, indentClass }) => {
+const NodeRow: React.FC<NodeRowProps> = ({ node, onEdit, onDelete, indentClass }) => {
   return (
     <tr>
       <td className={`${styles.tableCellIndent} ${indentClass || ''}`}>
@@ -25,7 +25,7 @@ const NodeRow: React.FC<NodeRowProps> = ({ node, depth, onEdit, onDelete, indent
           <Typography className={styles.textDocument}>{node.name}</Typography>
         )}
       </td>
-      <td className={styles.tableCell}>{node.type.name}</td>
+      <td className={styles.tableCell}>{node.type}</td>
       <td className={styles.tableCell}>{node.start_date ? new Date(node.start_date).toLocaleDateString() : '-'}</td>
       <td className={styles.tableCell}>{node.end_date ? new Date(node.end_date).toLocaleDateString() : '-'}</td>
       <td className={styles.tableCell}>{node.status || '-'}</td>
