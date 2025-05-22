@@ -1,27 +1,43 @@
 import React, { useState, useEffect } from 'react';
 import { useFormNode } from '../../context/FormNodeContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Box, Typography, Button, TextField, FormControlLabel, Switch } from '@mui/material';
 import { useProjectNodes } from '../../hooks/useProjectNodes';
 
 export default function ConstructionSolutionCreatePage() {
   const { selectedForm, nodeData, setNodeData } = useFormNode();
   const navigate = useNavigate();
+  const { mode, id } = useParams(); // mode: 'create' | 'edit', id?: string
   const [form, setForm] = useState({
-    name: nodeData?.name || '',
-    description: nodeData?.description || '',
-    is_active: nodeData?.is_active ?? true,
+    name: '',
+    description: '',
+    is_active: true,
   });
-
-  const { createProject, updateProject, isLoadingProjects } = useProjectNodes();
+  const { createProject, updateProject, projects, isLoadingProjects } = useProjectNodes();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Al editar, obtener el nodo y poblar el formulario
+  useEffect(() => {
+    if (mode === 'edit' && id && projects) {
+      const node = projects.find((n) => n.id === Number(id));
+      if (node) {
+        setForm({
+          name: node.name,
+          description: node.description || '',
+          is_active: node.is_active,
+        });
+        setNodeData(node);
+      }
+    }
+  }, [mode, id, projects, setNodeData]);
 
   useEffect(() => {
     setNodeData((prev: any) => ({ ...prev, ...form }));
   }, [form, setNodeData]);
 
-  if (!selectedForm && !nodeData) {
+  // Si es creación y no hay formulario seleccionado, redirige al selector
+  if (!selectedForm && mode === 'create') {
     navigate('/constructive/select');
     return null;
   }
@@ -38,35 +54,29 @@ export default function ConstructionSolutionCreatePage() {
     setSaving(true);
     setError(null);
     try {
-      if (nodeData?.isEditing) {
-        // Si estamos editando, actualizamos el nodo existente
+      if (mode === 'edit' && id) {
         await updateProject.mutateAsync({
-          id: nodeData.id,
+          id: Number(id),
           data: {
             name: form.name,
             description: form.description,
             is_active: form.is_active,
           }
         });
+        navigate(-1);
       } else {
-        // Si estamos creando, creamos un nuevo nodo
         await createProject.mutateAsync({
           name: form.name,
           description: form.description,
           is_active: form.is_active,
-          type: 'construction_solution',
+          type: selectedForm.node_type,
           parent: nodeData?.parent,
+          content_type: selectedForm.content_type,
         });
-      }
-      
-      // Navegar de vuelta usando los IDs del proyecto y arquitectura
-      if (nodeData?.project_id && nodeData?.architecture_project_id) {
-        navigate(`/proyectos/${nodeData.project_id}/arquitectura/${nodeData.architecture_project_id}`);
-      } else {
-        navigate(-1); // Fallback a navegación hacia atrás si no hay IDs
+        navigate(-1);
       }
     } catch (err: any) {
-      setError(err.message || 'Error al guardar la solución constructiva');
+      setError(err.message || 'Error al guardar');
     } finally {
       setSaving(false);
     }
@@ -75,8 +85,9 @@ export default function ConstructionSolutionCreatePage() {
   return (
     <Box p={3}>
       <Typography variant="h5" gutterBottom>
-        {nodeData?.isEditing ? 'Editar Solución Constructiva' : `Crear Solución Constructiva: ${selectedForm?.name}`}
+        {mode === 'edit' ? 'Editar Formulario' : `Crear Formulario: ${selectedForm?.name}`}
       </Typography>
+      {error && <Typography color="error">{error}</Typography>}
       <Box my={2} display="flex" flexDirection="column" gap={2}>
         <TextField
           label="Nombre"
@@ -93,22 +104,6 @@ export default function ConstructionSolutionCreatePage() {
           fullWidth
           multiline
         />
-        {!nodeData?.isEditing && (
-          <Button 
-            variant="outlined" 
-            onClick={() => {
-              setNodeData((prev: any) => ({
-                ...prev,
-                name: form.name,
-                description: form.description,
-                is_active: form.is_active,
-              }));
-              navigate('/constructive/select');
-            }}
-          >
-            Volver a seleccionar formulario
-          </Button>
-        )}
         <FormControlLabel
           control={
             <Switch
@@ -119,16 +114,15 @@ export default function ConstructionSolutionCreatePage() {
           }
           label="Activo"
         />
-        {error && <Typography color="error">{error}</Typography>}
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleSubmit}
+          disabled={saving || isLoadingProjects}
+        >
+          {saving ? 'Guardando...' : mode === 'edit' ? 'Actualizar' : 'Guardar'}
+        </Button>
       </Box>
-      <Button 
-        variant="contained" 
-        color="primary" 
-        onClick={handleSubmit} 
-        disabled={saving || isLoadingProjects}
-      >
-        {saving ? 'Guardando...' : nodeData?.isEditing ? 'Actualizar' : 'Guardar'}
-      </Button>
     </Box>
   );
 } 

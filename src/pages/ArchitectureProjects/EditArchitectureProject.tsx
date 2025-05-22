@@ -53,13 +53,9 @@ const EditArchitectureProject: React.FC = () => {
   }, [architectureProject, loaded]);
 
   // 2) etapas
-  const [stagesInitialized, setStagesInitialized] = useState(false);
   useEffect(() => {
-    if (!stagesInitialized && stages.length > 0) {
-      setStagesList(stages.map(s => ({ id: s.id, name: s.name })));
-      setStagesInitialized(true);
-    }
-  }, [stages, stagesInitialized]);
+    setStagesList(stages.map(s => ({ id: s.id, name: s.name })));
+  }, [stages]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;

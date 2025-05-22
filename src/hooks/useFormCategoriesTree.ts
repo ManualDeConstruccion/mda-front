@@ -20,6 +20,12 @@ export interface Category {
   parent_name?: string;
 }
 
+// NUEVO: Agrupación por node_type_name
+export interface NodeTypeCategoryGroup {
+  node_type_name: string;
+  categories: Category[];
+}
+
 export const useFormCategoriesTree = (search?: string) => {
   const { accessToken } = useAuth();
   const axiosConfig = {
@@ -32,7 +38,8 @@ export const useFormCategoriesTree = (search?: string) => {
       const url = search
         ? `${API_URL}/categories/search/?q=${encodeURIComponent(search)}`
         : `${API_URL}/categories/tree/`;
-      const response = await axios.get<Category[]>(url, axiosConfig);
+      // Cambia el tipado de la respuesta aquí:
+      const response = await axios.get<NodeTypeCategoryGroup[]>(url, axiosConfig);
       return response.data;
     },
     enabled: !!accessToken,

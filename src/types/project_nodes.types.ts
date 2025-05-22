@@ -1,15 +1,4 @@
-export type NodeType =
-  | 'project'
-  | 'architecture_subproject'
-  | 'budget'
-  | 'document'
-  | 'form'
-  | 'certificate'
-  | 'construction_solution'
-  | 'layer'
-  | 'external_link'
-  | 'list'
-  | 'stage';
+export type NodeType = string;
 
 export type NodeStatus = 'en_estudio' | 'pendiente' | 'finalizado';
 
@@ -30,6 +19,7 @@ export interface ProjectNode {
   name: string;
   description: string | null;
   type: NodeType;
+  type_name?: string;
   file_type: FileType | null;
   parent: number | null;
   children: ProjectNode[];
@@ -71,6 +61,8 @@ export interface CreateProjectNodeDto {
   end_date?: string | null;
   status?: NodeStatus;
   progress_percent?: number;
+  model_name?: string; // Nombre del modelo de formulario asociado
+  content_type?: number; // ID del modelo de formulario asociado
 }
 
 export interface UpdateProjectNodeDto extends Partial<CreateProjectNodeDto> {}

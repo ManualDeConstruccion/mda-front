@@ -5,6 +5,15 @@ import { useProjectNodes } from '../../hooks/useProjectNodes';
 import { useQueryClient } from '@tanstack/react-query';
 import NodePermissionsModal from './NodePermissionsModal';
 
+// TODO: Importar los modales correspondientes para cada tipo de nodo
+// Ejemplo:
+// import EditDocumentNode from './EditDocumentNode';
+// import EditFormNode from './EditFormNode';
+// import EditCertificateNode from './EditCertificateNode';
+// import EditConstructionSolutionNode from './EditConstructionSolutionNode';
+// import EditLayerNode from './EditLayerNode';
+// import EditExternalLinkNode from './EditExternalLinkNode';
+
 interface EditListNodeProps {
   open: boolean;
   onClose: () => void;
@@ -20,6 +29,15 @@ const EditListNode: React.FC<EditListNodeProps> = ({ open, onClose, node, stageI
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPermissions, setShowPermissions] = useState(false);
+
+  // TODO: Agregar estados para los diferentes tipos de nodos
+  // Ejemplo:
+  // const [showDocumentModal, setShowDocumentModal] = useState(false);
+  // const [showFormModal, setShowFormModal] = useState(false);
+  // const [showCertificateModal, setShowCertificateModal] = useState(false);
+  // const [showConstructionSolutionModal, setShowConstructionSolutionModal] = useState(false);
+  // const [showLayerModal, setShowLayerModal] = useState(false);
+  // const [showExternalLinkModal, setShowExternalLinkModal] = useState(false);
 
   useEffect(() => {
     if (node) {
@@ -50,6 +68,27 @@ const EditListNode: React.FC<EditListNodeProps> = ({ open, onClose, node, stageI
       setSaving(false);
     }
   };
+
+  // TODO: Agregar manejadores para los diferentes tipos de nodos
+  // Ejemplo:
+  // const handleDocumentNode = () => {
+  //   setShowDocumentModal(true);
+  // };
+  // const handleFormNode = () => {
+  //   setShowFormModal(true);
+  // };
+  // const handleCertificateNode = () => {
+  //   setShowCertificateModal(true);
+  // };
+  // const handleConstructionSolutionNode = () => {
+  //   setShowConstructionSolutionModal(true);
+  // };
+  // const handleLayerNode = () => {
+  //   setShowLayerModal(true);
+  // };
+  // const handleExternalLinkNode = () => {
+  //   setShowExternalLinkModal(true);
+  // };
 
   return (
     <>
@@ -85,6 +124,47 @@ const EditListNode: React.FC<EditListNodeProps> = ({ open, onClose, node, stageI
           <Button onClick={handleSave} color="primary" variant="contained" disabled={saving}>Guardar</Button>
         </DialogActions>
       </Dialog>
+
+      {/* TODO: Agregar los modales para cada tipo de nodo */}
+      {/* Ejemplo:
+      <EditDocumentNode
+        open={showDocumentModal}
+        onClose={() => setShowDocumentModal(false)}
+        node={node}
+        stageId={stageId}
+      />
+      <EditFormNode
+        open={showFormModal}
+        onClose={() => setShowFormModal(false)}
+        node={node}
+        stageId={stageId}
+      />
+      <EditCertificateNode
+        open={showCertificateModal}
+        onClose={() => setShowCertificateModal(false)}
+        node={node}
+        stageId={stageId}
+      />
+      <EditConstructionSolutionNode
+        open={showConstructionSolutionModal}
+        onClose={() => setShowConstructionSolutionModal(false)}
+        node={node}
+        stageId={stageId}
+      />
+      <EditLayerNode
+        open={showLayerModal}
+        onClose={() => setShowLayerModal(false)}
+        node={node}
+        stageId={stageId}
+      />
+      <EditExternalLinkNode
+        open={showExternalLinkModal}
+        onClose={() => setShowExternalLinkModal(false)}
+        node={node}
+        stageId={stageId}
+      />
+      */}
+
       {/* Modal de permisos */}
       <NodePermissionsModal open={showPermissions} onClose={() => setShowPermissions(false)} nodeId={node?.id} />
     </>
