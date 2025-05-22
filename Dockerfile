@@ -2,8 +2,11 @@ FROM node:18-alpine
 
 WORKDIR /app
 
+# Limpiar instalación previa
+RUN rm -rf node_modules package-lock.json
+
 # Instalar dependencias
-COPY package.json package-lock.json ./
+COPY package.json ./
 RUN npm install
 
 # Copiar el resto del código
@@ -13,4 +16,4 @@ COPY . .
 EXPOSE 3000
 
 # Comando por defecto (desarrollo)
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"] 
+CMD ["npm", "run", "dev"] 

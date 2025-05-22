@@ -15,11 +15,23 @@ export default defineConfig({
       },
     }),
   ],
+  css: {
+    preprocessorOptions: {
+      scss: {
+        additionalData: `@use "@/styles/_variables.scss" as *;`
+      }
+    }
+  },
   server: {
+    host: true,
     port: 3000,
+    strictPort: true,
+    watch: {
+      usePolling: true,
+    },
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'http://mdc_backend:8000',
         changeOrigin: true,
         secure: false,
       },
@@ -50,4 +62,5 @@ export default defineConfig({
   optimizeDeps: {
     include: ['@emotion/react', '@emotion/styled', '@mui/material'],
   },
+  publicDir: 'public',
 }); 
