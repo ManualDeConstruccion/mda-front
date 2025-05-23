@@ -1,7 +1,7 @@
 import { useParams } from 'react-router-dom';
 import CAMForm from './CaseForms/CAMForm';
 
-export default function ConstructionSolutionFormRouter() {
+export default function FormRouter() {
   const { formType, nodeId } = useParams();
 
   switch (formType) {

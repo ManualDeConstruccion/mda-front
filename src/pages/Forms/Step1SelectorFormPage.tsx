@@ -62,7 +62,7 @@ export default function SelectorFormPage() {
       type: form.type,
       content_type: form.content_type,
     });
-    navigate('/constructive/node/create');
+    navigate('/form/node/create');
   };
 
   const handleTypeFilter = (typeName: string) => {

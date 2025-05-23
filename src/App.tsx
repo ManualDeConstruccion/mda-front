@@ -27,7 +27,7 @@ import EditArchitectureProject from "./pages/ArchitectureProjects/EditArchitectu
 import { FormNodeProvider } from './context/FormNodeContext';
 import SelectorFormPage from './pages/Forms/Step1SelectorFormPage';
 import NodeFormCreatePage from './pages/Forms/Step2NodeFormCreatePage';
-import ConstructionSolutionFormRouter from './pages/Forms/FormRouter';
+import FormRouter from './pages/Forms/FormRouter';
 
 /** ────────────────────────────────────────────────────────────────────────────
  *  🎛️  React‑Query client (sin refetch on focus)
@@ -117,10 +117,10 @@ const App: React.FC = () => {
                       </Route>
                     </Route>
 
-                    {/* Rutas para soluciones constructivas */}
-                    <Route path="constructive/select" element={<SelectorFormPage />} />
-                    <Route path="constructive/node/:mode/:id?" element={<NodeFormCreatePage />} />
-                    <Route path="constructive/form/:formType/:nodeId" element={<ConstructionSolutionFormRouter />} />
+                    {/* Rutas para formularios */}
+                    <Route path="form/select" element={<SelectorFormPage />} />
+                    <Route path="form/node/:mode/:id?" element={<NodeFormCreatePage />} />
+                    <Route path="form/:formType/:nodeId" element={<FormRouter />} />
                   </Route>
 
                   {/* fallback */}

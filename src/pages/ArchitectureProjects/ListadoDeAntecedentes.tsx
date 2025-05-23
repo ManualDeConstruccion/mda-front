@@ -40,10 +40,10 @@ function extractBackendError(err: any): string {
 const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, projectId, architectureProjectId }) => {
   const queryClient = useQueryClient();
   const { data: tree, isLoading } = useProjectNodeTree(stageId);
-  
+
   // Estados para el manejo de acordeones
   const [openAccordions, setOpenAccordions] = useState<{ [key: number]: boolean }>({});
-  
+
   // Estados para el menú de tipos de nodos
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedListId, setSelectedListId] = useState<number | null>(null);
@@ -58,7 +58,7 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
   const [deleting, setDeleting] = useState(false);
   const [editingNode, setEditingNode] = useState<ProjectNode | null>(null);
 
-  const { setSelectedForm, setNodeData } = useFormNode();
+  const { setSelectedForm, setNodeData, setProjectId, setArchitectureProjectId } = useFormNode();
   const navigate = useNavigate();
 
   // For creating lists and antecedentes, fallback to useProjectNodes for mutations
@@ -117,9 +117,11 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
       case 'document':
         setEditingNode(node); // Modal para documentos
         break;
-      case 'form':
+      case 'construction_solution':
         setNodeData(node);
-        navigate(`/constructive/node/edit/${node.id}`);
+        setProjectId(projectId);
+        setArchitectureProjectId(architectureProjectId);
+        navigate(`/form/node/edit/${node.id}`);
         break;
       default:
         // Aquí puedes manejar otros tipos en el futuro
@@ -145,9 +147,11 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
           project_id: projectId,
           architecture_project_id: architectureProjectId,
         });
+        setProjectId(projectId);
+        setArchitectureProjectId(architectureProjectId);
         setSelectedForm(undefined);
         handleMenuClose();
-        navigate('/constructive/select');
+        navigate('/form/select');
         return;
       case 'document':
         // Lógica para crear documento
@@ -249,16 +253,16 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
             </tbody>
           </table>
         </Box>
-        <Button 
-          variant="contained" 
-          color="primary" 
-          startIcon={<AddIcon />} 
-          onClick={(e) => { 
-            setAnchorEl(e.currentTarget); 
-            setSelectedListId(null); 
-            setCreatingList(true); 
-            setError(null); 
-          }} 
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<AddIcon />}
+          onClick={(e) => {
+            setAnchorEl(e.currentTarget);
+            setSelectedListId(null);
+            setCreatingList(true);
+            setError(null);
+          }}
           className={styles.addButton}
         >
           Agregar Listado

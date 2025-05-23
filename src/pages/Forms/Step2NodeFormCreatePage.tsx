@@ -7,7 +7,13 @@ import FormRouter from '../../components/Forms/FormRouter';
 import NodePermissionsModal from '../EditArchitectureNodes/NodePermissionsModal';
 
 export default function NodeFormCreatePage() {
-  const { selectedForm, nodeData, setNodeData } = useFormNode();
+  const { 
+    selectedForm, 
+    nodeData, 
+    setNodeData,
+    projectId,
+    architectureProjectId 
+  } = useFormNode();
   const navigate = useNavigate();
   const { mode, id } = useParams(); // mode: 'create' | 'edit', id?: string
   const [form, setForm] = useState({
@@ -19,6 +25,7 @@ export default function NodeFormCreatePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPermissionsModal, setShowPermissionsModal] = useState(false);
+  const [nameError, setNameError] = useState(false);
 
   // Al editar, obtener el nodo y poblar el formulario
   useEffect(() => {
@@ -41,7 +48,7 @@ export default function NodeFormCreatePage() {
 
   // Si es creación y no hay formulario seleccionado, redirige al selector
   if (!selectedForm && mode === 'create') {
-    navigate('/constructive/select');
+    navigate('/form/select');
     return null;
   }
 
@@ -51,9 +58,15 @@ export default function NodeFormCreatePage() {
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }));
+    if (name === 'name') setNameError(false);
   };
 
   const handleSubmit = async () => {
+    if (!form.name.trim()) {
+      setNameError(true);
+      return;
+    }
+    setNameError(false);
     setSaving(true);
     setError(null);
     try {
@@ -66,7 +79,11 @@ export default function NodeFormCreatePage() {
             is_active: form.is_active,
           }
         });
-        navigate(-1);
+        if (projectId && architectureProjectId) {
+          navigate(`/proyectos/${projectId}/arquitectura/${architectureProjectId}`);
+        } else {
+          navigate(-1);
+        }
       } else {
         await createProject.mutateAsync({
           name: form.name,
@@ -76,7 +93,11 @@ export default function NodeFormCreatePage() {
           parent: nodeData?.parent,
           content_type: selectedForm.content_type,
         });
-        navigate(-1);
+        if (projectId && architectureProjectId) {
+          navigate(`/proyectos/${projectId}/arquitectura/${architectureProjectId}`);
+        } else {
+          navigate(-1);
+        }
       }
     } catch (err: any) {
       setError(err.message || 'Error al guardar');
@@ -87,7 +108,11 @@ export default function NodeFormCreatePage() {
 
   const handleGoToForm = () => {
     // Aquí irá la navegación al paso 3 con el formulario específico
-    navigate(`/constructive/form/${id || 'new'}`);
+    navigate(`/form/form/${id || 'new'}`);
+  };
+
+  const handleGoBack = () => {
+    navigate('/form/select');
   };
 
   return (
@@ -105,6 +130,8 @@ export default function NodeFormCreatePage() {
           value={form.name}
           onChange={handleChange}
           fullWidth
+          error={nameError}
+          helperText={nameError ? 'El nombre es obligatorio' : ''}
         />
         <TextField
           label="Descripción"
@@ -142,7 +169,7 @@ export default function NodeFormCreatePage() {
         {mode === 'create' && (
           <Button
             variant="outlined"
-            onClick={() => navigate('/constructive/select')}
+            onClick={handleGoBack}
           >
             Ir atrás
           </Button>
