@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useFormNode } from '../../context/FormNodeContext';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Box, Typography, Button, TextField, FormControlLabel, Switch } from '@mui/material';
+import { Box, Typography, Button, TextField, FormControlLabel, Switch, Stack } from '@mui/material';
 import { useProjectNodes } from '../../hooks/useProjectNodes';
+import FormRouter from '../../components/Forms/FormRouter';
+import NodePermissionsModal from '../EditArchitectureNodes/NodePermissionsModal';
 
-export default function ConstructionSolutionCreatePage() {
+export default function NodeFormCreatePage() {
   const { selectedForm, nodeData, setNodeData } = useFormNode();
   const navigate = useNavigate();
   const { mode, id } = useParams(); // mode: 'create' | 'edit', id?: string
@@ -16,6 +18,7 @@ export default function ConstructionSolutionCreatePage() {
   const { createProject, updateProject, projects, isLoadingProjects } = useProjectNodes();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPermissionsModal, setShowPermissionsModal] = useState(false);
 
   // Al editar, obtener el nodo y poblar el formulario
   useEffect(() => {
@@ -69,7 +72,7 @@ export default function ConstructionSolutionCreatePage() {
           name: form.name,
           description: form.description,
           is_active: form.is_active,
-          type: selectedForm.node_type,
+          node_type: selectedForm.node_type,
           parent: nodeData?.parent,
           content_type: selectedForm.content_type,
         });
@@ -82,12 +85,19 @@ export default function ConstructionSolutionCreatePage() {
     }
   };
 
+  const handleGoToForm = () => {
+    // Aquí irá la navegación al paso 3 con el formulario específico
+    navigate(`/constructive/form/${id || 'new'}`);
+  };
+
   return (
     <Box p={3}>
       <Typography variant="h5" gutterBottom>
         {mode === 'edit' ? 'Editar Formulario' : `Crear Formulario: ${selectedForm?.name}`}
       </Typography>
       {error && <Typography color="error">{error}</Typography>}
+      
+      {/* Campos básicos del nodo */}
       <Box my={2} display="flex" flexDirection="column" gap={2}>
         <TextField
           label="Nombre"
@@ -114,15 +124,62 @@ export default function ConstructionSolutionCreatePage() {
           }
           label="Activo"
         />
+      </Box>
+
+      {/* Router de formularios específicos */}
+      {selectedForm && (
+        <Box my={3}>
+          <FormRouter 
+            content_type={selectedForm.content_type}
+            nodeData={nodeData}
+            mode={mode as 'create' | 'edit'}
+          />
+        </Box>
+      )}
+
+      {/* Botones de acción */}
+      <Stack direction="row" spacing={2} mt={3}>
+        {mode === 'create' && (
+          <Button
+            variant="outlined"
+            onClick={() => navigate('/constructive/select')}
+          >
+            Ir atrás
+          </Button>
+        )}
         <Button
           variant="contained"
           color="primary"
           onClick={handleSubmit}
           disabled={saving || isLoadingProjects}
         >
-          {saving ? 'Guardando...' : mode === 'edit' ? 'Actualizar' : 'Guardar'}
+          {saving ? 'Guardando...' : 'Guardar y cerrar'}
         </Button>
-      </Box>
+        {mode === 'edit' && id && (
+          <Button
+            variant="outlined"
+            onClick={() => setShowPermissionsModal(true)}
+          >
+            Editar permisos
+          </Button>
+        )}
+        <Button
+          variant="contained"
+          color="secondary"
+          onClick={handleGoToForm}
+        >
+          Ir al formulario
+        </Button>
+      </Stack>
+
+      {/* Modal de permisos */}
+      {mode === 'edit' && id && (
+        <NodePermissionsModal
+          open={showPermissionsModal}
+          onClose={() => setShowPermissionsModal(false)}
+          nodeId={Number(id)}
+        />
+      )}
     </Box>
   );
 } 

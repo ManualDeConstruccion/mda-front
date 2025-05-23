@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useProjectNodes } from '../../hooks/useProjectNodes';
-import { NodeType } from '../../types/project_nodes.types';
+import { TypeCode } from '../../types/project_nodes.types';
 import styles from './CreateArchitectureProject.module.scss';
 
 const CreateArchitectureProject: React.FC = () => {
@@ -15,7 +15,7 @@ const CreateArchitectureProject: React.FC = () => {
     name: '',
     description: '',
     is_active: true,
-    type: 'architecture_subproject' as NodeType,
+    type: 'architecture_subproject' as TypeCode,
     status: 'en_estudio' as const,
     start_date: '',
     parent: Number(projectId) || null,

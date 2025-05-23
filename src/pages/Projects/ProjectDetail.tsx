@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useProjectNodes } from '../../hooks/useProjectNodes';
 import { ArchitectureProjectNode } from '../../types/architecture.types';
-import { NodeType } from '../../types/project_nodes.types';
+import { TypeCode } from '../../types/project_nodes.types';
 import styles from './ProjectDetail.module.scss';
 import {
   Add as AddIcon,
@@ -21,14 +21,14 @@ const ProjectDetail: React.FC = () => {
   
   // Obtener el proyecto principal
   const { projects, updateProject, deleteProject } = useProjectNodes<ArchitectureProjectNode>({
-    type: 'project' as NodeType
+    type: 'project' as TypeCode
   });
   const project = projects?.find(p => p.id === Number(projectId));
 
   // Obtener los proyectos de arquitectura asociados
   const { projects: architectureProjects } = useProjectNodes<ArchitectureProjectNode>({
     parent: Number(projectId),
-    type: 'architecture_subproject' as NodeType
+    type: 'architecture_subproject' as TypeCode
   });
 
   const [isEditing, setIsEditing] = useState(false);

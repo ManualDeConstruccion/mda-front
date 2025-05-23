@@ -1,6 +1,6 @@
 import React from 'react';
 import { MenuItem, Box, TextField, Button } from '@mui/material';
-import { NodeType } from '../../../types/project_nodes.types';
+import { TypeCode } from '../../../types/project_nodes.types';
 import styles from '../ListadoDeAntecedentes.module.scss';
 
 interface NodeTypeMenuProps {
@@ -9,7 +9,7 @@ interface NodeTypeMenuProps {
   newListName: string;
   onNewListNameChange: (name: string) => void;
   onCreateList: () => void;
-  onCreateAntecedent: (type: NodeType) => void;
+  onCreateAntecedent: (type: TypeCode) => void;
   onStartCreatingList: () => void;
   error: string | null;
 }

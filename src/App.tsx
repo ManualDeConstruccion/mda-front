@@ -25,9 +25,9 @@ import CreateArchitectureProject from "./pages/ArchitectureProjects/CreateArchit
 import ArchitectureProjectDetail from "./pages/ArchitectureProjects/ArchitectureProjectDetail";
 import EditArchitectureProject from "./pages/ArchitectureProjects/EditArchitectureProject";
 import { FormNodeProvider } from './context/FormNodeContext';
-import ConstructiveSelectorPage from './pages/Forms/ConstructiveSelectorPage';
-import ConstructionSolutionCreatePage from './pages/Forms/ConstructiveNodeCreatePage';
-import ConstructionSolutionFormRouter from './pages/Forms/ConstructionSolutionForms/ConstructionSolutionFormRouter';
+import SelectorFormPage from './pages/Forms/Step1SelectorFormPage';
+import NodeFormCreatePage from './pages/Forms/Step2NodeFormCreatePage';
+import ConstructionSolutionFormRouter from './pages/Forms/FormRouter';
 
 /** ────────────────────────────────────────────────────────────────────────────
  *  🎛️  React‑Query client (sin refetch on focus)
@@ -118,8 +118,8 @@ const App: React.FC = () => {
                     </Route>
 
                     {/* Rutas para soluciones constructivas */}
-                    <Route path="constructive/select" element={<ConstructiveSelectorPage />} />
-                    <Route path="constructive/node/:mode/:id?" element={<ConstructionSolutionCreatePage />} />
+                    <Route path="constructive/select" element={<SelectorFormPage />} />
+                    <Route path="constructive/node/:mode/:id?" element={<NodeFormCreatePage />} />
                     <Route path="constructive/form/:formType/:nodeId" element={<ConstructionSolutionFormRouter />} />
                   </Route>
 

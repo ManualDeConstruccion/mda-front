@@ -17,7 +17,7 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useFormCategoriesTree, NodeTypeCategoryGroup } from '../../hooks/useFormCategoriesTree';
 
-function ConstructiveCategoryAccordion({ category, depth = 0, onSelectForm }: any) {
+function FormCategoryAccordion({ category, depth = 0, onSelectForm }: any) {
   return (
     <Accordion>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -33,7 +33,7 @@ function ConstructiveCategoryAccordion({ category, depth = 0, onSelectForm }: an
       <AccordionDetails>
         {/* Subcategorías */}
         {category.children?.map((sub: any) => (
-          <ConstructiveCategoryAccordion key={sub.id} category={sub} depth={depth + 1} onSelectForm={onSelectForm} />
+          <FormCategoryAccordion key={sub.id} category={sub} depth={depth + 1} onSelectForm={onSelectForm} />
         ))}
         {/* Formularios */}
         <List>
@@ -48,7 +48,7 @@ function ConstructiveCategoryAccordion({ category, depth = 0, onSelectForm }: an
   );
 }
 
-export default function ConstructiveSelectorPage() {
+export default function SelectorFormPage() {
   const { setSelectedForm } = useFormNode();
   const [search, setSearch] = useState('');
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
@@ -59,8 +59,8 @@ export default function ConstructiveSelectorPage() {
     setSelectedForm({
       ...form,
       node_type: form.node_type,
-      model_name: form.model_name,
       type: form.type,
+      content_type: form.content_type,
     });
     navigate('/constructive/node/create');
   };
@@ -110,7 +110,7 @@ export default function ConstructiveSelectorPage() {
                 {nodeType.node_type_name}
               </Typography>
               {nodeType.categories?.map((cat) => (
-                <ConstructiveCategoryAccordion 
+                <FormCategoryAccordion 
                   key={cat.id} 
                   category={cat} 
                   onSelectForm={handleSelectForm} 

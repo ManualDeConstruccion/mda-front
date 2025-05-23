@@ -1,4 +1,12 @@
-export type NodeType = string;
+export interface NodeType {
+  id: number;
+  name: string;
+  code: string;
+  description: string | null;
+  is_active: boolean;
+}
+
+export type TypeCode = string;
 
 export type NodeStatus = 'en_estudio' | 'pendiente' | 'finalizado';
 
@@ -18,7 +26,8 @@ export interface ProjectNode {
   id: number;
   name: string;
   description: string | null;
-  type: NodeType;
+  type?: TypeCode;
+  node_type?: NodeType;
   type_name?: string;
   file_type: FileType | null;
   parent: number | null;
@@ -26,8 +35,8 @@ export interface ProjectNode {
   properties: number[];
   is_active: boolean;
   architecture_project: number | null;
-  file: string | null; // backend file path or URL
-  cover_image: string | null; // backend image path or URL
+  file: string | null;
+  cover_image: string | null;
   external_url: string | null;
   external_file_name: string | null;
   external_file_id: string | null;
@@ -38,21 +47,22 @@ export interface ProjectNode {
   progress_percent: number;
   created_at: string;
   updated_at: string;
-  file_url?: string | null; // full URL computed in backend
-  cover_image_url?: string | null; // full URL computed in backend
+  file_url?: string | null;
+  cover_image_url?: string | null;
 }
 
 export interface CreateProjectNodeDto {
   name: string;
   description?: string;
-  type: NodeType;
+  type?: TypeCode;
+  node_type?: NodeType;
   file_type?: number;
   parent?: number | null;
   properties?: number[];
   is_active?: boolean;
   architecture_project?: number;
-  file?: File; // only in requests
-  cover_image?: File; // only in requests
+  file?: File;
+  cover_image?: File;
   external_url?: string;
   external_file_name?: string;
   external_file_id?: string;
@@ -61,8 +71,7 @@ export interface CreateProjectNodeDto {
   end_date?: string | null;
   status?: NodeStatus;
   progress_percent?: number;
-  model_name?: string; // Nombre del modelo de formulario asociado
-  content_type?: number; // ID del modelo de formulario asociado
+  content_type?: number;
 }
 
-export interface UpdateProjectNodeDto extends Partial<CreateProjectNodeDto> {}
+export type UpdateProjectNodeDto = Partial<CreateProjectNodeDto>;

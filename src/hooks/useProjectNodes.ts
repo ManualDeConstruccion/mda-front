@@ -4,13 +4,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { mapProjectNode } from '../mappers/project_node_mapper';
-import { ProjectNode, CreateProjectNodeDto, UpdateProjectNodeDto, NodeType } from '../types/project_nodes.types';
+import { ProjectNode, CreateProjectNodeDto, UpdateProjectNodeDto, TypeCode } from '../types/project_nodes.types';
 
 const API_URL = process.env.REACT_APP_API_URL;
 
 interface ProjectNodesFilters {
   parent?: number;
-  type?: NodeType;
+  type?: TypeCode;
 }
 
 export const useProjectNodes = <T extends ProjectNode = ProjectNode>(filters?: ProjectNodesFilters) => {

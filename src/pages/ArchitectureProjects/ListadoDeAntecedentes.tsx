@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useProjectNodeTree } from '../../hooks/useProjectNodes';
-import { NodeType, ProjectNode } from '../../types/project_nodes.types';
+import { TypeCode, ProjectNode } from '../../types/project_nodes.types';
 import { Button, Popover, Typography, Box, } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import Dialog from '@mui/material/Dialog';
@@ -97,7 +97,7 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
         name: newListName,
         description: '',
         is_active: true,
-        type: 'list' as NodeType,
+        type: 'list' as TypeCode,
       });
       setCreatingList(false);
       setNewListName('');
@@ -127,7 +127,7 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
     }
   };
 
-  const handleCreateAntecedent = async (type: NodeType) => {
+  const handleCreateAntecedent = async (type: TypeCode) => {
     if (!selectedListId) {
       setError('Selecciona un listado');
       return;
