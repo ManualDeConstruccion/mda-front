@@ -192,7 +192,8 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         file_url: null,
-        cover_image_url: null
+        cover_image_url: null,
+        object_id: null
       };
       setEditingNode(tempNode);
       handleMenuClose();

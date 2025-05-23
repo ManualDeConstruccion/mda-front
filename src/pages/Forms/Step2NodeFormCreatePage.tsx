@@ -3,7 +3,7 @@ import { useFormNode } from '../../context/FormNodeContext';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Box, Typography, Button, TextField, FormControlLabel, Switch, Stack, Snackbar, Alert } from '@mui/material';
 import { useProjectNodes, useProjectNode } from '../../hooks/useProjectNodes';
-import FormRouter from '../../components/Forms/FormRouter';
+import FormRouter from './FormRouter';
 import NodePermissionsModal from '../EditArchitectureNodes/NodePermissionsModal';
 
 export default function NodeFormCreatePage() {
@@ -30,6 +30,12 @@ export default function NodeFormCreatePage() {
   const [originalNode, setOriginalNode] = useState<any>(null);
   const [showSuccess, setShowSuccess] = useState(false);
 
+  // Extraer el modelo del formulario (formTypeModel) desde selectedForm o nodeData
+  const formTypeModel =
+    selectedForm?.form_type?.model ||
+    nodeData?.form_type?.model ||
+    selectedForm?.model;
+
   // Al editar, obtener el nodo y poblar el formulario
   useEffect(() => {
     if (mode === 'edit' && id && node) {
@@ -38,7 +44,10 @@ export default function NodeFormCreatePage() {
         description: node.description || '',
         is_active: node.is_active,
       });
-      setNodeData(node);
+      setNodeData({
+        ...node,
+        object_id: node.object_id || null // Aseguramos que object_id esté definido
+      });
       setOriginalNode(node);
     }
   }, [mode, id, node, setNodeData]);
@@ -71,7 +80,7 @@ export default function NodeFormCreatePage() {
     if (form.name !== originalNode.name) patch.name = form.name;
     if (form.description !== originalNode.description) patch.description = form.description;
     if (form.is_active !== originalNode.is_active) patch.is_active = form.is_active;
-    // Agrega aquí otros campos editables si los tienes
+    if (nodeData.object_id !== originalNode.object_id) patch.object_id = nodeData.object_id;
     return patch;
   };
 
@@ -86,14 +95,12 @@ export default function NodeFormCreatePage() {
     try {
       if (mode === 'edit' && id) {
         const patchData = getPatchData();
-        if (Object.keys(patchData).length === 0) {
-          setSaving(false);
-          return; // No hay cambios
+        if (Object.keys(patchData).length > 0) {
+          await patchProject.mutateAsync({
+            id: Number(id),
+            data: patchData,
+          });
         }
-        await patchProject.mutateAsync({
-          id: Number(id),
-          data: patchData,
-        });
         if (projectId && architectureProjectId) {
           navigate(`/proyectos/${projectId}/arquitectura/${architectureProjectId}`);
         } else {
@@ -107,6 +114,7 @@ export default function NodeFormCreatePage() {
           node_type: selectedForm.node_type,
           parent: nodeData?.parent,
           content_type: selectedForm.content_type,
+          object_id: nodeData?.object_id || null,
         });
         if (projectId && architectureProjectId) {
           navigate(`/proyectos/${projectId}/arquitectura/${architectureProjectId}`);
@@ -149,6 +157,7 @@ export default function NodeFormCreatePage() {
           node_type: selectedForm.node_type,
           parent: nodeData?.parent,
           content_type: selectedForm.content_type,
+          object_id: nodeData?.object_id || null,
         });
         setShowSuccess(true);
       }
@@ -161,13 +170,28 @@ export default function NodeFormCreatePage() {
   };
 
   const handleGoToForm = () => {
-    // Aquí irá la navegación al paso 3 con el formulario específico
+    // Solo permitir ir al formulario si hay un object_id seleccionado
+    if (!nodeData.object_id) {
+      setError('Debe seleccionar o crear una instancia antes de continuar');
+      return;
+    }
     navigate(`/form/form/${id || 'new'}`);
   };
 
   const handleGoBack = () => {
     navigate('/form/select');
   };
+
+  // Log props for FormRouter for debugging
+  if (selectedForm) {
+    console.log('FormRouter props:', {
+      content_type: selectedForm.content_type,
+      nodeData,
+      mode,
+      setNodeData,
+      selectedForm
+    });
+  }
 
   return (
     <Box p={3}>
@@ -208,12 +232,14 @@ export default function NodeFormCreatePage() {
       </Box>
 
       {/* Router de formularios específicos */}
-      {selectedForm && (
+      {formTypeModel && (
         <Box my={3}>
           <FormRouter 
-            content_type={selectedForm.content_type}
+            formTypeModel={formTypeModel}
             nodeData={nodeData}
             mode={mode as 'create' | 'edit'}
+            setNodeData={setNodeData}
+            selectedForm={selectedForm}
           />
         </Box>
       )}
@@ -256,6 +282,7 @@ export default function NodeFormCreatePage() {
           variant="contained"
           color="secondary"
           onClick={handleGoToForm}
+          disabled={!nodeData.object_id}
         >
           Ir al formulario
         </Button>

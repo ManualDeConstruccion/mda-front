@@ -6,9 +6,16 @@ export interface NodeType {
   is_active: boolean;
 }
 
-export type TypeCode = string;
-
-export type NodeStatus = 'en_estudio' | 'pendiente' | 'finalizado';
+export type TypeCode = 
+  | 'list' 
+  | 'document' 
+  | 'form' 
+  | 'certificate' 
+  | 'external_link' 
+  | 'construction_solution'
+  | 'project'
+  | 'architecture_subproject'
+  | 'stage';
 
 export interface FileType {
   id: number;
@@ -21,6 +28,8 @@ export interface FileType {
   created_at: string;
   updated_at: string;
 }
+
+export type NodeStatus = 'en_estudio' | 'pendiente' | 'finalizado';
 
 export interface ProjectNode {
   id: number;
@@ -49,6 +58,7 @@ export interface ProjectNode {
   updated_at: string;
   file_url?: string | null;
   cover_image_url?: string | null;
+  object_id: number | null;
 }
 
 export interface CreateProjectNodeDto {
@@ -72,6 +82,7 @@ export interface CreateProjectNodeDto {
   status?: NodeStatus;
   progress_percent?: number;
   content_type?: number;
+  object_id?: number | null;
 }
 
 export type UpdateProjectNodeDto = Partial<CreateProjectNodeDto>;
