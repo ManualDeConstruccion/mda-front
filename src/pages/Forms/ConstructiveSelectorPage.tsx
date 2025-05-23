@@ -53,7 +53,7 @@ export default function ConstructiveSelectorPage() {
   const [search, setSearch] = useState('');
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const navigate = useNavigate();
-  const { categories, isLoading } = useFormCategoriesTree(search);
+  const { categories, isLoading } = useFormCategoriesTree(search, selectedTypes.length === 1 ? selectedTypes[0] : undefined);
 
   const handleSelectForm = (form: any) => {
     setSelectedForm({
@@ -73,9 +73,7 @@ export default function ConstructiveSelectorPage() {
     );
   };
 
-  const filteredCategories = (categories as NodeTypeCategoryGroup[] | undefined)?.filter(cat => 
-    selectedTypes.length === 0 || selectedTypes.includes(cat.node_type_name)
-  );
+  const filteredCategories = categories;
 
   return (
     <Box p={3}>

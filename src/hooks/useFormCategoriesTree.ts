@@ -26,19 +26,19 @@ export interface NodeTypeCategoryGroup {
   categories: Category[];
 }
 
-export const useFormCategoriesTree = (search?: string) => {
+export const useFormCategoriesTree = (search?: string, node_type_name?: string) => {
   const { accessToken } = useAuth();
   const axiosConfig = {
     headers: { Authorization: `Bearer ${accessToken}` },
   };
 
   const query = useQuery({
-    queryKey: ['formCategoriesTree', search, accessToken],
+    queryKey: ['formCategoriesTree', search, node_type_name, accessToken],
     queryFn: async () => {
-      const url = search
-        ? `${API_URL}/categories/search/?q=${encodeURIComponent(search)}`
-        : `${API_URL}/categories/tree/`;
-      // Cambia el tipado de la respuesta aquí:
+      const params = new URLSearchParams();
+      if (search) params.append('search', search);
+      if (node_type_name) params.append('node_type_name', node_type_name);
+      const url = `${API_URL}/categories/tree/${params.toString() ? '?' + params.toString() : ''}`;
       const response = await axios.get<NodeTypeCategoryGroup[]>(url, axiosConfig);
       return response.data;
     },
