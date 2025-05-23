@@ -105,6 +105,17 @@ export const useProjectNodes = <T extends ProjectNode = ProjectNode>(filters?: P
     },
   });
 
+  const patchProject = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<UpdateProjectNodeDto> }) => {
+      const response = await axios.patch(`${API_URL}/project-nodes/${id}/`, data, axiosConfig);
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['projectNodes'] });
+      queryClient.invalidateQueries({ queryKey: ['projectNode', variables.id] });
+    },
+  });
+
   const deleteProject = useMutation({
     mutationFn: async (id: number) => {
       await axios.delete(`${API_URL}/project-nodes/${id}/`, axiosConfig);
@@ -119,6 +130,7 @@ export const useProjectNodes = <T extends ProjectNode = ProjectNode>(filters?: P
     isLoadingProjects: getProjects.isLoading,
     createProject,
     updateProject,
+    patchProject,
     deleteProject,
   };
 };
@@ -136,5 +148,20 @@ export const useProjectNodeTree = (nodeId?: number | null) => {
       return data;
     },
     enabled: !!nodeId && !!accessToken,
+  });
+};
+
+export const useProjectNode = <T extends ProjectNode = ProjectNode>(id?: number) => {
+  const { accessToken } = useAuth();
+  return useQuery<T | null>({
+    queryKey: ['projectNode', id],
+    queryFn: async () => {
+      if (!id) return null;
+      const { data } = await axios.get(`${API_URL}/project-nodes/${id}/`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      return mapProjectNode(data) as T;
+    },
+    enabled: !!id && !!accessToken,
   });
 };

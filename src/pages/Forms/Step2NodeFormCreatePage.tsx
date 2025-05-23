@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useFormNode } from '../../context/FormNodeContext';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Box, Typography, Button, TextField, FormControlLabel, Switch, Stack } from '@mui/material';
-import { useProjectNodes } from '../../hooks/useProjectNodes';
+import { Box, Typography, Button, TextField, FormControlLabel, Switch, Stack, Snackbar, Alert } from '@mui/material';
+import { useProjectNodes, useProjectNode } from '../../hooks/useProjectNodes';
 import FormRouter from '../../components/Forms/FormRouter';
 import NodePermissionsModal from '../EditArchitectureNodes/NodePermissionsModal';
 
@@ -21,26 +21,27 @@ export default function NodeFormCreatePage() {
     description: '',
     is_active: true,
   });
-  const { createProject, updateProject, projects, isLoadingProjects } = useProjectNodes();
+  const { createProject, patchProject, isLoadingProjects } = useProjectNodes();
+  const { data: node, isLoading: isLoadingNode } = useProjectNode(Number(id));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPermissionsModal, setShowPermissionsModal] = useState(false);
   const [nameError, setNameError] = useState(false);
+  const [originalNode, setOriginalNode] = useState<any>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   // Al editar, obtener el nodo y poblar el formulario
   useEffect(() => {
-    if (mode === 'edit' && id && projects) {
-      const node = projects.find((n) => n.id === Number(id));
-      if (node) {
-        setForm({
-          name: node.name,
-          description: node.description || '',
-          is_active: node.is_active,
-        });
-        setNodeData(node);
-      }
+    if (mode === 'edit' && id && node) {
+      setForm({
+        name: node.name,
+        description: node.description || '',
+        is_active: node.is_active,
+      });
+      setNodeData(node);
+      setOriginalNode(node);
     }
-  }, [mode, id, projects, setNodeData]);
+  }, [mode, id, node, setNodeData]);
 
   useEffect(() => {
     setNodeData((prev: any) => ({ ...prev, ...form }));
@@ -51,6 +52,9 @@ export default function NodeFormCreatePage() {
     navigate('/form/select');
     return null;
   }
+  if (mode === 'edit' && isLoadingNode) {
+    return <Typography>Cargando nodo...</Typography>;
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -59,6 +63,16 @@ export default function NodeFormCreatePage() {
       [name]: type === 'checkbox' ? checked : value,
     }));
     if (name === 'name') setNameError(false);
+  };
+
+  const getPatchData = () => {
+    if (!originalNode) return {};
+    const patch: any = {};
+    if (form.name !== originalNode.name) patch.name = form.name;
+    if (form.description !== originalNode.description) patch.description = form.description;
+    if (form.is_active !== originalNode.is_active) patch.is_active = form.is_active;
+    // Agrega aquí otros campos editables si los tienes
+    return patch;
   };
 
   const handleSubmit = async () => {
@@ -71,13 +85,14 @@ export default function NodeFormCreatePage() {
     setError(null);
     try {
       if (mode === 'edit' && id) {
-        await updateProject.mutateAsync({
+        const patchData = getPatchData();
+        if (Object.keys(patchData).length === 0) {
+          setSaving(false);
+          return; // No hay cambios
+        }
+        await patchProject.mutateAsync({
           id: Number(id),
-          data: {
-            name: form.name,
-            description: form.description,
-            is_active: form.is_active,
-          }
+          data: patchData,
         });
         if (projectId && architectureProjectId) {
           navigate(`/proyectos/${projectId}/arquitectura/${architectureProjectId}`);
@@ -99,6 +114,45 @@ export default function NodeFormCreatePage() {
           navigate(-1);
         }
       }
+    } catch (err: any) {
+      setError(err.message || 'Error al guardar');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveOnly = async () => {
+    if (!form.name.trim()) {
+      setNameError(true);
+      return;
+    }
+    setNameError(false);
+    setSaving(true);
+    setError(null);
+    try {
+      if (mode === 'edit' && id) {
+        const patchData = getPatchData();
+        if (Object.keys(patchData).length === 0) {
+          setSaving(false);
+          return; // No hay cambios
+        }
+        await patchProject.mutateAsync({
+          id: Number(id),
+          data: patchData,
+        });
+        setShowSuccess(true);
+      } else {
+        await createProject.mutateAsync({
+          name: form.name,
+          description: form.description,
+          is_active: form.is_active,
+          node_type: selectedForm.node_type,
+          parent: nodeData?.parent,
+          content_type: selectedForm.content_type,
+        });
+        setShowSuccess(true);
+      }
+      // No navegar
     } catch (err: any) {
       setError(err.message || 'Error al guardar');
     } finally {
@@ -182,6 +236,14 @@ export default function NodeFormCreatePage() {
         >
           {saving ? 'Guardando...' : 'Guardar y cerrar'}
         </Button>
+        <Button
+          variant="outlined"
+          color="success"
+          onClick={handleSaveOnly}
+          disabled={saving || isLoadingProjects}
+        >
+          Guardar
+        </Button>
         {mode === 'edit' && id && (
           <Button
             variant="outlined"
@@ -207,6 +269,18 @@ export default function NodeFormCreatePage() {
           nodeId={Number(id)}
         />
       )}
+
+      {/* Snackbar de éxito */}
+      <Snackbar
+        open={showSuccess}
+        autoHideDuration={3000}
+        onClose={() => setShowSuccess(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+      >
+        <Alert onClose={() => setShowSuccess(false)} severity="success" sx={{ width: '100%' }}>
+          ¡Guardado exitosamente!
+        </Alert>
+      </Snackbar>
     </Box>
   );
 } 
