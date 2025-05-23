@@ -6,7 +6,7 @@ import { useProjectNodes, useProjectNode } from '../../hooks/useProjectNodes';
 import FormRouter from './FormRouter';
 import NodePermissionsModal from '../EditArchitectureNodes/NodePermissionsModal';
 
-export default function NodeFormCreatePage() {
+export default function Step2NodeFormCreatePage() {
   const { 
     selectedForm, 
     nodeData, 
@@ -169,15 +169,6 @@ export default function NodeFormCreatePage() {
     }
   };
 
-  const handleGoToForm = () => {
-    // Solo permitir ir al formulario si hay un object_id seleccionado
-    if (!nodeData.object_id) {
-      setError('Debe seleccionar o crear una instancia antes de continuar');
-      return;
-    }
-    navigate(`/form/form/${id || 'new'}`);
-  };
-
   const handleGoBack = () => {
     navigate('/form/select');
   };
@@ -278,14 +269,6 @@ export default function NodeFormCreatePage() {
             Editar permisos
           </Button>
         )}
-        <Button
-          variant="contained"
-          color="secondary"
-          onClick={handleGoToForm}
-          disabled={!nodeData.object_id}
-        >
-          Ir al formulario
-        </Button>
       </Stack>
 
       {/* Modal de permisos */}

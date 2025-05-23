@@ -26,7 +26,7 @@ import ArchitectureProjectDetail from "./pages/ArchitectureProjects/Architecture
 import EditArchitectureProject from "./pages/ArchitectureProjects/EditArchitectureProject";
 import { FormNodeProvider } from './context/FormNodeContext';
 import SelectorFormPage from './pages/Forms/Step1SelectorFormPage';
-import NodeFormCreatePage from './pages/Forms/Step2NodeFormCreatePage';
+import Step2NodeFormCreatePage from './pages/Forms/Step2NodeFormCreatePage';
 import FormPage from './pages/Forms/FormPage';
 
 /** ────────────────────────────────────────────────────────────────────────────
@@ -119,7 +119,7 @@ const App: React.FC = () => {
 
                     {/* Rutas para formularios */}
                     <Route path="form/select" element={<SelectorFormPage />} />
-                    <Route path="form/node/:mode/:id?" element={<NodeFormCreatePage />} />
+                    <Route path="form/node/:mode/:id?" element={<Step2NodeFormCreatePage />} />
                     <Route path="form/:formType/:nodeId" element={<FormPage />} />
                   </Route>
 

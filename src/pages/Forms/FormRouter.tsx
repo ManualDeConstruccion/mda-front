@@ -9,12 +9,12 @@ interface FormRouterProps {
   setNodeData: (data: any) => void;
 }
 
+const existingInstances = [
+  { id: 1, name: 'Solución CAM 1' },
+  { id: 2, name: 'Solución CAM 2' }
+];
+
 const FormRouter: React.FC<FormRouterProps> = ({ formTypeModel, nodeData, mode, selectedForm, setNodeData }) => {
-  // Simulación de instancias existentes
-  const existingInstances = [
-    { id: 1, name: 'Solución CAM 1' },
-    { id: 2, name: 'Solución CAM 2' }
-  ];
   const [selectedMode, setSelectedMode] = useState<'existing' | 'new'>('new');
   const [selectedInstance, setSelectedInstance] = useState('');
 
@@ -33,74 +33,75 @@ const FormRouter: React.FC<FormRouterProps> = ({ formTypeModel, nodeData, mode, 
     }));
   };
 
-  // Si estamos en modo edición y no hay object_id, mostrar el selector
   const shouldShowSelector = !nodeData.object_id;
 
-  switch (formTypeModel) {
-    case 'analyzedsolution': // CAM
-      return (
-        <Box>
-          <Typography variant="h6" sx={{ mb: 2 }}>
-            Formulario {selectedForm?.name || 'CAM'}
-          </Typography>
-          {shouldShowSelector && (
-            <>
-              <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
-                <Button
-                  variant={selectedMode === 'existing' ? 'contained' : 'outlined'}
-                  onClick={() => {
-                    setSelectedMode('existing');
-                    setSelectedInstance('');
-                  }}
-                >
-                  Seleccionar existente
-                </Button>
-                <Button
-                  variant={selectedMode === 'new' ? 'contained' : 'outlined'}
-                  onClick={() => {
-                    setSelectedMode('new');
-                    handleNewInstance();
-                  }}
-                >
-                  Crear nueva
-                </Button>
-              </Stack>
-              {selectedMode === 'existing' && (
-                <FormControl fullWidth sx={{ mb: 2 }}>
-                  <InputLabel>Instancia existente</InputLabel>
-                  <Select
-                    value={selectedInstance}
-                    label="Instancia existente"
-                    onChange={e => handleInstanceSelect(e.target.value)}
-                  >
-                    {existingInstances.map(inst => (
-                      <MenuItem key={inst.id} value={inst.id}>{inst.name}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              )}
-              {/* Si está en modo 'new', muestra el botón Ir al formulario */}
-              {selectedMode === 'new' && (
-                <Button
-                  variant="contained"
-                  color="secondary"
-                  sx={{ mt: 2 }}
-                  id="go-to-form-btn"
-                >
-                  Ir al formulario
-                </Button>
-              )}
-            </>
+  return (
+    <Box>
+      <Typography variant="h6" sx={{ mb: 2 }}>
+        Formulario {selectedForm?.name || formTypeModel}
+      </Typography>
+      {shouldShowSelector ? (
+        <>
+          <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
+            <Button
+              variant={selectedMode === 'existing' ? 'contained' : 'outlined'}
+              onClick={() => {
+                setSelectedMode('existing');
+                setSelectedInstance('');
+              }}
+            >
+              Seleccionar existente
+            </Button>
+            <Button
+              variant={selectedMode === 'new' ? 'contained' : 'outlined'}
+              onClick={() => {
+                setSelectedMode('new');
+                handleNewInstance();
+              }}
+            >
+              Crear nueva
+            </Button>
+          </Stack>
+          {selectedMode === 'existing' && (
+            <FormControl fullWidth sx={{ mb: 2 }}>
+              <InputLabel>Instancia existente</InputLabel>
+              <Select
+                value={selectedInstance}
+                label="Instancia existente"
+                onChange={e => handleInstanceSelect(e.target.value)}
+              >
+                {existingInstances.map(inst => (
+                  <MenuItem key={inst.id} value={inst.id}>{inst.name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           )}
-        </Box>
-      );
-    default:
-      return (
-        <Box>
-          <Typography>Formulario no encontrado para model: {formTypeModel}</Typography>
-        </Box>
-      );
-  }
+          {/* Si está en modo 'new', muestra el botón Ir al formulario */}
+          {selectedMode === 'new' && (
+            <Button
+              variant="contained"
+              color="secondary"
+              sx={{ mt: 2 }}
+              id="go-to-form-btn"
+              disabled
+            >
+              Ir al formulario
+            </Button>
+          )}
+        </>
+      ) : (
+        <Button
+          variant="contained"
+          color="secondary"
+          sx={{ mt: 2 }}
+          id="go-to-form-btn"
+          onClick={() => {/* Aquí puedes navegar al paso 3 */}}
+        >
+          Ir al formulario
+        </Button>
+      )}
+    </Box>
+  );
 };
 
 export default FormRouter; 
