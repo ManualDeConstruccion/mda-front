@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function CAMForm({ nodeId }: { nodeId?: string }) {
   return (
     <div>
