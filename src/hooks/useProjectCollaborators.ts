@@ -3,7 +3,7 @@ import axios from 'axios';
 import { ProjectCollaborator, CreateProjectCollaboratorDto, UpdateProjectCollaboratorDto } from '../types/project_collaborators.types';
 import { useAuth } from '../context/AuthContext';
 
-const API_URL = process.env.REACT_APP_API_URL;
+const API_URL = import.meta.env.VITE_API_URL;
 
 export const useProjectCollaborators = (projectId?: number) => {
   const queryClient = useQueryClient();

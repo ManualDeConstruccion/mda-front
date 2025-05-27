@@ -2,7 +2,7 @@
 
 import { ProjectNode } from '../types/project_nodes.types';
 
-const BASE_MEDIA_URL = (process.env.REACT_APP_MEDIA_URL || '').replace(/\/$/, '');
+const BASE_MEDIA_URL = (import.meta.env.REACT_APP_MEDIA_URL || '').replace(/\/$/, '');
 
 export function mapProjectNode(raw: any): ProjectNode {
   return {

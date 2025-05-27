@@ -54,9 +54,9 @@ const ProtectedLayout: React.FC = () => {
 };
 
 // Verificar que la variable de entorno esté definida
-const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 if (!googleClientId) {
-  console.error('REACT_APP_GOOGLE_CLIENT_ID no está definida en el archivo .env');
+  console.error('VITE_GOOGLE_CLIENT_ID no está definida en el archivo .env');
 }
 
 const App: React.FC = () => {
@@ -74,7 +74,7 @@ const App: React.FC = () => {
     <GoogleOAuthProvider clientId={googleClientId}>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider theme={theme}>
-          <Router future={{ v7_relativeSplatPath: true }}>
+          <Router future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
             <AuthProvider>
               <FormNodeProvider>
                 <Routes>
