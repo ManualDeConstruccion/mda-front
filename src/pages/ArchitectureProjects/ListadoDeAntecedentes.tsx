@@ -14,6 +14,7 @@ import ModalDocumentNode from '../EditArchitectureNodes/EditDocumentNode';
 import EditListNode from '../EditArchitectureNodes/EditListNode';
 import { useFormNode } from '../../context/FormNodeContext';
 import { useNavigate } from 'react-router-dom';
+import { useProjectNodes } from '../../hooks/useProjectNodes';
 
 // Importar componentes refactorizados
 import NodeTree from './components/NodeTree';
@@ -62,7 +63,7 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
   const navigate = useNavigate();
 
   // For creating lists and antecedentes, fallback to useProjectNodes for mutations
-  const { createProject: createList, deleteProject } = require('../../hooks/useProjectNodes').useProjectNodes();
+  const { createProject: createList, deleteProject } = useProjectNodes();
 
   if (isLoading) return <Typography>Cargando...</Typography>;
   if (!tree) return <Typography>No hay datos.</Typography>;
