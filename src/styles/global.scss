@@ -1,4 +1,5 @@
-@import './variables';
+@use  './variables' as *;
+@use  './mixins' as *;
 
 // Reset and base styles
 * {

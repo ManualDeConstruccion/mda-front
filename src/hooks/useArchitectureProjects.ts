@@ -6,7 +6,7 @@ import { ProjectNode, CreateProjectNodeDto, UpdateProjectNodeDto } from '../type
 import { ArchitectureProjectNode } from '../types/architecture.types';
 import { useAuth } from '../context/AuthContext';
 
-const API_URL = process.env.REACT_APP_API_URL;
+const API_URL = import.meta.env.VITE_API_URL;
 
 // Hook para obtener los proyectos de arquitectura de un proyecto específico
 export const useProjectArchitectureProjects = (projectId?: number) => {

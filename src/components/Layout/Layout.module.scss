@@ -1,49 +1,43 @@
-@use '../../styles/variables' as vars;
-@use '../../styles/mixins' as mix;
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
 
 .layout {
-  display: flex;
-  flex-direction: column;
+  @include flex-container(column, 0);
   min-height: 100vh;
-  background-color: vars.$light-bg-primary;
-  color: vars.$text-secondary;
+  background-color: $light-bg-primary;
+  color: $text-secondary;
   width: 100%;
   overflow-x: hidden;
   position: relative;
 }
 
 .content {
-  display: flex;
+  @include flex-container(row, 0);
   flex: 1;
   position: relative;
   padding-top: 15px;
-  min-height: calc(100vh - #{vars.$navbar-height});
+  min-height: calc(100vh - #{$navbar-height});
   width: 100%;
   margin-left: 40px;
 }
 
 .main {
+  @include sidebar-layout();
   flex: 1;
   padding: 0;
-  transition: all vars.$transition-duration ease-in-out;
-  margin-left: vars.$sidebar-collapsed-width;
-  display: flex;
-  flex-direction: column;
-  width: calc(100% - #{vars.$sidebar-collapsed-width});
-  min-height: calc(100vh - #{vars.$navbar-height} - #{vars.$footer-height});
+  @include flex-container(column, 0);
+  min-height: calc(100vh - #{$navbar-height} - #{$footer-height});
   
   &.mainShift {
-    margin-left: vars.$sidebar-width;
-    width: calc(100% - #{vars.$sidebar-width});
+    @include sidebar-layout($sidebar-width, $sidebar-width);
   }
 
   .container {
     width: 100%;
-    max-width: vars.$container-width;
+    max-width: $container-width;
     margin: 0 auto;
     padding: 0;
-    display: flex;
-    flex-direction: column;
+    @include flex-container(column, 0);
     flex: 1;
 
     > * {
@@ -53,20 +47,18 @@
 }
 
 .toolbar {
-  min-height: vars.$navbar-height;
+  min-height: $navbar-height;
   width: 100%;
 }
 
 // Responsive adjustments
-@include mix.respond-to(md) {
+@include respond-to(md) {
   .main {
     padding: 0;
-    margin-left: vars.$sidebar-collapsed-width;
-    width: calc(100% - #{vars.$sidebar-collapsed-width});
+    @include sidebar-layout();
     
     &.mainShift {
-      margin-left: vars.$sidebar-width;
-      width: calc(100% - #{vars.$sidebar-width});
+      @include sidebar-layout($sidebar-width, $sidebar-width);
     }
 
     .container {
@@ -75,7 +67,7 @@
   }
 }
 
-@include mix.respond-to(sm) {
+@include respond-to(sm) {
   .content {
     padding-top: 15px;
   }

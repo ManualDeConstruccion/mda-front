@@ -1,0 +1,14 @@
+// Main SCSS file - Import all global styles
+// This is the only SCSS file that should be imported in index.tsx
+
+// 1. Variables first (needed by all other files)
+@use './variables';
+
+// 2. Mixins (depend on variables)
+@use './mixins';
+
+// 3. Base styles and reset
+@use './global';
+
+// 4. Component styles (buttons, forms, etc.)
+@use './buttons'; 

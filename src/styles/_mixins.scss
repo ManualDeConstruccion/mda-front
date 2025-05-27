@@ -1,4 +1,4 @@
-@import './_variables';
+@use './_variables' as *;
 
 @mixin respond-to($breakpoint) {
   @if $breakpoint == xs {
@@ -16,4 +16,214 @@
   @else if $breakpoint == xl {
     @media (min-width: $breakpoint-xl) { @content; }
   }
+}
+
+// Mixin para inputs base
+@mixin input-base {
+  padding: $spacing-md;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-sm;
+  font-size: 1rem;
+  transition: all $transition-fast;
+  width: 100%;
+  
+  &:focus {
+    outline: none;
+    border-color: $primary-color;
+  }
+  
+  &.error {
+    border-color: $error-color;
+  }
+}
+
+// Mixin para containers flexibles
+@mixin flex-container($direction: column, $gap: $spacing-md) {
+  display: flex;
+  flex-direction: $direction;
+  gap: $gap;
+}
+
+// Mixin para labels
+@mixin label-base {
+  font-weight: 500;
+  color: $text-color;
+  display: flex;
+  gap: $spacing-xs;
+  align-items: center;
+}
+
+// Mixin para centrar elementos
+@mixin flex-center($direction: row) {
+  display: flex;
+  flex-direction: $direction;
+  align-items: center;
+  justify-content: center;
+}
+
+// Mixin para items de menú/navegación
+@mixin menu-item-base {
+  display: flex;
+  align-items: center;
+  padding: $spacing-xs $spacing-sm;
+  margin: $spacing-xs 0;
+  border-radius: $border-radius-md;
+  transition: all $transition-duration ease-in-out;
+  cursor: pointer;
+  text-decoration: none;
+  color: $text-secondary;
+  
+  &:hover {
+    background-color: $light-bg-secondary;
+    color: $text-primary;
+  }
+}
+
+// Mixin para botones transparentes/ghost
+@mixin button-ghost {
+  background: none;
+  border: none;
+  padding: $spacing-xs $spacing-md;
+  border-radius: $border-radius-sm;
+  cursor: pointer;
+  transition: background-color $transition-fast;
+  
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+  }
+}
+
+// Mixin para layout con sidebar
+@mixin sidebar-layout($sidebar-width: $sidebar-width, $collapsed-width: $sidebar-collapsed-width) {
+  margin-left: $collapsed-width;
+  width: calc(100% - #{$collapsed-width});
+  transition: all $transition-duration ease-in-out;
+  
+  &.expanded {
+    margin-left: $sidebar-width;
+    width: calc(100% - #{$sidebar-width});
+  }
+}
+
+// Mixin para cards/containers con sombra
+@mixin card-container {
+  background: $background-paper;
+  padding: $spacing-lg;
+  border-radius: $border-radius-md;
+  box-shadow: $shadow-md;
+}
+
+// Mixin para headers de página
+@mixin page-header {
+  @include flex-container(row, $spacing-md);
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-xl;
+  padding-bottom: $spacing-md;
+  border-bottom: 1px solid $border-color;
+}
+
+// Mixin para grupos de formulario
+@mixin form-group {
+  margin-bottom: $spacing-md;
+
+  label {
+    display: block;
+    margin-bottom: $spacing-xs;
+    color: $text-primary;
+    font-weight: 500;
+  }
+
+  input[type="text"],
+  input[type="date"],
+  input[type="email"],
+  textarea,
+  select {
+    @include input-base;
+    background-color: $background-paper;
+    color: $text-primary;
+    font-size: $font-size-base;
+
+    &:focus {
+      box-shadow: 0 0 0 2px rgba($primary-color, 0.2);
+    }
+  }
+
+  textarea {
+    min-height: 100px;
+    resize: vertical;
+  }
+}
+
+// Mixin para botones de acción
+@mixin action-button($bg-color: $primary-color, $hover-offset: -10%) {
+  @include flex-center();
+  gap: $spacing-xs;
+  padding: $spacing-sm $spacing-lg;
+  background-color: $bg-color;
+  color: $white;
+  border: none;
+  border-radius: $border-radius-sm;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all $transition-fast;
+  box-shadow: $shadow-sm;
+
+  &:hover {
+    background-color: darken($bg-color, 10%);
+    transform: translateY(-1px);
+    box-shadow: $shadow-md;
+  }
+
+  svg {
+    font-size: 1.2rem;
+  }
+}
+
+// Mixin para botones secundarios
+@mixin secondary-button {
+  @include flex-center();
+  gap: $spacing-xs;
+  padding: $spacing-sm $spacing-lg;
+  background-color: $background-paper;
+  color: $text-primary;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-sm;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all $transition-fast;
+
+  &:hover {
+    background-color: $background-light;
+    transform: translateY(-1px);
+  }
+}
+
+// Mixin para tablas
+@mixin table-base {
+  width: 100%;
+  border-collapse: collapse;
+  
+  th, td {
+    padding: $spacing-sm;
+    text-align: left;
+    border-bottom: 1px solid $border-color;
+  }
+
+  th {
+    background-color: $background-light;
+    font-weight: 600;
+    color: $text-primary;
+  }
+
+  tr:hover {
+    background-color: rgba($primary-color, 0.05);
+  }
+}
+
+// Mixin para grid de cards
+@mixin cards-grid($min-width: 250px) {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax($min-width, 1fr));
+  gap: $spacing-md;
 } 

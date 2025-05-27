@@ -1,18 +1,13 @@
 @use '../../../styles/variables' as *;
+@use '../../../styles/mixins' as *;
 
 .inputContainer {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-xs;
+  @include flex-container(column, $spacing-xs);
   width: 95%;
 }
 
 .label {
-  font-weight: 500;
-  color: $text-color;
-  display: flex;
-  gap: $spacing-xs;
-  align-items: center;
+  @include label-base;
 }
 
 .required {
@@ -20,21 +15,7 @@
 }
 
 .input {
-  padding: $spacing-md;
-  border: 1px solid $border-color;
-  border-radius: $border-radius-sm;
-  font-size: 1rem;
-  transition: all $transition-fast;
-  width: 100%;
-  
-  &:focus {
-    outline: none;
-    border-color: $primary-color;
-  }
-  
-  &.error {
-    border-color: $error-color;
-  }
+  @include input-base;
 }
 
 textarea.input {
@@ -43,7 +24,7 @@ textarea.input {
 }
 
 .footer {
-  display: flex;
+  @include flex-container(row, 0);
   justify-content: space-between;
   align-items: center;
   font-size: 0.875rem;

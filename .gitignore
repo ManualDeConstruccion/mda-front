@@ -2,6 +2,11 @@
 
 # dependencies
 /node_modules
+node_modules
+node_modules
+node_modules/web-vitals
+/dist
+dist
 /.pnp
 .pnp.js
 
@@ -28,6 +33,7 @@ yarn-error.log*
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+.vscode
 
 # TypeScript
 *.tsbuildinfo

@@ -1,81 +1,40 @@
 @use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
 @use '../../styles/buttons' as *;
 @use 'sass:color';
 
 .container {
-  padding: 2rem;
+  padding: $spacing-xl;
   max-width: 1400px;
   margin: 0 auto;
 }
 
 .header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #e0e0e0;
+  @include page-header;
 
   .headerContent {
     h1 {
       margin: 0;
-      font-size: 2rem;
-      color: #333;
+      font-size: $font-size-xl * 1.25;
+      color: $text-primary;
     }
 
     .status {
-      margin-top: 0.5rem;
-      font-size: 0.9rem;
-      color: #666;
+      margin-top: $spacing-xs;
+      font-size: $font-size-sm;
+      color: $text-secondary;
     }
   }
 
   .headerActions {
-    display: flex;
-    gap: 1rem;
+    @include flex-container(row, $spacing-md);
 
     .editButton {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.75rem 1.5rem;
-      background: #007bff;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: all 0.2s;
-      font-weight: 500;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-
-      &:hover {
-        background: #0056b3;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-      }
-
-      svg {
-        font-size: 1.2rem;
-      }
+      @include action-button($primary-color);
     }
 
     .backButton {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.75rem 1.5rem;
-      background: #f5f5f5;
-      color: #333;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: all 0.2s;
-      font-weight: 500;
-
-      &:hover {
-        background: #e0e0e0;
-        transform: translateY(-1px);
-      }
+      @include secondary-button;
     }
   }
 }
@@ -83,29 +42,26 @@
 .content {
   display: grid;
   grid-template-columns: 1fr 250px;
-  gap: 2rem;
-  margin-bottom: 2rem;
+  gap: $spacing-xl;
+  margin-bottom: $spacing-xl;
 }
 
 .mainInfo {
   .infoSection {
-    background: white;
-    padding: 1.5rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    @include card-container;
 
     h2 {
       margin-top: 0;
-      margin-bottom: 1rem;
-      color: #333;
+      margin-bottom: $spacing-md;
+      color: $text-primary;
     }
 
     p {
-      margin: 0.5rem 0;
-      color: #666;
+      margin: $spacing-xs 0;
+      color: $text-secondary;
 
       strong {
-        color: #333;
+        color: $text-primary;
       }
     }
   }
@@ -113,27 +69,17 @@
 
 .sideMenu {
   .menuSection {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+    @include flex-container(column, $spacing-xs);
 
     .menuButton {
-      display: flex;
-      align-items: center;
-      padding: 0.75rem 1rem;
-      background: white;
-      border: 1px solid #e0e0e0;
-      border-radius: 4px;
-      text-decoration: none;
-      color: #333;
-      transition: all 0.2s;
-
-      &:hover {
-        background: #f5f5f5;
-      }
+      @include menu-item-base;
+      padding: $spacing-sm $spacing-md;
+      background: $background-paper;
+      border: 1px solid $border-color;
+      border-radius: $border-radius-sm;
 
       .icon {
-        margin-right: 0.5rem;
+        margin-right: $spacing-xs;
         font-size: 1.2rem;
       }
     }
@@ -141,38 +87,35 @@
 }
 
 .antecedentesSection {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  @include card-container;
 
   h2 {
     margin-top: 0;
-    color: #333;
+    color: $text-primary;
   }
 }
 
 .stagesNavigation {
-  margin-bottom: 2rem;
+  margin-bottom: $spacing-xl;
 
   .stagesContainer {
-    display: flex;
-    gap: 1rem;
+    @include flex-container(row, $spacing-md);
     overflow-x: auto;
-    padding-bottom: 0.5rem;
+    padding-bottom: $spacing-xs;
 
     .stageButton {
-      padding: 0.5rem 1rem;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      background: white;
+      padding: $spacing-xs $spacing-md;
+      border: 1px solid $border-color;
+      border-radius: $border-radius-sm;
+      background: $background-paper;
       cursor: pointer;
       white-space: nowrap;
+      transition: all $transition-fast;
 
       &.active {
-        background: #007bff;
-        color: white;
-        border-color: #0056b3;
+        background: $primary-color;
+        color: $white;
+        border-color: $primary-color;
       }
     }
   }
@@ -180,68 +123,36 @@
 
 .tableContainer {
   overflow-x: auto;
-  margin-bottom: 2rem;
+  margin-bottom: $spacing-xl;
 
   .antecedentesTable {
-    width: 100%;
-    border-collapse: collapse;
-    
-    th, td {
-      padding: 0.75rem;
-      text-align: left;
-      border-bottom: 1px solid #e0e0e0;
-    }
-
-    th {
-      background: #f5f5f5;
-      font-weight: 600;
-    }
-
-    tr:hover {
-      background: #f8f9fa;
-    }
+    @include table-base;
   }
 }
 
 .addAntecedentSection {
   .addButton {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    background: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.2s;
-
-    &:hover {
-      background: #0056b3;
-    }
+    @include action-button($primary-color);
   }
 
   .antecedentesGrid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 1rem;
-    margin-top: 1rem;
+    @include cards-grid(250px);
+    margin-top: $spacing-md;
 
     .antecedentCard {
-      display: flex;
-      flex-direction: column;
+      @include flex-container(column, $spacing-md);
       align-items: center;
-      padding: 1.5rem;
-      background: white;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
+      padding: $spacing-lg;
+      background: $background-paper;
+      border: 1px solid $border-color;
+      border-radius: $border-radius-md;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all $transition-fast;
       text-align: center;
 
       &:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        box-shadow: $shadow-md;
       }
 
       &:disabled {
@@ -251,37 +162,34 @@
 
       .antecedentIcon {
         font-size: 2rem;
-        color: #007bff;
-        margin-bottom: 1rem;
+        color: $primary-color;
       }
 
       h3 {
-        margin: 0 0 0.5rem 0;
-        color: #333;
+        margin: 0;
+        color: $text-primary;
       }
 
       p {
         margin: 0;
-        font-size: 0.9rem;
-        color: #666;
+        font-size: $font-size-sm;
+        color: $text-secondary;
       }
     }
   }
 }
 
 .error {
-  padding: 1rem;
-  background: #fee;
-  border: 1px solid #fcc;
-  border-radius: 4px;
-  color: #c00;
-  margin: 1rem 0;
+  padding: $spacing-md;
+  background: rgba($error-color, 0.1);
+  border: 1px solid rgba($error-color, 0.3);
+  border-radius: $border-radius-sm;
+  color: $error-color;
+  margin: $spacing-md 0;
 }
 
 .loading {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  @include flex-center();
   min-height: 200px;
-  color: #666;
+  color: $text-secondary;
 }

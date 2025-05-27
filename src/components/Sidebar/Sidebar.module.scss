@@ -1,5 +1,5 @@
-@import '../../styles/variables';
-@import '../../styles/mixins';
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
 
 .sidebar {
   width: $sidebar-width;
@@ -31,8 +31,7 @@
 
 .toggleButton {
   height: $navbar-height;
-  display: flex;
-  align-items: center;
+  @include flex-center();
   justify-content: flex-end;
   padding: 0 $spacing-md;
   border-bottom: 1px solid $border-color;
@@ -53,21 +52,8 @@
 }
 
 .menuItem {
-  padding: $spacing-xs;
-  padding-left: $spacing-sm;
-  margin: $spacing-xs 0;
-  border-radius: $border-radius-lg;
-  transition: all $transition-duration ease-in-out;
-  display: flex;
-  align-items: center;
-  color: $text-secondary;
-  cursor: pointer;
+  @include menu-item-base();
   gap: $spacing-sm;
-  
-  &:hover {
-    background-color: $light-bg-secondary;
-    color: $text-primary;
-  }
   
   &.active {
     background-color: $primary-color;
@@ -84,21 +70,10 @@
 }
 
 .submenuItem {
-  padding: $spacing-xs;
+  @include menu-item-base();
   padding-left: $spacing-xs;
-  margin: $spacing-xs 0;
-  border-radius: $border-radius-md;
-  transition: all $transition-duration ease-in-out;
-  display: flex;
-  align-items: center;
-  color: $text-secondary;
   font-size: 0.9rem;
   gap: $spacing-sm;
-  
-  &:hover {
-    background-color: $light-bg-secondary;
-    color: $text-primary;
-  }
   
   &.active {
     background-color: rgba($primary-color, 0.1);
@@ -114,9 +89,7 @@
   min-width: 24px;
   color: currentColor;
   margin-right: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  @include flex-center();
 }
 
 .menuText {

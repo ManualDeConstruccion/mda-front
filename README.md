@@ -39,7 +39,7 @@ npm install
 
 3. Crea un archivo `.env` en la raíz del proyecto y configura las variables de entorno necesarias:
 ```env
-REACT_APP_API_URL=http://localhost:8000
+VITE_API_URL=http://localhost:8000
 ```
 
 ## 📦 Scripts Disponibles
