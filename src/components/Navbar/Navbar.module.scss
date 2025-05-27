@@ -1,4 +1,5 @@
 @use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
 
 .navbar {
   background-color: $dark-bg-elevated !important;
@@ -23,8 +24,7 @@
   background-color: rgba(255, 255, 255, 0.08);
   margin-left: $spacing-lg;
   width: 300px;
-  display: flex;
-  align-items: center;
+  @include flex-center();
 
   &:hover {
     background-color: rgba(255, 255, 255, 0.12);
@@ -34,9 +34,7 @@
     padding: $spacing-sm;
     height: 100%;
     position: absolute;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    @include flex-center();
     color: $text-light-secondary;
   }
 
@@ -59,8 +57,7 @@
 }
 
 .actions {
-  display: flex;
-  align-items: center;
+  @include flex-center();
   gap: $spacing-sm;
 }
 
@@ -76,18 +73,13 @@
 }
 
 .loginButton, .logoutButton {
+  @include button-ghost();
   text-transform: none;
   font-weight: 500;
-  padding: $spacing-xs $spacing-md;
-  border-radius: $border-radius-sm;
-  
-  &:hover {
-    background-color: rgba(255, 255, 255, 0.08);
-  }
 }
 
 // Responsive adjustments
-@media (max-width: $breakpoint-md) {
+@include respond-to(md) {
   .search {
     width: 200px;
     margin-left: $spacing-md;
@@ -98,7 +90,7 @@
   }
 }
 
-@media (max-width: $breakpoint-sm) {
+@include respond-to(sm) {
   .search {
     display: none;
   }

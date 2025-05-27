@@ -1,4 +1,5 @@
 @use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
 @use 'sass:color';
 
 .container {
@@ -14,87 +15,23 @@
 }
 
 .form {
-  background-color: $background-paper;
-  padding: $spacing-lg;
-  border-radius: $border-radius-md;
-  box-shadow: $shadow-md;
+  @include card-container;
 }
 
 .formGroup {
-  margin-bottom: $spacing-md;
-
-  label {
-    display: block;
-    margin-bottom: $spacing-xs;
-    color: $text-primary;
-    font-weight: 500;
-
-    input[type="checkbox"] {
-      margin-right: $spacing-xs;
-    }
-  }
-
-  input[type="text"],
-  input[type="date"],
-  textarea,
-  select {
-    width: 100%;
-    padding: $spacing-sm;
-    border: 1px solid $border-color;
-    border-radius: $border-radius-sm;
-    background-color: $background-light;
-    color: $text-primary;
-    font-size: $font-size-base;
-
-    &:focus {
-      outline: none;
-      border-color: $primary-color;
-      box-shadow: 0 0 0 2px rgba($primary-color, 0.2);
-    }
-  }
-
-  textarea {
-    min-height: 100px;
-    resize: vertical;
-  }
+  @include form-group;
 }
 
 .formActions {
-  display: flex;
+  @include flex-container(row, $spacing-md);
   justify-content: flex-end;
-  gap: $spacing-md;
   margin-top: $spacing-lg;
-
-  button {
-    padding: $spacing-sm $spacing-lg;
-    border-radius: $border-radius-sm;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all $transition-fast;
-
-    &:hover {
-      transform: translateY(-1px);
-    }
-  }
 }
 
 .cancelButton {
-  background-color: transparent;
-  border: 1px solid $border-color;
-  color: $text-secondary;
-
-  &:hover {
-    background-color: $background-light;
-    border-color: $text-secondary;
-  }
+  @include secondary-button;
 }
 
 .saveButton {
-  background-color: $primary-color;
-  border: none;
-  color: $white;
-
-  &:hover {
-    background-color: color.adjust($primary-color, $lightness: -10%);
-  }
+  @include action-button($primary-color);
 } 

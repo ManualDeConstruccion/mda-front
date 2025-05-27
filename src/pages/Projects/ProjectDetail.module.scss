@@ -1,46 +1,40 @@
 @use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
 @use 'sass:color';
 
 .container {
-  padding: 2rem;
+  padding: $spacing-xl;
   max-width: 1400px;
   margin: 0 auto;
 }
 
 .header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #e0e0e0;
+  @include page-header;
 
   .headerContent {
     h1 {
       margin: 0;
-      font-size: 2rem;
-      color: #333;
+      font-size: $font-size-xl * 1.25;
+      color: $text-primary;
     }
 
     .status {
-      margin-top: 0.5rem;
-      font-size: 0.9rem;
-      color: #666;
+      margin-top: $spacing-xs;
+      font-size: $font-size-sm;
+      color: $text-secondary;
     }
   }
 
   .actions {
-    display: flex;
-    gap: 1rem;
+    @include flex-container(row, $spacing-md);
 
     button {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 1rem;
-      border-radius: 4px;
+      @include flex-center();
+      gap: $spacing-xs;
+      padding: $spacing-xs $spacing-md;
+      border-radius: $border-radius-sm;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all $transition-fast;
 
       svg {
         font-size: 1.2rem;
@@ -48,33 +42,15 @@
     }
 
     .editButton {
-      background: #007bff;
-      color: white;
-      border: none;
-
-      &:hover {
-        background: #0056b3;
-      }
+      @include action-button($primary-color);
     }
 
     .deleteButton {
-      background: #dc3545;
-      color: white;
-      border: none;
-
-      &:hover {
-        background: #c82333;
-      }
+      @include action-button($error-color);
     }
 
     .cancelButton {
-      background: #6c757d;
-      color: white;
-      border: none;
-
-      &:hover {
-        background: #5a6268;
-      }
+      @include action-button($text-secondary);
     }
   }
 }
@@ -82,56 +58,51 @@
 .content {
   display: grid;
   grid-template-columns: 1fr 250px;
-  gap: 2rem;
+  gap: $spacing-xl;
 }
 
 .mainInfo {
   .infoSection {
-    background: white;
-    padding: 1.5rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    margin-bottom: 2rem;
+    @include card-container;
+    margin-bottom: $spacing-xl;
 
     h2 {
       margin-top: 0;
-      margin-bottom: 1.5rem;
-      color: #333;
+      margin-bottom: $spacing-lg;
+      color: $text-primary;
     }
 
     .projectDetails {
       display: grid;
       grid-template-columns: 300px 1fr;
-      gap: 2rem;
+      gap: $spacing-xl;
 
       .coverImage {
         img {
           width: 100%;
           height: 200px;
           object-fit: cover;
-          border-radius: 4px;
+          border-radius: $border-radius-sm;
         }
 
         .noImage {
           width: 100%;
           height: 200px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: #f8f9fa;
-          border: 1px dashed #dee2e6;
-          border-radius: 4px;
-          color: #6c757d;
+          @include flex-center();
+          background: $background-light;
+          border: 1px dashed $border-color;
+          border-radius: $border-radius-sm;
+          color: $text-secondary;
         }
       }
 
       .info {
         p {
-          margin: 0.5rem 0;
-          color: #666;
+          margin: $spacing-xs 0;
+          color: $text-secondary;
 
           strong {
-            color: #333;
+            color: $text-primary;
           }
         }
       }
@@ -141,41 +112,14 @@
 
 .form {
   .formGroup {
-    margin-bottom: 1.5rem;
-
-    label {
-      display: block;
-      margin-bottom: 0.5rem;
-      color: #333;
-    }
-
-    input[type="text"],
-    input[type="date"],
-    textarea,
-    select {
-      width: 100%;
-      padding: 0.5rem;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-size: 1rem;
-
-      &:focus {
-        outline: none;
-        border-color: #007bff;
-      }
-    }
-
-    textarea {
-      min-height: 100px;
-      resize: vertical;
-    }
+    @include form-group;
 
     .imagePreview {
-      margin-top: 1rem;
+      margin-top: $spacing-md;
       
       img {
         max-width: 300px;
-        border-radius: 4px;
+        border-radius: $border-radius-sm;
       }
     }
   }
@@ -183,83 +127,54 @@
   .formRow {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 1rem;
+    gap: $spacing-md;
   }
 
   .submitButton {
-    background: #28a745;
-    color: white;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.2s;
-
-    &:hover {
-      background: #218838;
-    }
+    @include action-button($success-color);
   }
 }
 
 .architectureSection {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  @include card-container;
 
   .sectionHeader {
-    display: flex;
+    @include flex-container(row, $spacing-md);
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.5rem;
+    margin-bottom: $spacing-lg;
 
     h2 {
       margin: 0;
-      color: #333;
+      color: $text-primary;
     }
 
     .addButton {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.75rem 1.5rem;
-      background: #007bff;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: all 0.2s;
-
-      &:hover {
-        background: #0056b3;
-      }
+      @include action-button($primary-color);
     }
   }
 
   .architectureGrid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1rem;
+    @include cards-grid(300px);
 
     .architectureCard {
-      display: flex;
+      @include flex-container(row, $spacing-md);
       align-items: flex-start;
-      padding: 1.5rem;
-      background: white;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
+      padding: $spacing-lg;
+      background: $background-paper;
+      border: 1px solid $border-color;
+      border-radius: $border-radius-md;
       text-decoration: none;
       color: inherit;
-      transition: all 0.2s;
+      transition: all $transition-fast;
 
       &:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        box-shadow: $shadow-md;
       }
 
       .cardIcon {
-        color: #007bff;
-        margin-right: 1rem;
+        color: $primary-color;
         
         svg {
           font-size: 2rem;
@@ -270,23 +185,23 @@
         flex: 1;
 
         h3 {
-          margin: 0 0 0.5rem 0;
-          color: #333;
+          margin: 0 0 $spacing-xs 0;
+          color: $text-primary;
         }
 
         p {
-          margin: 0 0 1rem 0;
-          color: #666;
-          font-size: 0.9rem;
+          margin: 0 0 $spacing-md 0;
+          color: $text-secondary;
+          font-size: $font-size-sm;
         }
 
         .cardStatus {
           display: inline-block;
-          padding: 0.25rem 0.5rem;
-          background: #e9ecef;
-          border-radius: 4px;
-          font-size: 0.8rem;
-          color: #495057;
+          padding: $spacing-xs $spacing-sm;
+          background: $background-light;
+          border-radius: $border-radius-sm;
+          font-size: $font-size-xs;
+          color: $text-secondary;
         }
       }
     }
@@ -294,50 +209,40 @@
 
   .noProjects {
     text-align: center;
-    color: #666;
-    padding: 2rem;
+    color: $text-secondary;
+    padding: $spacing-xl;
   }
 }
 
 .sideMenu {
   .menuSection {
     position: sticky;
-    top: 2rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+    top: $spacing-xl;
+    @include flex-container(column, $spacing-xs);
 
     .menuButton {
-      display: flex;
-      align-items: center;
-      padding: 0.75rem 1rem;
-      background: white;
-      border: 1px solid #e0e0e0;
-      border-radius: 4px;
-      text-decoration: none;
-      color: #333;
-      transition: all 0.2s;
-
-      &:hover {
-        background: #f5f5f5;
-      }
+      @include menu-item-base;
+      padding: $spacing-sm $spacing-md;
+      background: $background-paper;
+      border: 1px solid $border-color;
+      border-radius: $border-radius-sm;
 
       .icon {
-        margin-right: 0.5rem;
+        margin-right: $spacing-xs;
         font-size: 1.2rem;
-        color: #007bff;
+        color: $primary-color;
       }
     }
   }
 }
 
 .error {
-  padding: 1rem;
-  background: #fee;
-  border: 1px solid #fcc;
-  border-radius: 4px;
-  color: #c00;
-  margin: 1rem 0;
+  padding: $spacing-md;
+  background: rgba($error-color, 0.1);
+  border: 1px solid rgba($error-color, 0.3);
+  border-radius: $border-radius-sm;
+  color: $error-color;
+  margin: $spacing-md 0;
   text-align: center;
 
   h2 {
@@ -345,16 +250,16 @@
   }
 
   button {
-    margin-top: 1rem;
-    padding: 0.5rem 1rem;
-    background: #c00;
-    color: white;
+    margin-top: $spacing-md;
+    padding: $spacing-xs $spacing-md;
+    background: $error-color;
+    color: $white;
     border: none;
-    border-radius: 4px;
+    border-radius: $border-radius-sm;
     cursor: pointer;
 
     &:hover {
-      background: #a00;
+      background: darken($error-color, 10%);
     }
   }
 } 

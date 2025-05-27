@@ -1,38 +1,32 @@
 @use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
 @use 'sass:color';
 
 .container {
-  padding: 2rem;
+  padding: $spacing-xl;
   max-width: 1200px;
   margin: 0 auto;
 }
 
 .header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #e0e0e0;
+  @include page-header;
 
   h1 {
     margin: 0;
-    font-size: 2rem;
-    color: #333;
+    font-size: $font-size-xl * 1.25;
+    color: $text-primary;
   }
 
   .headerActions {
-    display: flex;
-    gap: 1rem;
+    @include flex-container(row, $spacing-md);
 
     button {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.75rem 1.5rem;
-      border-radius: 4px;
+      @include flex-center();
+      gap: $spacing-xs;
+      padding: $spacing-sm $spacing-lg;
+      border-radius: $border-radius-sm;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all $transition-fast;
       font-weight: 500;
 
       svg {
@@ -41,27 +35,11 @@
     }
 
     .saveButton {
-      background: #28a745;
-      color: white;
-      border: none;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-
-      &:hover {
-        background: #218838;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-      }
+      @include action-button($success-color);
     }
 
     .backButton {
-      background: #f5f5f5;
-      color: #333;
-      border: 1px solid #ddd;
-
-      &:hover {
-        background: #e0e0e0;
-        transform: translateY(-1px);
-      }
+      @include secondary-button;
     }
   }
 }
@@ -69,59 +47,27 @@
 .content {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 2rem;
+  gap: $spacing-xl;
 }
 
 .formSection, .stagesSection {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  @include card-container;
 
   h2 {
     margin-top: 0;
-    margin-bottom: 1.5rem;
-    color: #333;
+    margin-bottom: $spacing-lg;
+    color: $text-primary;
   }
 }
 
 .formGroup {
-  margin-bottom: 1.5rem;
-
-  label {
-    display: block;
-    margin-bottom: 0.5rem;
-    color: #333;
-    font-weight: 500;
-  }
-
-  input[type="text"],
-  input[type="date"],
-  textarea {
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 1rem;
-    transition: all 0.2s;
-
-    &:focus {
-      outline: none;
-      border-color: #007bff;
-      box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
-    }
-  }
-
-  textarea {
-    min-height: 100px;
-    resize: vertical;
-  }
+  @include form-group;
 }
 
 .checkboxLabel {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  @include flex-center();
+  justify-content: flex-start;
+  gap: $spacing-xs;
   cursor: pointer;
 
   input[type="checkbox"] {
@@ -131,87 +77,54 @@
 }
 
 .addStage {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  @include flex-container(row, $spacing-md);
+  margin-bottom: $spacing-lg;
 
   input {
     flex: 1;
-    padding: 0.75rem;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 1rem;
+    @include input-base;
+    font-size: $font-size-base;
 
     &:focus {
-      outline: none;
-      border-color: #007bff;
-      box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+      box-shadow: 0 0 0 2px rgba($primary-color, 0.25);
     }
   }
 
   .addButton {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    background: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-weight: 500;
-
-    &:hover {
-      background: #0056b3;
-      transform: translateY(-1px);
-    }
-
-    svg {
-      font-size: 1.2rem;
-    }
+    @include action-button($primary-color);
   }
 }
 
 .stagesList {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  @include flex-container(column, $spacing-md);
 
   .stageItem {
-    display: flex;
-    gap: 1rem;
+    @include flex-container(row, $spacing-md);
     align-items: center;
 
     input {
       flex: 1;
-      padding: 0.75rem;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-size: 1rem;
+      @include input-base;
+      font-size: $font-size-base;
 
       &:focus {
-        outline: none;
-        border-color: #007bff;
-        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        box-shadow: 0 0 0 2px rgba($primary-color, 0.25);
       }
     }
 
     .deleteButton {
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      @include flex-center();
       width: 40px;
       height: 40px;
-      background: #dc3545;
-      color: white;
+      background: $error-color;
+      color: $white;
       border: none;
-      border-radius: 4px;
+      border-radius: $border-radius-sm;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all $transition-fast;
 
       &:hover {
-        background: #c82333;
+        background: darken($error-color, 10%);
         transform: translateY(-1px);
       }
 
@@ -223,12 +136,12 @@
 }
 
 .error {
-  padding: 1rem;
-  background: #fee;
-  border: 1px solid #fcc;
-  border-radius: 4px;
-  color: #c00;
-  margin: 1rem 0;
+  padding: $spacing-md;
+  background: rgba($error-color, 0.1);
+  border: 1px solid rgba($error-color, 0.3);
+  border-radius: $border-radius-sm;
+  color: $error-color;
+  margin: $spacing-md 0;
   text-align: center;
 
   h2 {
@@ -236,16 +149,16 @@
   }
 
   button {
-    margin-top: 1rem;
-    padding: 0.5rem 1rem;
-    background: #c00;
-    color: white;
+    margin-top: $spacing-md;
+    padding: $spacing-xs $spacing-md;
+    background: $error-color;
+    color: $white;
     border: none;
-    border-radius: 4px;
+    border-radius: $border-radius-sm;
     cursor: pointer;
 
     &:hover {
-      background: #a00;
+      background: darken($error-color, 10%);
     }
   }
 } 

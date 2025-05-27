@@ -1,122 +1,107 @@
 @use '../../styles/_variables.scss' as *;
+@use '../../styles/mixins' as *;
 @use "sass:color";
 
 .container {
   min-height: 100vh;
   width: 100%;
-  background-color: #ffffff;
+  background-color: $background-paper;
 }
 
 .main {
-  max-width: 1200px;
+  max-width: $container-width;
   margin: 0 auto;
   padding: 0;
 }
 
 .heroSection {
   text-align: center;
-  padding: 4rem 0;
+  padding: $spacing-xl * 2 0;
   
   h1 {
-    font-size: 2.5rem;
-    color: #1e3d59;
+    font-size: $font-size-xl * 1.5;
+    color: $text-color;
     margin: 0;
     font-weight: 600;
   }
 }
 
 .logoContainer {
-  margin-bottom: 1rem;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  margin-bottom: $spacing-md;
+  @include flex-center();
 }
 
 .logoImage {
   width: 250px;
   height: auto;
-  margin-bottom: 0rem;
+  margin-bottom: 0;
 }
 
 .subtitle {
-  font-size: 1.2rem;
-  color: #666666;
+  font-size: $font-size-lg;
+  color: $text-secondary;
   max-width: 600px;
-  margin: 1rem auto;
+  margin: $spacing-md auto;
   line-height: 1.6;
 }
 
 .features {
-  padding: 4rem 0;
-  background-color: #f8f9fa;
-  border-radius: 1rem;
-  margin: 2rem 0;
+  padding: $spacing-xl * 2 0;
+  background-color: $background-light;
+  border-radius: $border-radius-lg;
+  margin: $spacing-xl 0;
 
   h2 {
     text-align: center;
-    color: #1e3d59;
-    margin-bottom: 3rem;
-    font-size: 2rem;
+    color: $text-color;
+    margin-bottom: $spacing-xl * 1.5;
+    font-size: $font-size-xl;
   }
 }
 
 .featureGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 2rem;
-  padding: 0 2rem;
+  @include cards-grid(280px);
+  padding: 0 $spacing-xl;
 }
 
 .featureCard {
-  background: white;
-  padding: 2rem;
-  border-radius: 0.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease;
+  @include card-container;
+  transition: transform $transition-fast ease;
 
   &:hover {
     transform: translateY(-5px);
   }
 
   h3 {
-    color: #1e3d59;
-    margin-bottom: 1rem;
-    font-size: 1.25rem;
+    color: $text-color;
+    margin-bottom: $spacing-md;
+    font-size: $font-size-lg;
   }
 
   p {
-    color: #666666;
+    color: $text-secondary;
     line-height: 1.6;
   }
 }
 
 .cta {
   text-align: center;
-  padding: 4rem 0;
+  padding: $spacing-xl * 2 0;
 
   h2 {
-    color: #1e3d59;
-    margin-bottom: 1rem;
-    font-size: 2rem;
+    color: $text-color;
+    margin-bottom: $spacing-md;
+    font-size: $font-size-xl;
   }
 
   p {
-    color: #666666;
-    margin-bottom: 2rem;
+    color: $text-secondary;
+    margin-bottom: $spacing-xl;
   }
 }
 
 .ctaButton {
-  display: inline-block;
-  padding: 1rem 2rem;
-  background-color: #1e3d59;
-  color: white;
+  @include action-button($text-color);
+  display: inline-flex;
   text-decoration: none;
-  border-radius: 0.5rem;
-  font-weight: 600;
-  transition: background-color 0.2s ease;
-
-  &:hover {
-    background-color: color.adjust(#1e3d59, $lightness: -10%);
-  }
 } 

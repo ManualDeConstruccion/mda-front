@@ -1,8 +1,9 @@
 @use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
 @use 'sass:color';
 
 .pageContainer {
-  padding: 1rem;
+  padding: $spacing-md;
   min-height: calc(100vh - #{$navbar-height} - #{$footer-height});
   background-color: $background-color;
 }
@@ -19,51 +20,22 @@
 
 .title {
   font-size: $font-size-xl;
-  color: $text-color;
+  color: $text-primary;
   margin: 0;
 }
 
 .form {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-md;
-  background-color: $background-paper;
-  padding: $spacing-lg;
-  border-radius: $border-radius-md;
+  @include card-container;
+  @include flex-container(column, $spacing-md);
 }
 
 .formGroup {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-xs;
-
-  label {
-    font-weight: 500;
-    color: $text-color;
-  }
-
-  input[type="text"],
-  textarea {
-    padding: $spacing-sm;
-    border: 1px solid $border-color;
-    border-radius: $border-radius-sm;
-    font-size: $font-size-sm;
-
-    &:focus {
-      outline: none;
-      border-color: $primary-color;
-    }
-  }
-
-  textarea {
-    resize: vertical;
-    min-height: 100px;
-  }
+  @include form-group;
 }
 
 .checkboxLabel {
-  display: flex;
-  align-items: center;
+  @include flex-center();
+  justify-content: flex-start;
   gap: $spacing-xs;
   cursor: pointer;
 
@@ -74,36 +46,15 @@
 }
 
 .formActions {
-  display: flex;
+  @include flex-container(row, $spacing-sm);
   justify-content: flex-end;
-  gap: $spacing-sm;
   margin-top: $spacing-md;
 }
 
-.cancelButton,
-.saveButton {
-  padding: $spacing-sm $spacing-md;
-  border: none;
-  border-radius: $border-radius-sm;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background-color $transition-fast;
-}
-
 .cancelButton {
-  background-color: $text-light;
-  color: white;
-
-  &:hover {
-    background-color: color.adjust($text-light, $lightness: -10%);
-  }
+  @include secondary-button;
 }
 
 .saveButton {
-  background-color: $primary-color;
-  color: white;
-
-  &:hover {
-    background-color: color.adjust($primary-color, $lightness: -10%);
-  }
+  @include action-button($primary-color);
 } 

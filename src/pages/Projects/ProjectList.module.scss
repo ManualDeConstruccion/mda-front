@@ -1,4 +1,5 @@
 @use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
 @use 'sass:color';
 
 .container {
@@ -8,7 +9,7 @@
 }
 
 .header {
-  display: flex;
+  @include flex-container(row, $spacing-md);
   justify-content: space-between;
   align-items: center;
   margin-bottom: $spacing-lg;
@@ -21,36 +22,22 @@
 }
 
 .createButton {
-  padding: $spacing-sm $spacing-md;
-  background-color: $primary-color;
-  color: $white;
-  border: none;
-  border-radius: $border-radius-sm;
-  cursor: pointer;
-  font-size: $font-size-md;
-  transition: background-color 0.2s;
-
-  &:hover {
-    background-color: color.adjust($primary-color, $lightness: -10%);
-  }
+  @include action-button($primary-color);
 }
 
 .projectGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: $spacing-lg;
+  @include cards-grid(300px);
 }
 
 .projectCard {
-  background: white;
-  border-radius: $border-radius-md;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  @include card-container;
+  padding: 0;
   overflow: hidden;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform $transition-fast, box-shadow $transition-fast;
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: $shadow-lg;
   }
 }
 
@@ -75,18 +62,14 @@
   width: 100%;
   height: 200px;
   background-color: $background-light;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  @include flex-center();
   color: $text-secondary;
   font-style: italic;
 }
 
 .projectInfo {
   padding: $spacing-md;
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-sm;
+  @include flex-container(column, $spacing-sm);
 }
 
 .description {
@@ -99,7 +82,7 @@
 }
 
 .projectMeta {
-  display: flex;
+  @include flex-container(row, 0);
   justify-content: space-between;
   align-items: center;
   margin-bottom: $spacing-sm;
@@ -133,9 +116,7 @@
 }
 
 .loading {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  @include flex-center();
   min-height: 300px;
   font-size: $font-size-lg;
   color: $text-secondary;
@@ -165,7 +146,7 @@
 }
 
 .architectureItem {
-  display: flex;
+  @include flex-container(row, 0);
   justify-content: space-between;
   align-items: center;
   padding: $spacing-xs 0;
@@ -179,10 +160,10 @@
   color: $primary-color;
   text-decoration: none;
   font-size: $font-size-sm;
-  transition: color 0.2s;
+  transition: color $transition-fast;
 
   &:hover {
-    color: color.adjust($primary-color, $lightness: -10%);
+    color: darken($primary-color, 10%);
     text-decoration: underline;
   }
 }
