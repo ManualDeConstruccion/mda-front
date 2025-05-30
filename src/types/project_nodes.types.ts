@@ -59,6 +59,12 @@ export interface ProjectNode {
   file_url?: string | null;
   cover_image_url?: string | null;
   object_id: number | null;
+  form_type?: {
+    id: number;
+    app_label: string;
+    model: string;
+    name: string;
+  };
 }
 
 export interface CreateProjectNodeDto {

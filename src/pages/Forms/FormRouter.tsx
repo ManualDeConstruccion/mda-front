@@ -13,7 +13,7 @@ interface FormRouterProps {
   setNodeData: (data: any) => void;
 }
 
-const FormRouter: React.FC<FormRouterProps> = ({ formTypeModel, nodeData, mode, selectedForm, setNodeData }) => {
+const FormRouter: React.FC<FormRouterProps> = ({ formTypeModel, nodeData, selectedForm, setNodeData }) => {
   const [selectedMode, setSelectedMode] = useState<'existing' | 'new'>('new');
   const [selectedInstance, setSelectedInstance] = useState('');
   const [loading, setLoading] = useState(false);
@@ -23,8 +23,8 @@ const FormRouter: React.FC<FormRouterProps> = ({ formTypeModel, nodeData, mode, 
   // Obtener el hook de API desde el registry
   const registry = formRegistry[formTypeModel];
   const api = registry?.useApi ? registry.useApi() : null;
-  const { data } = api?.useList ? api.useList() : { data: [] };
-  const existingInstances = Array.isArray(data) ? data : [];
+  const { data } = api?.useList ? api.useList() : { data: { results: [] } };
+  const existingInstances = Array.isArray(data?.results) ? data.results : [];
 
   // Para mostrar el nombre de la instancia seleccionada
   const selectedInstanceObj = existingInstances.find((inst: any) => String(inst.id) === String(nodeData.object_id));
@@ -41,6 +41,7 @@ const FormRouter: React.FC<FormRouterProps> = ({ formTypeModel, nodeData, mode, 
     console.log('nodeData:', nodeData);
     console.log('selectedMode:', selectedMode);
     console.log('selectedInstance:', selectedInstance);
+    console.log('selectedForm:', selectedForm);
     try {
       // Si ya hay object_id, simplemente navega al formulario de edición de la instancia
       if (nodeData.object_id) {
@@ -94,7 +95,7 @@ const FormRouter: React.FC<FormRouterProps> = ({ formTypeModel, nodeData, mode, 
     return (
       <Box>
         <Typography variant="h6" sx={{ mb: 2 }}>
-          Formulario {selectedForm?.name || formTypeModel}
+          Formulario {selectedForm?.form_type?.name || selectedForm?.name || formTypeModel}
         </Typography>
         <Typography sx={{ mb: 2 }}>
           Instancia seleccionada: <b>{selectedInstanceObj.name || selectedInstanceObj.id}</b>
@@ -118,7 +119,7 @@ const FormRouter: React.FC<FormRouterProps> = ({ formTypeModel, nodeData, mode, 
   return (
     <Box>
       <Typography variant="h6" sx={{ mb: 2 }}>
-        Formulario {selectedForm?.name || formTypeModel}
+        Formulario {selectedForm?.form_type?.name || selectedForm?.name || formTypeModel}
       </Typography>
       <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
         <Button

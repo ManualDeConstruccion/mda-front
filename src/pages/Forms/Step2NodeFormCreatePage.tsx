@@ -12,7 +12,8 @@ export default function Step2NodeFormCreatePage() {
     nodeData, 
     setNodeData,
     projectId,
-    architectureProjectId 
+    architectureProjectId,
+    setSelectedForm
   } = useFormNode();
   const navigate = useNavigate();
   const { mode, id } = useParams(); // mode: 'create' | 'edit', id?: string
@@ -49,8 +50,18 @@ export default function Step2NodeFormCreatePage() {
         object_id: node.object_id || null // Aseguramos que object_id esté definido
       });
       setOriginalNode(node);
+      // Hidratamos selectedForm si viene en node.form_type
+      const anyNode = node as any;
+      if (anyNode.form_type) {
+        setSelectedForm((prev: any) => ({
+          ...prev,
+          form_type: anyNode.form_type,
+          name: anyNode.form_type.name,
+          model: anyNode.form_type.model,
+        }));
+      }
     }
-  }, [mode, id, node, setNodeData]);
+  }, [mode, id, node, setNodeData, setSelectedForm]);
 
   useEffect(() => {
     setNodeData((prev: any) => ({ ...prev, ...form }));
@@ -173,21 +184,10 @@ export default function Step2NodeFormCreatePage() {
     navigate('/form/select');
   };
 
-  // Log props for FormRouter for debugging
-  if (selectedForm) {
-    console.log('FormRouter props:', {
-      content_type: selectedForm.content_type,
-      nodeData,
-      mode,
-      setNodeData,
-      selectedForm
-    });
-  }
-
   return (
     <Box p={3}>
       <Typography variant="h5" gutterBottom>
-        {mode === 'edit' ? 'Editar Formulario' : `Crear Formulario: ${selectedForm?.name}`}
+        {mode === 'edit' ? `Editar Formulario` : `Crear Formulario: ${selectedForm?.name}`}
       </Typography>
       {error && <Typography color="error">{error}</Typography>}
       
