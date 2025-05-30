@@ -16,6 +16,7 @@ interface ListNodeProps {
   onEdit: (node: ProjectNode) => void;
   onDelete: (node: ProjectNode) => void;
   children: React.ReactNode;
+  indentClass?: string;
 }
 
 const ListNode: React.FC<ListNodeProps> = ({
@@ -26,13 +27,14 @@ const ListNode: React.FC<ListNodeProps> = ({
   onAdd,
   onEdit,
   onDelete,
-  children
+  children,
+  indentClass
 }) => {
   return (
     <React.Fragment>
       <tr className={styles.listadoRow}>
         <td 
-          className={`${styles.listadoCellNombre} ${depth > 0 ? styles.listadoCellNombreIndent : ''}`} 
+          className={`${styles.listadoCellNombre} ${depth > 0 ? styles.listadoCellNombreIndent : ''} ${indentClass ? indentClass : ''}`} 
           onClick={() => onToggle(node.id)}
         >
           <Box display="flex" alignItems="center" gap={1}>

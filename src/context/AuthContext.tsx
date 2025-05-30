@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, ReactNode, useCallback, use
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, UseQueryOptions } from '@tanstack/react-query';
+import { clearAccordionStates } from '../pages/ArchitectureProjects/ListadoDeAntecedentes';
 
 export interface User {
   id: number;
@@ -87,9 +88,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
-    setAccessToken(null);
-    setUser(null);
+    clearAccordionStates();
+    // Primero navega fuera de las rutas protegidas
     navigate('/login');
+    // Luego limpia el contexto (en el siguiente tick)
+    setTimeout(() => {
+      setAccessToken(null);
+      setUser(null);
+    }, 0);
   }, [navigate]);
 
   const queryOptions: UseQueryOptions<User, Error> = {

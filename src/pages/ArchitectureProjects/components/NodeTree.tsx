@@ -37,6 +37,7 @@ const NodeTree: React.FC<NodeTreeProps> = ({
               onAdd={onAddNode}
               onEdit={onEditNode}
               onDelete={onDeleteNode}
+              indentClass={styles[`indent-${depth + 1}`]}
             >
               {/* Renderizar listados hijos recursivamente */}
               <NodeTree
@@ -58,7 +59,7 @@ const NodeTree: React.FC<NodeTreeProps> = ({
                     depth={depth + 1}
                     onEdit={onEditNode}
                     onDelete={onDeleteNode}
-                    indentClass={styles[`indent-${depth + 2}`]}
+                    indentClass={styles[`indent-${depth + 3}`]}
                   />
                 ))}
             </ListNode>

@@ -11,19 +11,10 @@
   border-bottom: 2px solid $border-color;
 }
 
-.listadoCell {
-  padding: $spacing-sm;
-}
-
-.listadoCellNombre {
-  padding-left: $spacing-sm;
-  margin-top: 0;
-}
-
 .listadoCellNombreIndent {
   padding-top: 0 !important;
   padding-bottom: 0 !important;
-  padding-left: 50px;
+  padding-left: 0px !important;
 }
 
 .listadoCellDescripcionIndent {
@@ -41,7 +32,7 @@
 }
 
 .textDocument {
-  font-size: $font-size-sm;
+  font-size: $font-size-md;
 }
 
 .acciones {
@@ -78,28 +69,6 @@
   }
 }
 
-// New styles for table headers and cells
-.tableHeader {
-  text-align: left;
-  padding: $spacing-sm;
-}
-
-.tableCell {
-  padding: $spacing-sm;
-}
-
-.tableCellIndent {
-  padding-left: 25px;
-}
-
-.tableCellRight {
-  padding: $spacing-sm;
-  text-align: right;
-}
-
-.tableCellRightButton {
-  margin-left: $spacing-sm;
-}
 
 // Container styles
 .container {
@@ -113,7 +82,7 @@
 }
 
 .addButton {
-  margin-top: $spacing-md;
+  margin-top: 50px;
   @include action-button($primary-color);
 }
 
@@ -153,7 +122,7 @@
 
 .textNombre {
   font-size: $font-size-md;
-  font-weight: 600;
+  font-weight: 500 !important;
   color: $text-color;
   margin-bottom: 0;
 } 

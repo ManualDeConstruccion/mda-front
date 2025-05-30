@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useProjectNodeTree } from '../../hooks/useProjectNodes';
 import { TypeCode, ProjectNode } from '../../types/project_nodes.types';
 import { Button, Popover, Typography, Box, } from '@mui/material';
@@ -38,12 +38,38 @@ function extractBackendError(err: any): string {
   return err?.response?.data?.detail || err?.message || 'Error desconocido';
 }
 
+// Función utilitaria para limpiar acordeones al cerrar sesión
+  // Llama a esta función en tu lógica de logout
+  export const clearAccordionStates = () => {
+    Object.keys(sessionStorage)
+      .filter(key => key.startsWith('acordeones-arquitectura-'))
+      .forEach(key => sessionStorage.removeItem(key));
+  };
+
 const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, projectId, architectureProjectId }) => {
   const queryClient = useQueryClient();
   const { data: tree, isLoading } = useProjectNodeTree(stageId);
 
+  // Clave única para sessionStorage por proyecto de arquitectura
+  const ACCORDION_KEY = `acordeones-arquitectura-${architectureProjectId}`;
+
   // Estados para el manejo de acordeones
-  const [openAccordions, setOpenAccordions] = useState<{ [key: number]: boolean }>({});
+  const [openAccordions, setOpenAccordions] = useState<{ [key: number]: boolean }>(() => {
+    const saved = sessionStorage.getItem(ACCORDION_KEY);
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  // Guardar el estado cada vez que cambie
+  useEffect(() => {
+    sessionStorage.setItem(ACCORDION_KEY, JSON.stringify(openAccordions));
+  }, [openAccordions, ACCORDION_KEY]);
+
+  // Limpiar los estados de otros proyectos al cambiar de proyecto
+  useEffect(() => {
+    Object.keys(sessionStorage)
+      .filter(key => key.startsWith('acordeones-arquitectura-') && key !== ACCORDION_KEY)
+      .forEach(key => sessionStorage.removeItem(key));
+  }, [ACCORDION_KEY]);
 
   // Estados para el menú de tipos de nodos
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
