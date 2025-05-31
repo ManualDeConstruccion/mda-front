@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, TextField, Button, Stack, Typography, Snackbar, Alert } from '@mui/material';
-import { useProjectNode, useProjectNodes } from '../../../hooks/useProjectNodes';
+import { useProjectNodes } from '../../../hooks/useProjectNodes';
 import { useNavigate } from 'react-router-dom';
 import { useCAMApi } from '../../../hooks/FormHooks/useCAMApi';
 
-export default function CAMForm({ nodeId }: { nodeId?: string }) {
-  const { data: node, isLoading } = useProjectNode(Number(nodeId));
+export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, instanceId?: string }) {
+  // Usar instanceId para cargar la instancia de analyzedsolution
+  const { data: analyzedSolution, isLoading } = useCAMApi().useRetrieve(Number(instanceId));
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [saving, setSaving] = useState(false);
@@ -15,25 +16,46 @@ export default function CAMForm({ nodeId }: { nodeId?: string }) {
   const navigate = useNavigate();
   const camApi = useCAMApi();
 
+  // Precarga los valores cuando analyzedSolution cambia
+  useEffect(() => {
+    if (analyzedSolution) {
+      setName(analyzedSolution.name || '');
+      setDescription(analyzedSolution.description || '');
+    }
+  }, [analyzedSolution]);
 
   const handleSave = async (closeAfter = false) => {
     setSaving(true);
     setError(null);
     try {
-      // 1. Crear la instancia de AnalyzedSolution
-      const analyzedPayload = {
-        name,
-        description,
-        node: [Number(nodeId)],
-      };
-      const analyzedResp = await camApi.create.mutateAsync(analyzedPayload);
-      // 2. PATCH al nodo para guardar el object_id
-      await patchProject.mutateAsync({
-        id: Number(nodeId),
-        data: {
-          object_id: analyzedResp.id,
-        },
-      });
+      if (instanceId) {
+        // Solo enviar los campos modificados
+        const patchData: any = {};
+        if (name !== analyzedSolution?.name) patchData.name = name;
+        if (description !== analyzedSolution?.description) patchData.description = description;
+        if (nodeId && analyzedSolution?.node?.[0] !== Number(nodeId)) patchData.node = [Number(nodeId)];
+
+        if (Object.keys(patchData).length > 0) {
+          await camApi.partialUpdate.mutateAsync({
+            id: Number(instanceId),
+            ...patchData,
+          });
+        }
+      } else {
+        // CREAR nueva instancia y asociar al nodo
+        const analyzedPayload = {
+          name,
+          description,
+          node: [Number(nodeId)],
+        };
+        const analyzedResp = await camApi.create.mutateAsync(analyzedPayload);
+        await patchProject.mutateAsync({
+          id: Number(nodeId),
+          data: {
+            object_id: analyzedResp.id,
+          },
+        });
+      }
       setShowSuccess(true);
       if (closeAfter) {
         navigate(-1);
@@ -51,6 +73,7 @@ export default function CAMForm({ nodeId }: { nodeId?: string }) {
     <Box>
       <Typography variant="h5" gutterBottom>Formulario CAM</Typography>
       <Typography variant="body2" gutterBottom>ID del nodo: {nodeId}</Typography>
+      <Typography variant="body2" gutterBottom>ID de la instancia: {instanceId}</Typography>
       <Box display="flex" flexDirection="column" gap={2} my={2}>
         <TextField
           label="Nombre de la solución"

@@ -13,8 +13,8 @@ interface FormRouterProps {
   setNodeData: (data: any) => void;
 }
 
-const FormRouter: React.FC<FormRouterProps> = ({ formTypeModel, nodeData, selectedForm, setNodeData }) => {
-  const [selectedMode, setSelectedMode] = useState<'existing' | 'new'>('new');
+const FormRouter: React.FC<FormRouterProps> = ({ formTypeModel, nodeData, selectedForm, setNodeData, mode }) => {
+  const [selectedMode, setSelectedMode] = useState<'existing' | 'new'>(mode === 'edit' ? 'existing' : 'new');
   const [selectedInstance, setSelectedInstance] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -43,15 +43,13 @@ const FormRouter: React.FC<FormRouterProps> = ({ formTypeModel, nodeData, select
     console.log('selectedInstance:', selectedInstance);
     console.log('selectedForm:', selectedForm);
     try {
-      // Si ya hay object_id, simplemente navega al formulario de edición de la instancia
       if (nodeData.object_id) {
+        console.log('Navegando a:', `/form/${formTypeModel}/${nodeData.object_id}`);
         setLoading(false);
-        navigate(`/form/step3/${formTypeModel}/${nodeData.id}`);
+        navigate(`/form/${formTypeModel}/${nodeData.object_id}`, { state: { nodeId: nodeData.id } });
         return;
       }
-      // Si está en modo seleccionar existente
       if (selectedMode === 'existing' && selectedInstance) {
-        // PATCH al nodo para asignar object_id
         if (api?.patchNode) {
           await api.patchNode(nodeData.id, {
             content_type: registry.contentType,
@@ -59,13 +57,12 @@ const FormRouter: React.FC<FormRouterProps> = ({ formTypeModel, nodeData, select
           });
         }
         setNodeData((prev: any) => ({ ...prev, object_id: selectedInstance }));
+        console.log('Navegando a:', `/form/${formTypeModel}/${selectedInstance}`);
         setLoading(false);
-        navigate(`/form/step3/${formTypeModel}/${nodeData.id}`);
+        navigate(`/form/${formTypeModel}/${selectedInstance}`, { state: { nodeId: nodeData.id } });
         return;
       }
-      // Si está en modo crear nueva
       if (selectedMode === 'new') {
-        // PASO 1: Crear el ProjectNode si no existe
         let nodeId = nodeData.id;
         if (!nodeId) {
           const nodePayload = {
@@ -80,6 +77,7 @@ const FormRouter: React.FC<FormRouterProps> = ({ formTypeModel, nodeData, select
           nodeId = nodeResp.id;
           setNodeData((prev: any) => ({ ...prev, id: nodeId }));
         }
+        console.log('Navegando a:', `/form/${formTypeModel}/${nodeId}`);
         setLoading(false);
         navigate(`/form/${formTypeModel}/${nodeId}`);
         return;

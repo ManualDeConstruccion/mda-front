@@ -120,7 +120,7 @@ const App: React.FC = () => {
                     {/* Rutas para formularios */}
                     <Route path="form/select" element={<SelectorFormPage />} />
                     <Route path="form/node/:mode/:id?" element={<Step2NodeFormCreatePage />} />
-                    <Route path="form/:formType/:nodeId" element={<Step3FormPage />} />
+                    <Route path="/form/:formTypeModel/:nodeId" element={<Step3FormPage />} />
                   </Route>
 
                   {/* fallback */}
