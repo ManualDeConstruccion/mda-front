@@ -29,11 +29,16 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
     setError(null);
     try {
       if (instanceId) {
-        // Solo enviar los campos modificados
+        // Construir el array de nodos actualizado (ManyToMany)
+        let nodes = Array.isArray(analyzedSolution?.node) ? [...analyzedSolution.node] : [];
+        if (nodeId && !nodes.includes(Number(nodeId))) {
+          nodes.push(Number(nodeId));
+        }
+
         const patchData: any = {};
         if (name !== analyzedSolution?.name) patchData.name = name;
         if (description !== analyzedSolution?.description) patchData.description = description;
-        if (nodeId && analyzedSolution?.node?.[0] !== Number(nodeId)) patchData.node = [Number(nodeId)];
+        if (nodes.length && JSON.stringify(nodes) !== JSON.stringify(analyzedSolution?.node)) patchData.node = nodes;
 
         if (Object.keys(patchData).length > 0) {
           await camApi.partialUpdate.mutateAsync({
