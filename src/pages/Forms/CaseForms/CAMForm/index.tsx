@@ -257,7 +257,7 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
                 value={formData.description}
                 onChange={handleInputChange}
                 multiline
-                rows={4}
+                rows={2}
                 margin="normal"
               />
             </Grid>
@@ -268,7 +268,7 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
       {/* Visualización de capas */}
       {analyzedSolution?.layers && analyzedSolution.layers.length > 0 && (
         <Card sx={{ mb: 3 }}>
-          <CardHeader title="Representación de Capas" />
+          <CardHeader title="Representación de capas de la solución base" />
           <CardContent>
             <LayerVisualization layers={analyzedSolution.layers} />
           </CardContent>
@@ -278,8 +278,20 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
       {/* Tabla de capas */}
       {analyzedSolution?.layers && analyzedSolution.layers.length > 0 && (
         <Card sx={{ mb: 3 }}>
-          <CardHeader title="Capas" />
+          <CardHeader title="Capas de la solución base" />
           <CardContent>
+            <Box sx={{ mb: 2 }}>
+              {analyzedSolution.calculated_time !== undefined && (
+                <Typography variant="subtitle1">
+                  <b>Tiempo calculado:</b> {analyzedSolution.calculated_time} min
+                </Typography>
+              )}
+              {analyzedSolution.fire_resistance && (
+                <Typography variant="subtitle1">
+                  <b>Resistencia al fuego:</b> F-{analyzedSolution.fire_resistance}
+                </Typography>
+              )}
+            </Box>
             <Box sx={{ mb: 2 }}>
               <Button
                 variant="contained"
@@ -310,10 +322,9 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
       <Button
         variant="contained"
         color="primary"
-        sx={{ mt: 2 }}
         onClick={handleSaveBaseSolution}
       >
-        Guardar solución base
+        Generar solución propuesta
       </Button>
 
       {error && <Typography color="error">{error}</Typography>}

@@ -24,7 +24,8 @@ export const LayerVisualization: React.FC<LayerVisualizationProps> = ({ layers }
       (line as HTMLElement).style.left = accumulatedWidth + 'px';
 
       if (index < numbers.length) {
-        const thickness = layers[index]?.thickness || 0;
+        const thicknessRaw = layers[index]?.thickness;
+        const thickness = typeof thicknessRaw === 'number' ? thicknessRaw : Number(thicknessRaw) || 0;
         const scaledThickness = thickness * scale;
 
         // Posicionar capa de fondo (achurado)
@@ -32,7 +33,9 @@ export const LayerVisualization: React.FC<LayerVisualizationProps> = ({ layers }
         (fills[index] as HTMLElement).style.width = scaledThickness + 'px';
 
         accumulatedWidth += scaledThickness;
-        realWidth += thickness;
+        if (!isNaN(thickness) && thickness > 0) {
+          realWidth += thickness;
+        }
       }
     });
 
@@ -119,7 +122,7 @@ export const LayerVisualization: React.FC<LayerVisualizationProps> = ({ layers }
                   zIndex: 2,
                 }}
               >
-                {layer.position}
+                {layer.position ?? index + 1}
               </Box>
 
               {/* Línea al final de la capa */}
