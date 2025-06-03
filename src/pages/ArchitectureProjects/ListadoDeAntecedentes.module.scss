@@ -1,5 +1,6 @@
 @use '../../styles/variables' as *;
 @use '../../styles/mixins' as *;
+@use "sass:color";
 
 .listadoTable {
   @include table-base;
@@ -65,7 +66,7 @@
   transition: color $transition-fast;
   
   &:hover {
-    color: darken($error-color, 10%);
+    color: color.adjust($error-color, $lightness: -10%);
   }
 }
 
@@ -101,6 +102,10 @@
 
 .errorText {
   color: $error-color;
+}
+
+.error {
+  color: color.adjust($error-color, $lightness: -10%);
 }
 
 .indent-1 {

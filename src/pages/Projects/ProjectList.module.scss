@@ -188,4 +188,8 @@
   margin: $spacing-sm 0 0 0;
   padding-top: $spacing-sm;
   border-top: 1px solid $border-color;
+}
+
+.error {
+  color: color.adjust($primary-color, $lightness: -10%);
 } 

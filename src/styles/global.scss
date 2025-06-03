@@ -1,5 +1,6 @@
 @use  './variables' as *;
 @use  './mixins' as *;
+@use "sass:color";
 
 // Reset and base styles
 * {
@@ -90,4 +91,8 @@ button {
   @else if $breakpoint == xl {
     @media (min-width: $breakpoint-xl) { @content; }
   }
+}
+
+.error {
+  color: color.adjust($primary-color, $lightness: -10%);
 } 

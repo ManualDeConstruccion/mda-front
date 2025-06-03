@@ -1,0 +1,179 @@
+import React, { useEffect, useRef } from 'react';
+import { Box, Typography } from '@mui/material';
+
+export interface LayerVisualizationProps {
+  layers: any[];
+}
+
+export const LayerVisualization: React.FC<LayerVisualizationProps> = ({ layers }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const scale = 3; // Escala visual: 1mm = 3px
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const wallLayers = containerRef.current;
+    const lines = wallLayers.querySelectorAll('.layer-line');
+    const numbers = wallLayers.querySelectorAll('.layer-number');
+    const fills = wallLayers.querySelectorAll('.layer-fill');
+    let accumulatedWidth = 0;
+    let realWidth = 0;
+
+    // Posicionar líneas y capas
+    lines.forEach((line, index) => {
+      (line as HTMLElement).style.left = accumulatedWidth + 'px';
+
+      if (index < numbers.length) {
+        const thickness = layers[index]?.thickness || 0;
+        const scaledThickness = thickness * scale;
+
+        // Posicionar capa de fondo (achurado)
+        (fills[index] as HTMLElement).style.left = accumulatedWidth + 'px';
+        (fills[index] as HTMLElement).style.width = scaledThickness + 'px';
+
+        accumulatedWidth += scaledThickness;
+        realWidth += thickness;
+      }
+    });
+
+    // Centrar los números entre líneas
+    numbers.forEach((number, index) => {
+      const left = parseInt((lines[index] as HTMLElement).style.left) || 0;
+      const right = parseInt((lines[index + 1] as HTMLElement).style.left) || 0;
+      const center = left + (right - left) / 2;
+      (number as HTMLElement).style.left = center + 'px';
+    });
+
+    // Ajustar ancho del contenedor
+    if (lines.length > 0) {
+      const lastLine = lines[lines.length - 1];
+      const totalWidth = parseFloat((lastLine as HTMLElement).style.left) + 50;
+      wallLayers.style.width = totalWidth + 'px';
+    }
+
+    // Actualizar ancho total
+    const totalWidthLabel = wallLayers.querySelector('#totalWidthLabel');
+    if (totalWidthLabel) {
+      totalWidthLabel.textContent = `Ancho total de la solución: ${realWidth}mm`;
+    }
+  }, [layers]);
+
+  return (
+    <Box sx={{ width: '100%', padding: 2, display: 'flex', justifyContent: 'center', mb: 3 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        <Box sx={{ mr: 4, display: 'flex', alignItems: 'center', height: 200 }}>
+          <Typography id="totalWidthLabel" sx={{ fontWeight: 'bold' }}>
+            Ancho total de la solución: 0mm
+          </Typography>
+        </Box>
+        <Box
+          ref={containerRef}
+          sx={{
+            position: 'relative',
+            height: 200,
+            minWidth: 200,
+            paddingBottom: 5,
+          }}
+        >
+          {/* Primera línea siempre al inicio */}
+          <Box className="layer-line" sx={{
+            position: 'absolute',
+            top: 0,
+            width: 2,
+            height: '100%',
+            bgcolor: 'black',
+          }} />
+
+          {layers.map((layer, index) => (
+            <React.Fragment key={layer.id || index}>
+              {/* Capa con achurado */}
+              <Box
+                className={`layer-fill material-${layer.material}`}
+                data-thickness={layer.thickness}
+                sx={{
+                  position: 'absolute',
+                  top: 0,
+                  height: '100%',
+                  zIndex: 1,
+                  ...getMaterialStyle(layer.material),
+                }}
+              />
+
+              {/* Número en círculo */}
+              <Box
+                className="layer-number"
+                data-thickness={layer.thickness}
+                sx={{
+                  position: 'absolute',
+                  bottom: -30,
+                  transform: 'translateX(-50%)',
+                  width: 25,
+                  height: 25,
+                  bgcolor: 'grey.300',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 14,
+                  fontWeight: 'bold',
+                  zIndex: 2,
+                }}
+              >
+                {layer.position}
+              </Box>
+
+              {/* Línea al final de la capa */}
+              <Box className="layer-line" sx={{
+                position: 'absolute',
+                top: 0,
+                width: 2,
+                height: '100%',
+                bgcolor: 'black',
+              }} />
+            </React.Fragment>
+          ))}
+        </Box>
+      </Box>
+    </Box>
+  );
+};
+
+// Función auxiliar para obtener los estilos de material
+const getMaterialStyle = (material: string) => {
+  const styles: { [key: string]: any } = {
+    PYC: {
+      backgroundImage: 'repeating-linear-gradient(45deg, #999 0px, #999 1px, transparent 1px, transparent 4px)',
+    },
+    PYF: {
+      backgroundImage: 'repeating-linear-gradient(-45deg, #bbb 0px, #bbb 2px, transparent 2px, transparent 6px)',
+    },
+    MAD: {
+      backgroundImage: 'repeating-linear-gradient(90deg, #886644 0px, #886644 3px, transparent 3px, transparent 6px)',
+    },
+    TAB: {
+      backgroundImage: 'repeating-linear-gradient(0deg, #c96 0px, #c96 1px, transparent 1px, transparent 4px)',
+    },
+    OSB: {
+      backgroundImage: `
+        repeating-linear-gradient(45deg, #555 0px, #555 1px, transparent 1px, transparent 5px),
+        repeating-linear-gradient(-45deg, #555 0px, #555 1px, transparent 1px, transparent 5px)
+      `,
+    },
+    LDR: {
+      backgroundImage: 'repeating-linear-gradient(0deg, #f88 0px, #f88 2px, transparent 2px, transparent 6px)',
+    },
+    LDV: {
+      backgroundImage: 'repeating-linear-gradient(0deg, #8af 0px, #8af 2px, transparent 2px, transparent 6px)',
+    },
+    FBC: {
+      backgroundImage: 'repeating-linear-gradient(0deg, #999 0px, #999 1px, transparent 1px, transparent 3px)',
+    },
+    FBS: {
+      backgroundImage: `
+        repeating-linear-gradient(0deg, #333 0px, #333 1px, transparent 1px, transparent 4px),
+        repeating-linear-gradient(90deg, #333 0px, #333 1px, transparent 1px, transparent 4px)
+      `,
+    },
+  };
+  return styles[material] || {};
+}; 

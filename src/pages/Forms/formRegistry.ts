@@ -1,4 +1,4 @@
-import CAMForm from './CaseForms/CAMForm';
+import CAMForm from './CaseForms/CAMForm/index';
 import { useCAMApi } from '../../hooks/FormHooks/useCAMApi';
 
 export const formRegistry: Record<string, {
