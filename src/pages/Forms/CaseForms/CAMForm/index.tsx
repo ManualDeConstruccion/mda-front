@@ -23,8 +23,7 @@ import { useProjectNodes } from '../../../../hooks/useProjectNodes';
 import { useNavigate } from 'react-router-dom';
 import { useCAMApi } from '../../../../hooks/FormHooks/useCAMApi';
 import { AnalyzedSolution, CreateAnalyzedSolutionRequest, Layer } from '../../../../types/FormTypes/cam.types';
-import { AddLayerModal } from './components/AddLayerModal';
-import { EditLayerModal } from './components/EditLayerModal';
+import { LayerModal } from './components/LayerModal';
 import { LayersTable } from './components/LayersTable';
 import { LayerVisualization } from './components/LayerVisualization';
 
@@ -41,10 +40,10 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
   const [saving, setSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [addLayerModalOpen, setAddLayerModalOpen] = useState(false);
-  const [editLayerModalOpen, setEditLayerModalOpen] = useState(false);
+  const [layerModalOpen, setLayerModalOpen] = useState(false);
   const [selectedLayer, setSelectedLayer] = useState<Layer | null>(null);
   const [layerPosition, setLayerPosition] = useState<'anterior' | 'posterior'>('anterior');
+  const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
   const { patchProject } = useProjectNodes();
   const navigate = useNavigate();
   const camApi = useCAMApi();
@@ -129,7 +128,7 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
           position_type: layerPosition,
         },
       });
-      setAddLayerModalOpen(false);
+      setLayerModalOpen(false);
       // Refrescar los datos
       await refetch();
     } catch (err: any) {
@@ -146,7 +145,7 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
         layerId: selectedLayer.id,
         layer,
       });
-      setEditLayerModalOpen(false);
+      setLayerModalOpen(false);
       setSelectedLayer(null);
       // Refrescar los datos
       await refetch();
@@ -174,12 +173,15 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
 
   const handleOpenAddLayerModal = (position: 'anterior' | 'posterior') => {
     setLayerPosition(position);
-    setAddLayerModalOpen(true);
+    setModalMode('add');
+    setSelectedLayer(null);
+    setLayerModalOpen(true);
   };
 
   const handleOpenEditLayerModal = (layer: Layer) => {
     setSelectedLayer(layer);
-    setEditLayerModalOpen(true);
+    setModalMode('edit');
+    setLayerModalOpen(true);
   };
 
   const handleSaveBaseSolution = () => {
@@ -365,25 +367,17 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
         </Alert>
       </Snackbar>
 
-      <AddLayerModal
-        open={addLayerModalOpen}
-        onClose={() => setAddLayerModalOpen(false)}
-        onSave={handleAddLayer}
-        position={layerPosition}
-        solutionId={Number(instanceId)}
+      <LayerModal
+        open={layerModalOpen}
+        onClose={() => {
+          setLayerModalOpen(false);
+          setSelectedLayer(null);
+        }}
+        onSave={modalMode === 'add' ? handleAddLayer : handleEditLayer}
+        initialData={selectedLayer}
+        mode={modalMode}
+        position={modalMode === 'add' ? layerPosition : undefined}
       />
-
-      {selectedLayer && (
-        <EditLayerModal
-          open={editLayerModalOpen}
-          onClose={() => {
-            setEditLayerModalOpen(false);
-            setSelectedLayer(null);
-          }}
-          onSave={handleEditLayer}
-          initialData={selectedLayer}
-        />
-      )}
     </Box>
   );
 } 
