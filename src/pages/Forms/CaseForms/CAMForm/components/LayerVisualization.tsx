@@ -9,6 +9,12 @@ export const LayerVisualization: React.FC<LayerVisualizationProps> = ({ layers }
   const containerRef = useRef<HTMLDivElement>(null);
   const scale = 3; // Escala visual: 1mm = 3px
 
+  // Calcular el ancho total sumando todos los thickness
+  const totalWidth = layers.reduce((acc, layer) => {
+    const t = typeof layer.thickness === 'number' ? layer.thickness : Number(layer.thickness) || 0;
+    return acc + t;
+  }, 0);
+
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -17,7 +23,6 @@ export const LayerVisualization: React.FC<LayerVisualizationProps> = ({ layers }
     const numbers = wallLayers.querySelectorAll('.layer-number');
     const fills = wallLayers.querySelectorAll('.layer-fill');
     let accumulatedWidth = 0;
-    let realWidth = 0;
 
     // Posicionar líneas y capas
     lines.forEach((line, index) => {
@@ -33,9 +38,6 @@ export const LayerVisualization: React.FC<LayerVisualizationProps> = ({ layers }
         (fills[index] as HTMLElement).style.width = scaledThickness + 'px';
 
         accumulatedWidth += scaledThickness;
-        if (!isNaN(thickness) && thickness > 0) {
-          realWidth += thickness;
-        }
       }
     });
 
@@ -53,20 +55,14 @@ export const LayerVisualization: React.FC<LayerVisualizationProps> = ({ layers }
       const totalWidth = parseFloat((lastLine as HTMLElement).style.left) + 50;
       wallLayers.style.width = totalWidth + 'px';
     }
-
-    // Actualizar ancho total
-    const totalWidthLabel = wallLayers.querySelector('#totalWidthLabel');
-    if (totalWidthLabel) {
-      totalWidthLabel.textContent = `Ancho total de la solución: ${realWidth}mm`;
-    }
   }, [layers]);
 
   return (
     <Box sx={{ width: '100%', padding: 2, display: 'flex', justifyContent: 'center', mb: 3 }}>
       <Box sx={{ display: 'flex', alignItems: 'center' }}>
         <Box sx={{ mr: 4, display: 'flex', alignItems: 'center', height: 200 }}>
-          <Typography id="totalWidthLabel" sx={{ fontWeight: 'bold' }}>
-            Ancho total de la solución: 0mm
+          <Typography sx={{ fontWeight: 'bold' }}>
+            Ancho total de la solución: {totalWidth}mm
           </Typography>
         </Box>
         <Box
