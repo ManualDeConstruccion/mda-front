@@ -26,6 +26,7 @@ import { AnalyzedSolution, CreateAnalyzedSolutionRequest, Layer } from '../../..
 import { LayerModal } from './components/LayerModal';
 import { LayersTable } from './components/LayersTable';
 import { LayerVisualization } from './components/LayerVisualization';
+import { LayerCalculations } from './components/LayerCalculations';
 
 export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, instanceId?: string }) {
   const { data: analyzedSolution, isLoading, refetch } = useCAMApi().useRetrieve(Number(instanceId));
@@ -328,6 +329,11 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
       >
         Generar solución propuesta
       </Button>
+
+      {/* Mostrar cálculos si hay layers */}
+      {analyzedSolution?.layers && analyzedSolution.layers.length > 0 && (
+        <LayerCalculations layers={analyzedSolution.layers} />
+      )}
 
       {error && <Typography color="error">{error}</Typography>}
       
