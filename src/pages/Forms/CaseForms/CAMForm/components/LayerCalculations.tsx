@@ -1,5 +1,17 @@
 import React from 'react';
 
+const MATERIAL_LABELS: Record<string, string> = {
+  PYC: 'Placas de yeso‑cartón',
+  PYF: 'Placas de yeso‑fibra',
+  MAD: 'Madera aserrada, madera contralaminada, LVL',
+  TAB: 'Tableros de partículas, Tableros de fibra',
+  OSB: 'OSB, contrachapados',
+  LDR: 'Aislación de lana de roca con ρ ≥ 26 kg/m³',
+  LDV: 'Aislación de lana de vidrio con ρ ≥ 11 kg/m³',
+  FBC: 'Fibrocemento',
+  FBS: 'Tipo Fibrosilicato',
+};
+
 interface Layer {
   id: number;
   position: string | number;
@@ -33,7 +45,7 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
           <div className="card mb-3" key={layer.id}>
             <div className="card-header">
               <h5 className="mb-0">
-                Capa {layer.position}: {layer.get_material_display || layer.material}
+                Capa {layer.position}: {MATERIAL_LABELS[layer.material] || layer.material}
               </h5>
             </div>
             <div className="card-body">

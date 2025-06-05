@@ -35,7 +35,6 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
     node: nodeId ? [Number(nodeId)] : [],
     base_solution: undefined,
     is_symmetric: true,
-    has_rf_plaster: false,
     description: '',
   });
   const [saving, setSaving] = useState(false);
@@ -57,7 +56,6 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
         node: analyzedSolution.node || [],
         base_solution: analyzedSolution.base_solution,
         is_symmetric: analyzedSolution.is_symmetric,
-        has_rf_plaster: analyzedSolution.has_rf_plaster,
         description: analyzedSolution.description || '',
       });
     }
@@ -121,18 +119,22 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
     if (!instanceId) return;
     
     try {
+      console.log('Datos de capa recibidos:', layer);
+      const layerData = {
+        ...layer,
+        apparent_density: layer.is_insulation ? layer.apparent_density : null,
+        position_type: layerPosition,
+      };
+      console.log('Datos de capa a enviar:', layerData);
       await camApi.addLayer.mutateAsync({
         id: Number(instanceId),
-        layer: {
-          ...layer,
-          apparent_density: layer.is_insulation ? layer.apparent_density : null,
-          position_type: layerPosition,
-        },
+        layer: layerData,
       });
       setLayerModalOpen(false);
       // Refrescar los datos
       await refetch();
     } catch (err: any) {
+      console.error('Error al agregar capa:', err);
       setError(err.message || 'Error al agregar la capa');
     }
   };
@@ -240,18 +242,6 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
                 label="Solución simétrica"
               />
             </Grid>
-            <Grid item xs={12} md={6}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    name="has_rf_plaster"
-                    checked={formData.has_rf_plaster}
-                    onChange={handleInputChange}
-                  />
-                }
-                label="Protección RF"
-              />
-            </Grid>
             <Grid item xs={12}>
               <TextField
                 fullWidth
@@ -279,7 +269,7 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
       )}
 
       {/* Tabla de capas */}
-      {analyzedSolution?.layers && analyzedSolution.layers.length > 0 && (
+      {analyzedSolution?.layers && analyzedSolution.layers.length > 0 ? (
         <Card sx={{ mb: 3 }}>
           <CardHeader title="Capas de la solución base" />
           <CardContent>
@@ -320,22 +310,44 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
             </Box>
           </CardContent>
         </Card>
+      ) : (
+        <Card sx={{ mb: 3 }}>
+          <CardHeader title="Capas de la solución" />
+          <CardContent>
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              No hay capas definidas. Agrega la primera capa para comenzar.
+            </Typography>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={() => {
+                setModalMode('add');
+                setLayerPosition('anterior');
+                setLayerModalOpen(true);
+              }}
+            >
+              Agregar Primera Capa
+            </Button>
+          </CardContent>
+        </Card>
       )}
-
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={handleSaveBaseSolution}
-      >
-        Generar solución propuesta
-      </Button>
 
       {/* Mostrar cálculos si hay layers */}
       {analyzedSolution?.layers && analyzedSolution.layers.length > 0 && (
         <LayerCalculations layers={analyzedSolution.layers} />
       )}
 
-      {error && <Typography color="error">{error}</Typography>}
+      {/* Botón de generar solución propuesta solo cuando hay capas */}
+      {analyzedSolution?.layers && analyzedSolution.layers.length > 0 && (
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleSaveBaseSolution}
+          sx={{ mb: 2 }}
+        >
+          Generar solución propuesta
+        </Button>
+      )}
       
       <Stack direction="row" spacing={2} mt={2}>
         <Button
@@ -383,6 +395,7 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
         initialData={selectedLayer}
         mode={modalMode}
         position={modalMode === 'add' ? layerPosition : undefined}
+        isFirstLayer={!analyzedSolution?.layers || analyzedSolution.layers.length === 0}
       />
     </Box>
   );

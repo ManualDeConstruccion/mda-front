@@ -26,6 +26,7 @@ export interface LayerModalProps {
   initialData?: any;
   mode: 'add' | 'edit';
   position?: number | 'anterior' | 'posterior';
+  isFirstLayer?: boolean;
 }
 
 const MATERIAL_OPTIONS = [
@@ -44,15 +45,14 @@ const MATERIALS_CARB = ['MAD', 'TAB', 'OSB'];
 const MATERIALS_DENSITY = ['LDR', 'LDV'];
 const MATERIALS_THICKNESS = ['PYC', 'PYF', 'FBC', 'FBS'];
 
-export const LayerModal: React.FC<LayerModalProps> = ({ open, onClose, onSave, initialData, mode, position }) => {
+export const LayerModal: React.FC<LayerModalProps> = ({ open, onClose, onSave, initialData, mode, position, isFirstLayer }) => {
   const [formData, setFormData] = useState<any>(initialData || {
     material: '',
     thickness: '',
     apparent_density: '',
     carbonization_rate: '',
     joint_coefficient: '',
-    is_protection_layer: false,
-    is_insulation: false,
+    has_rf_plaster: false,
   });
   const [helpOpen, setHelpOpen] = useState(false);
   const [errors, setErrors] = useState<any>({});
@@ -64,41 +64,40 @@ export const LayerModal: React.FC<LayerModalProps> = ({ open, onClose, onSave, i
       apparent_density: '',
       carbonization_rate: '',
       joint_coefficient: '',
-      is_protection_layer: false,
-      is_insulation: false,
+      has_rf_plaster: false,
     });
   }, [initialData, open]);
 
   // Lógica dinámica de campos y valores forzados
   useEffect(() => {
-    // MATERIALS_DENSITY: is_insulation true, is_protection_layer false, no carbonization_rate
+    // MATERIALS_DENSITY: no carbonization_rate
     if (MATERIALS_DENSITY.includes(formData.material)) {
       setFormData((prev: any) => ({
         ...prev,
-        is_insulation: true,
-        is_protection_layer: false,
         carbonization_rate: '',
       }));
     }
-    // MATERIALS_CARB: carbonization_rate obligatorio, default 0.65, is_insulation false
+    // MATERIALS_CARB: carbonization_rate obligatorio, default 0.65
     if (MATERIALS_CARB.includes(formData.material)) {
       setFormData((prev: any) => ({
         ...prev,
         carbonization_rate: prev.carbonization_rate || 0.65,
-        is_insulation: false,
       }));
     }
-    // MATERIALS_THICKNESS: no carbonization_rate, no is_insulation
+    // MATERIALS_THICKNESS: no carbonization_rate
     if (MATERIALS_THICKNESS.includes(formData.material)) {
       setFormData((prev: any) => ({
         ...prev,
         carbonization_rate: '',
-        is_insulation: false,
       }));
     }
     // Si cambia a material que no es density, limpiar apparent_density
     if (!MATERIALS_DENSITY.includes(formData.material)) {
       setFormData((prev: any) => ({ ...prev, apparent_density: '' }));
+    }
+    // Si cambia a material que no es PYC, limpiar has_rf_plaster
+    if (formData.material !== 'PYC') {
+      setFormData((prev: any) => ({ ...prev, has_rf_plaster: false }));
     }
   }, [formData.material]);
 
@@ -134,31 +133,40 @@ export const LayerModal: React.FC<LayerModalProps> = ({ open, onClose, onSave, i
   const handleSubmit = () => {
     if (!validate()) return;
     // Forzar valores según reglas antes de guardar
-    let data = { ...formData, position };
+    let data = { ...formData };
+    
+    // Si es la primera capa, forzar posición 'anterior'
+    if (isFirstLayer) {
+      data.position = 'anterior';
+    } else {
+      data.position = position;
+    }
+
+    // Manejar campos específicos según el material
     if (MATERIALS_DENSITY.includes(formData.material)) {
-      data.is_insulation = true;
-      data.is_protection_layer = false;
-      data.carbonization_rate = '';
-    }
-    if (MATERIALS_CARB.includes(formData.material)) {
-      data.is_insulation = false;
+      // Para materiales aislantes, asegurarse de que apparent_density tenga un valor
+      data.apparent_density = formData.apparent_density || null;
+      data.carbonization_rate = null;
+    } else if (MATERIALS_CARB.includes(formData.material)) {
       data.carbonization_rate = data.carbonization_rate || 0.65;
-    }
-    if (MATERIALS_THICKNESS.includes(formData.material)) {
-      data.is_insulation = false;
-      data.carbonization_rate = '';
-    }
-    if (!MATERIALS_DENSITY.includes(formData.material)) {
-      data.apparent_density = '';
-    }
-    // --- AJUSTE: Enviar null en vez de '' para campos no requeridos ---
-    if (data.apparent_density === '' || data.apparent_density === undefined) {
+      data.apparent_density = null;
+    } else if (MATERIALS_THICKNESS.includes(formData.material)) {
+      data.carbonization_rate = null;
+      data.apparent_density = null;
+    } else {
+      data.carbonization_rate = null;
       data.apparent_density = null;
     }
-    if (data.carbonization_rate === '' || data.carbonization_rate === undefined) {
-      data.carbonization_rate = null;
-    }
-    // ---------------------------------------------------------------
+
+    // Remover campos calculados que no deben enviarse
+    delete data.total_calculated_time;
+    delete data.base_time;
+    delete data.position_coefficient_exp;
+    delete data.position_coefficient_noexp;
+    delete data.is_insulation; // Este campo se calcula en el backend
+    delete data.is_protection_layer; // Este campo se calcula en el backend
+
+    console.log('Datos finales enviados:', data);
     onSave(data);
     onClose();
   };
@@ -238,18 +246,17 @@ export const LayerModal: React.FC<LayerModalProps> = ({ open, onClose, onSave, i
             <HelpOutlineIcon />
           </IconButton>
         </MuiBox>
-        {/* is_protection_layer solo para materiales que no sean density */}
-        {!MATERIALS_DENSITY.includes(formData.material) && (
+        {/* has_rf_plaster solo para PYC */}
+        {formData.material === 'PYC' && (
           <FormControlLabel
-            control={<Checkbox checked={formData.is_protection_layer} onChange={handleChange} name="is_protection_layer" />}
-            label="Capa de protección"
-          />
-        )}
-        {/* is_insulation solo para density, pero forzado a true y deshabilitado */}
-        {MATERIALS_DENSITY.includes(formData.material) && (
-          <FormControlLabel
-            control={<Checkbox checked={true} disabled name="is_insulation" />}
-            label="Material aislante"
+            control={
+              <Checkbox
+                checked={formData.has_rf_plaster}
+                onChange={handleChange}
+                name="has_rf_plaster"
+              />
+            }
+            label="Placa de yeso cartón RF"
           />
         )}
         {/* Modal de ayuda para coeficiente de junta */}

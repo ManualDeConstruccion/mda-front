@@ -39,7 +39,6 @@ export interface AnalyzedSolution {
   base_solution?: number;
   created_by?: number;
   is_symmetric: boolean;
-  has_rf_plaster: boolean;
   description?: string;
   calculated_time?: number;
   fire_resistance?: FireResistance;
@@ -82,7 +81,6 @@ export interface CreateAnalyzedSolutionRequest {
   node: number[];
   base_solution?: number;
   is_symmetric: boolean;
-  has_rf_plaster: boolean;
   description?: string;
   layers?: Omit<Layer, 'id'>[];
 }
