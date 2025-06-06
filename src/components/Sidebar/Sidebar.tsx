@@ -11,6 +11,7 @@ import ExpandMore from '@mui/icons-material/ExpandMore';
 import AddIcon from '@mui/icons-material/Add';
 import ListIcon from '@mui/icons-material/List';
 import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
+import SettingsIcon from '@mui/icons-material/Settings';
 import styles from './Sidebar.module.scss';
 import classNames from 'classnames';
 
@@ -59,7 +60,8 @@ const menuStructure: (MenuItem | MenuGroup)[] = [
     icon: <BuildIcon />,
     text: 'Herramientas',
     items: [
-      { path: '/herramientas/resistencia-fuego', icon: <LocalFireDepartmentIcon />, text: 'Resistencia al Fuego' }
+      { path: '/herramientas/resistencia-fuego', icon: <LocalFireDepartmentIcon />, text: 'Resistencia al Fuego' },
+      { path: '/herramientas/configuracion-informes', icon: <SettingsIcon />, text: 'Configuración de Informes' }
     ]
   }
 ];
