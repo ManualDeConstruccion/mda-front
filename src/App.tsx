@@ -28,6 +28,7 @@ import { FormNodeProvider } from './context/FormNodeContext';
 import SelectorFormPage from './pages/Forms/Step1SelectorFormPage';
 import Step2NodeFormCreatePage from './pages/Forms/Step2NodeFormCreatePage';
 import Step3FormPage from './pages/Forms/Step3FormPage';
+import FormReportView from './pages/Forms/FormReportView';
 
 /** ────────────────────────────────────────────────────────────────────────────
  *  🎛️  React‑Query client (sin refetch on focus)
@@ -121,6 +122,7 @@ const App: React.FC = () => {
                     <Route path="form/select" element={<SelectorFormPage />} />
                     <Route path="form/node/:mode/:id?" element={<Step2NodeFormCreatePage />} />
                     <Route path="/form/:formTypeModel/:nodeId" element={<Step3FormPage />} />
+                    <Route path="form/:formTypeModel/:nodeId/informe" element={<FormReportView />} />
                   </Route>
 
                   {/* fallback */}

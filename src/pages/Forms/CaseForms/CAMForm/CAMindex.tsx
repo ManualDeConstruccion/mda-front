@@ -255,6 +255,17 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
               />
             </Grid>
           </Grid>
+          {/* Botón Ver informe */}
+          {instanceId && (
+            <Button
+              variant="contained"
+              color="primary"
+              sx={{ mt: 2 }}
+              onClick={() => navigate(`/form/analyzedsolution/${instanceId}/informe`)}
+            >
+              Ver informe
+            </Button>
+          )}
         </CardContent>
       </Card>
 
