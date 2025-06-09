@@ -26,6 +26,7 @@ interface Layer {
   rf_plaster_correction_time: number;
   joint_coefficient: number;
   total_calculated_time: number;
+  sum_prev_prot_times?: number;
 }
 
 interface Props {
@@ -242,7 +243,13 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                   // Determinar si es la primera capa
                   const isFirstLayer = Number(layer.position) === 1;
                   // Usar sumatoria de tiempos de protección anteriores si está disponible, si no, 0
-                  const sumPrevProt = (layer as any).sum_prev_prot_times ?? 0;
+                  const sumPrevProt = layer.sum_prev_prot_times ?? 0;
+                  // Mostrar sumatoria explícitamente si no es la primera capa
+                  const sumatoriaDiv = !isFirstLayer ? (
+                    <div>
+                      Σt<sub>prot,0,i-1</sub> = {float(sumPrevProt)} [min]
+                    </div>
+                  ) : null;
                   // Fórmulas y condiciones según material y tipo de capa
                   if (isFirstLayer) {
                     // Primera capa: kpos,exp = 1
@@ -255,11 +262,12 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                     if (sumPrevProt <= layer.base_time / 2) {
                       return (
                         <>
+                          {sumatoriaDiv}
                           <div>
                             k<sub>pos,exp,{layer.position}</sub> = 1 - 0,6 × (Σt<sub>prot,0,i-1</sub> / t<sub>prot,0,{layer.position}</sub>)
                           </div>
                           <div>
-                            = 1 - 0,6 × ({sumPrevProt} / {float(layer.base_time)})
+                            = 1 - 0,6 × ({float(sumPrevProt)} / {float(layer.base_time)})
                           </div>
                           <div>
                             = {float(layer.position_coefficient_exp)}
@@ -269,11 +277,12 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                     } else {
                       return (
                         <>
+                          {sumatoriaDiv}
                           <div>
                             k<sub>pos,exp,{layer.position}</sub> = 0,5 × (t<sub>prot,0,{layer.position}</sub> / Σt<sub>prot,0,i-1</sub>)
                           </div>
                           <div>
-                            = 0,5 × ({float(layer.base_time)} / {sumPrevProt})
+                            = 0,5 × ({float(layer.base_time)} / {float(sumPrevProt)})
                           </div>
                           <div>
                             = {float(layer.position_coefficient_exp)}
@@ -287,11 +296,12 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                     if (sumPrevProt <= layer.base_time / 2) {
                       return (
                         <>
+                          {sumatoriaDiv}
                           <div>
                             k<sub>pos,exp,{layer.position}</sub> = 1 - 0,6 × (Σt<sub>prot,0,i-1</sub> / t<sub>ais,0,{layer.position}</sub>)
                           </div>
                           <div>
-                            = 1 - 0,6 × ({sumPrevProt} / {float(layer.base_time)})
+                            = 1 - 0,6 × ({float(sumPrevProt)} / {float(layer.base_time)})
                           </div>
                           <div>
                             = {float(layer.position_coefficient_exp)}
@@ -301,11 +311,12 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                     } else {
                       return (
                         <>
+                          {sumatoriaDiv}
                           <div>
                             k<sub>pos,exp,{layer.position}</sub> = 0,5 × (t<sub>ais,0,{layer.position}</sub> / Σt<sub>prot,0,i-1</sub>)
                           </div>
                           <div>
-                            = 0,5 × ({float(layer.base_time)} / {sumPrevProt})
+                            = 0,5 × ({float(layer.base_time)} / {float(sumPrevProt)})
                           </div>
                           <div>
                             = {float(layer.position_coefficient_exp)}
@@ -314,7 +325,44 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                       );
                     }
                   }
-                  // Para aislante de lana de vidrio (solo si tienes fórmula especial, si no, puedes agregarla aquí)
+                  // Para aislante de lana de vidrio (LDV, fórmula especial)
+                  if (layer.material === "LDV") {
+                    if (sumPrevProt <= layer.base_time / 4) {
+                      return (
+                        <>
+                          {sumatoriaDiv}
+                          <div>
+                            k<sub>pos,exp,{layer.position}</sub> = 1 - 0,8 × (Σt<sub>prot,0,i-1</sub> / t<sub>ais,0,{layer.position}</sub>)
+                          </div>
+                          <div>
+                            = 1 - 0,8 × ({float(sumPrevProt)} / {float(layer.base_time)})
+                          </div>
+                          <div>
+                            = {float(layer.position_coefficient_exp)}
+                          </div>
+                        </>
+                      );
+                    } else {
+                      // Exponente especial para LDV
+                      const exp = 0.75 - 0.002 * (layer.apparent_density ?? 0);
+                      const baseDiv = (layer.base_time && sumPrevProt) ? (layer.base_time / sumPrevProt) : 0;
+                      const coef = 0.001 * (layer.apparent_density ?? 0) + 0.27;
+                      return (
+                        <>
+                          {sumatoriaDiv}
+                          <div>
+                            k<sub>pos,exp,{layer.position}</sub> = (0,001 × {layer.apparent_density} + 0,27) × ( {float(layer.base_time)} / {float(sumPrevProt)} )<sup>{float(exp)}</sup>
+                          </div>
+                          <div>
+                            = ({float(coef)}) × ({float(baseDiv)})<sup>{float(exp)}</sup>
+                          </div>
+                          <div>
+                            = {float(layer.position_coefficient_exp)}
+                          </div>
+                        </>
+                      );
+                    }
+                  }
                   // Por defecto, si no hay fórmula especial:
                   return (
                     <div>k<sub>pos,exp,{layer.position}</sub> = {float(layer.position_coefficient_exp)}</div>
