@@ -282,14 +282,20 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                 </strong>
               </p>
               {layer.is_protection_layer ? (
-                <>
-                  <p>
-                    t<sub>prot,{layer.position}</sub> = (t<sub>prot,0,{layer.position}</sub> × k<sub>pos,exp,{layer.position}</sub> × k<sub>pos,noexp,{layer.position}</sub> + Δt<sub>{layer.position}</sub>) × k<sub>junta,{layer.position}</sub>
-                  </p>
-                  <p>
-                    t<sub>prot,{layer.position}</sub> = ({float(layer.base_time)} × {float(layer.position_coefficient_exp)} × {float(layer.position_coefficient_noexp)} + {float(layer.rf_plaster_correction_time)}) × {float(layer.joint_coefficient)} = {float(layer.total_calculated_time)} [min]
-                  </p>
-                </>
+                <div style={{ marginLeft: 20, marginBottom: 16 }}>
+                  <div>
+                    t<sub>prot,{layer.position}</sub> = (t<sub>prot,0,{layer.position}</sub> × k<sub>pos,exp,{layer.position}</sub> × k<sub>pos,noexp,{layer.position}</sub> + Δt<sub>{layer.position}</sub>) × k<sub>junta,{layer.position}</sub> [min]
+                  </div>
+                  <div>
+                    = ({float(layer.base_time)} × {float(layer.position_coefficient_exp)} × {float(layer.position_coefficient_noexp ?? 1)} + {float(layer.rf_plaster_correction_time)}) × {float(layer.joint_coefficient)} [min]
+                  </div>
+                  <div>
+                    = {float(layer.base_time * layer.position_coefficient_exp * (layer.position_coefficient_noexp ?? 1) + layer.rf_plaster_correction_time)} × {float(layer.joint_coefficient)} [min]
+                  </div>
+                  <div>
+                    = {float(layer.total_calculated_time)} [min]
+                  </div>
+                </div>
               ) : (
                 <>
                   <p>
