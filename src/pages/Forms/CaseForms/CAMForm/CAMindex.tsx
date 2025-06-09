@@ -47,6 +47,9 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
   const { patchProject } = useProjectNodes();
   const navigate = useNavigate();
   const camApi = useCAMApi();
+  const proposedSolutionsList = camApi.proposed.solutions.useList();
+  const [proposedSolution, setProposedSolution] = useState<any>(null);
+  const [showProposedSuccess, setShowProposedSuccess] = useState(false);
 
   // Precarga los valores cuando analyzedSolution cambia
   useEffect(() => {
@@ -60,6 +63,17 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
       });
     }
   }, [analyzedSolution]);
+
+  // Cargar solución propuesta si existe
+  useEffect(() => {
+    if (instanceId && Array.isArray(proposedSolutionsList.data)) {
+      proposedSolutionsList.data.forEach((sol: any) => {
+        if (sol.base_solution === Number(instanceId)) {
+          setProposedSolution(sol);
+        }
+      });
+    }
+  }, [instanceId, proposedSolutionsList.data]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, checked, type } = e.target;
@@ -192,6 +206,18 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
       ...formData,
       layers: analyzedSolution?.layers || [],
     });
+  };
+
+  // Nueva función para generar solución propuesta
+  const handleGenerateProposedSolution = async () => {
+    if (!instanceId) return;
+    try {
+      const data = await camApi.generateProposedSolutionFromAnalyzed.mutateAsync(Number(instanceId));
+      setProposedSolution(data);
+      setShowProposedSuccess(true);
+    } catch (err: any) {
+      setError(err.message || 'Error al generar la solución propuesta');
+    }
   };
 
   if (isLoading) return <Typography>Cargando...</Typography>;
@@ -353,11 +379,34 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
         <Button
           variant="contained"
           color="primary"
-          onClick={handleSaveBaseSolution}
+          onClick={handleGenerateProposedSolution}
           sx={{ mb: 2 }}
         >
           Generar solución propuesta
         </Button>
+      )}
+
+      {/* Visualización de la solución propuesta si existe */}
+      {proposedSolution && (
+        <Card sx={{ mb: 3 }}>
+          <CardHeader title="Solución Propuesta" />
+          <CardContent>
+            <Typography variant="subtitle1" sx={{ mb: 2 }}>
+              <b>Tiempo calculado:</b> {proposedSolution.calculated_time} min
+            </Typography>
+            <Typography variant="subtitle1" sx={{ mb: 2 }}>
+              <b>Resistencia al fuego:</b> F-{proposedSolution.fire_resistance}
+            </Typography>
+            <LayerVisualization layers={proposedSolution.layers} />
+            <LayersTable
+              layers={proposedSolution.layers}
+              onEdit={() => {}}
+              onDelete={() => {}}
+              readOnlyBaseLayers
+            />
+            <LayerCalculations layers={proposedSolution.layers} />
+          </CardContent>
+        </Card>
       )}
       
       <Stack direction="row" spacing={2} mt={2}>
@@ -393,6 +442,17 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
       >
         <Alert onClose={() => setShowSuccess(false)} severity="success" sx={{ width: '100%' }}>
           ¡Guardado exitosamente!
+        </Alert>
+      </Snackbar>
+
+      <Snackbar
+        open={showProposedSuccess}
+        autoHideDuration={3000}
+        onClose={() => setShowProposedSuccess(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+      >
+        <Alert onClose={() => setShowProposedSuccess(false)} severity="success" sx={{ width: '100%' }}>
+          ¡Solución propuesta generada exitosamente!
         </Alert>
       </Snackbar>
 

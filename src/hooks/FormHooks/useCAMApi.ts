@@ -272,6 +272,21 @@ export function useCAMApi() {
     },
   });
 
+  // Generar solución propuesta desde AnalyzedSolution
+  const generateProposedSolutionFromAnalyzed = useMutation({
+    mutationFn: async (analyzedSolutionId: number) => {
+      const { data } = await axios.post(
+        `${BASE_URL}${analyzedSolutionId}/generate-proposed-solution/`,
+        {},
+        axiosConfig
+      );
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['proposedsolutions'] });
+    },
+  });
+
   return {
     useList,
     create,
@@ -282,6 +297,7 @@ export function useCAMApi() {
     addLayer,
     editLayer,
     deleteLayer,
+    generateProposedSolutionFromAnalyzed,
     proposed: {
       solutions: {
         useList: useProposedSolutionsList,
