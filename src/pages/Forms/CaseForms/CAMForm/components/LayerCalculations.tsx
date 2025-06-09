@@ -55,191 +55,272 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                   Tiempo base (t<sub>{layer.is_protection_layer ? 'prot' : 'ais'},0,{layer.position}</sub>):
                 </strong>
               </p>
-              {/* Fórmulas y resultados según material */}
-              {layer.material === 'LDV' && (
-                <>
-                  <p>Para lana de vidrio con ρ ≥ 11 kg/m³:</p>
-                  <p>
-                    t<sub>ais,0,{layer.position}</sub> = (0.0007 × ρ + 0.046) × h + 13
-                  </p>
-                  <p>
-                    t<sub>ais,0,{layer.position}</sub> = (0.0007 × {layer.apparent_density} + 0.046) × {layer.thickness} + 13 = {float(layer.base_time)} [min]
-                  </p>
-                </>
-              )}
-              {layer.material === 'LDR' && (
-                <>
-                  <p>Para lana de roca con ρ ≥ 26 kg/m³:</p>
-                  <p>
-                    t<sub>ais,0,{layer.position}</sub> = 0.3 × h × (0.75 × ln(ρ) - ρ/400)
-                  </p>
-                  <p>
-                    t<sub>ais,0,{layer.position}</sub> = 0.3 × {layer.thickness} × (0.75 × ln({layer.apparent_density}) - {layer.apparent_density}/400) = {float(layer.base_time)} [min]
-                  </p>
-                </>
-              )}
-              {(layer.material === 'PYC' || layer.material === 'PYF') && (
-                <>
-                  {layer.is_protection_layer ? (
-                    <>
-                      <p>Para placas de yeso-cartón o yeso-fibra como protección:</p>
-                      <p>
-                        t<sub>prot,0,{layer.position}</sub> = 30 × (h/15)<sup>1.2</sup>
-                      </p>
-                      <p>
-                        t<sub>prot,0,{layer.position}</sub> = 30 × ({layer.thickness}/15)<sup>1.2</sup> = {float(layer.base_time)} [min]
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p>Para placas de yeso-cartón o yeso-fibra como aislación:</p>
-                      <p>
-                        t<sub>ais,0,{layer.position}</sub> = 24 × (h/15)<sup>1.4</sup>
-                      </p>
-                      <p>
-                        t<sub>ais,0,{layer.position}</sub> = 24 × ({layer.thickness}/15)<sup>1.4</sup> = {float(layer.base_time)} [min]
-                      </p>
-                    </>
-                  )}
-                </>
-              )}
-              {layer.material === 'MAD' && (
-                <>
-                  {layer.is_protection_layer ? (
-                    <>
-                      <p>Para madera aserrada como protección:</p>
-                      <p>
-                        t<sub>prot,0,{layer.position}</sub> = 30 × (h/20)<sup>1.1</sup>
-                      </p>
-                      <p>
-                        t<sub>prot,0,{layer.position}</sub> = 30 × ({layer.thickness}/20)<sup>1.1</sup> = {float(layer.base_time)} [min]
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p>Para madera aserrada como aislación:</p>
-                      <p>
-                        t<sub>ais,0,{layer.position}</sub> = 19 × (h/20)<sup>1.4</sup>
-                      </p>
-                      <p>
-                        t<sub>ais,0,{layer.position}</sub> = 19 × ({layer.thickness}/20)<sup>1.4</sup> = {float(layer.base_time)} [min]
-                      </p>
-                    </>
-                  )}
-                </>
-              )}
-              {layer.material === 'TAB' && (
-                <>
-                  {layer.is_protection_layer ? (
-                    <>
-                      <p>Para tableros como protección:</p>
-                      <p>
-                        t<sub>prot,0,{layer.position}</sub> = 33 × (h/20)<sup>1.1</sup>
-                      </p>
-                      <p>
-                        t<sub>prot,0,{layer.position}</sub> = 33 × ({layer.thickness}/20)<sup>1.1</sup> = {float(layer.base_time)} [min]
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p>Para tableros como aislación:</p>
-                      <p>
-                        t<sub>ais,0,{layer.position}</sub> = 22 × (h/20)<sup>1.4</sup>
-                      </p>
-                      <p>
-                        t<sub>ais,0,{layer.position}</sub> = 22 × ({layer.thickness}/20)<sup>1.4</sup> = {float(layer.base_time)} [min]
-                      </p>
-                    </>
-                  )}
-                </>
-              )}
-              {layer.material === 'OSB' && (
-                <>
-                  {layer.is_protection_layer ? (
-                    <>
-                      <p>Para OSB como protección:</p>
-                      <p>
-                        t<sub>prot,0,{layer.position}</sub> = 23 × (h/20)<sup>1.1</sup>
-                      </p>
-                      <p>
-                        t<sub>prot,0,{layer.position}</sub> = 23 × ({layer.thickness}/20)<sup>1.1</sup> = {float(layer.base_time)} [min]
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p>Para OSB como aislación:</p>
-                      <p>
-                        t<sub>ais,0,{layer.position}</sub> = 16 × (h/20)<sup>1.4</sup>
-                      </p>
-                      <p>
-                        t<sub>ais,0,{layer.position}</sub> = 16 × ({layer.thickness}/20)<sup>1.4</sup> = {float(layer.base_time)} [min]
-                      </p>
-                    </>
-                  )}
-                </>
-              )}
-              {layer.material === 'FBC' && (
-                <>
-                  {layer.is_protection_layer ? (
-                    <>
-                      <p>Para fibrocemento como protección:</p>
-                      <p>
-                        t<sub>prot,0,{layer.position}</sub> = 23.43 × (h/15)<sup>1.035</sup>
-                      </p>
-                      <p>
-                        t<sub>prot,0,{layer.position}</sub> = 23.43 × ({layer.thickness}/15)<sup>1.035</sup> = {float(layer.base_time)} [min]
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p>Para fibrocemento como aislación:</p>
-                      <p>
-                        t<sub>ais,0,{layer.position}</sub> = 10.87 × (h/15)<sup>1.147</sup>
-                      </p>
-                      <p>
-                        t<sub>ais,0,{layer.position}</sub> = 10.87 × ({layer.thickness}/15)<sup>1.147</sup> = {float(layer.base_time)} [min]
-                      </p>
-                    </>
-                  )}
-                </>
-              )}
-              {layer.material === 'FBS' && (
-                <>
-                  {layer.is_protection_layer ? (
-                    <>
-                      <p>Para fibrosilicato como protección:</p>
-                      <p>
-                        t<sub>prot,0,{layer.position}</sub> = 76.27 × (h/25)<sup>1.28</sup>
-                      </p>
-                      <p>
-                        t<sub>prot,0,{layer.position}</sub> = 76.27 × ({layer.thickness}/25)<sup>1.28</sup> = {float(layer.base_time)} [min]
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p>Para fibrosilicato como aislación:</p>
-                      <p>
-                        t<sub>ais,0,{layer.position}</sub> = 37.64 × (h/25)<sup>1.498</sup>
-                      </p>
-                      <p>
-                        t<sub>ais,0,{layer.position}</sub> = 37.64 × ({layer.thickness}/25)<sup>1.498</sup> = {float(layer.base_time)} [min]
-                      </p>
-                    </>
-                  )}
-                </>
-              )}
+              <div style={{ marginLeft: 32, marginBottom: 12 }}>
+                {/* Fórmulas y resultados según material */}
+                {layer.material === 'LDV' && (
+                  <>
+                    <div>Para lana de vidrio con ρ ≥ 11 kg/m³:</div>
+                    <div>
+                      t<sub>ais,0,{layer.position}</sub> = (0.0007 × ρ + 0.046) × h + 13
+                    </div>
+                    <div>
+                      t<sub>ais,0,{layer.position}</sub> = (0.0007 × {layer.apparent_density} + 0.046) × {layer.thickness} + 13 = {float(layer.base_time)} [min]
+                    </div>
+                  </>
+                )}
+                {layer.material === 'LDR' && (
+                  <>
+                    <div>Para lana de roca con ρ ≥ 26 kg/m³:</div>
+                    <div>
+                      t<sub>ais,0,{layer.position}</sub> = 0.3 × h × (0.75 × ln(ρ) - ρ/400)
+                    </div>
+                    <div>
+                      t<sub>ais,0,{layer.position}</sub> = 0.3 × {layer.thickness} × (0.75 × ln({layer.apparent_density}) - {layer.apparent_density}/400) = {float(layer.base_time)} [min]
+                    </div>
+                  </>
+                )}
+                {(layer.material === 'PYC' || layer.material === 'PYF') && (
+                  <>
+                    {layer.is_protection_layer ? (
+                      <>
+                        <div>Para placas de yeso-cartón o yeso-fibra como protección:</div>
+                        <div>
+                          t<sub>prot,0,{layer.position}</sub> = 30 × (h/15)<sup>1.2</sup>
+                        </div>
+                        <div>
+                          t<sub>prot,0,{layer.position}</sub> = 30 × ({layer.thickness}/15)<sup>1.2</sup> = {float(layer.base_time)} [min]
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div>Para placas de yeso-cartón o yeso-fibra como aislación:</div>
+                        <div>
+                          t<sub>ais,0,{layer.position}</sub> = 24 × (h/15)<sup>1.4</sup>
+                        </div>
+                        <div>
+                          t<sub>ais,0,{layer.position}</sub> = 24 × ({layer.thickness}/15)<sup>1.4</sup> = {float(layer.base_time)} [min]
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
+                {layer.material === 'MAD' && (
+                  <>
+                    {layer.is_protection_layer ? (
+                      <>
+                        <div>Para madera aserrada como protección:</div>
+                        <div>
+                          t<sub>prot,0,{layer.position}</sub> = 30 × (h/20)<sup>1.1</sup>
+                        </div>
+                        <div>
+                          t<sub>prot,0,{layer.position}</sub> = 30 × ({layer.thickness}/20)<sup>1.1</sup> = {float(layer.base_time)} [min]
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div>Para madera aserrada como aislación:</div>
+                        <div>
+                          t<sub>ais,0,{layer.position}</sub> = 19 × (h/20)<sup>1.4</sup>
+                        </div>
+                        <div>
+                          t<sub>ais,0,{layer.position}</sub> = 19 × ({layer.thickness}/20)<sup>1.4</sup> = {float(layer.base_time)} [min]
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
+                {layer.material === 'TAB' && (
+                  <>
+                    {layer.is_protection_layer ? (
+                      <>
+                        <div>Para tableros como protección:</div>
+                        <div>
+                          t<sub>prot,0,{layer.position}</sub> = 33 × (h/20)<sup>1.1</sup>
+                        </div>
+                        <div>
+                          t<sub>prot,0,{layer.position}</sub> = 33 × ({layer.thickness}/20)<sup>1.1</sup> = {float(layer.base_time)} [min]
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div>Para tableros como aislación:</div>
+                        <div>
+                          t<sub>ais,0,{layer.position}</sub> = 22 × (h/20)<sup>1.4</sup>
+                        </div>
+                        <div>
+                          t<sub>ais,0,{layer.position}</sub> = 22 × ({layer.thickness}/20)<sup>1.4</sup> = {float(layer.base_time)} [min]
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
+                {layer.material === 'OSB' && (
+                  <>
+                    {layer.is_protection_layer ? (
+                      <>
+                        <div>Para OSB como protección:</div>
+                        <div>
+                          t<sub>prot,0,{layer.position}</sub> = 23 × (h/20)<sup>1.1</sup>
+                        </div>
+                        <div>
+                          t<sub>prot,0,{layer.position}</sub> = 23 × ({layer.thickness}/20)<sup>1.1</sup> = {float(layer.base_time)} [min]
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div>Para OSB como aislación:</div>
+                        <div>
+                          t<sub>ais,0,{layer.position}</sub> = 16 × (h/20)<sup>1.4</sup>
+                        </div>
+                        <div>
+                          t<sub>ais,0,{layer.position}</sub> = 16 × ({layer.thickness}/20)<sup>1.4</sup> = {float(layer.base_time)} [min]
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
+                {layer.material === 'FBC' && (
+                  <>
+                    {layer.is_protection_layer ? (
+                      <>
+                        <div>Para fibrocemento como protección:</div>
+                        <div>
+                          t<sub>prot,0,{layer.position}</sub> = 23.43 × (h/15)<sup>1.035</sup>
+                        </div>
+                        <div>
+                          t<sub>prot,0,{layer.position}</sub> = 23.43 × ({layer.thickness}/15)<sup>1.035</sup> = {float(layer.base_time)} [min]
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div>Para fibrocemento como aislación:</div>
+                        <div>
+                          t<sub>ais,0,{layer.position}</sub> = 10.87 × (h/15)<sup>1.147</sup>
+                        </div>
+                        <div>
+                          t<sub>ais,0,{layer.position}</sub> = 10.87 × ({layer.thickness}/15)<sup>1.147</sup> = {float(layer.base_time)} [min]
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
+                {layer.material === 'FBS' && (
+                  <>
+                    {layer.is_protection_layer ? (
+                      <>
+                        <div>Para fibrosilicato como protección:</div>
+                        <div>
+                          t<sub>prot,0,{layer.position}</sub> = 76.27 × (h/25)<sup>1.28</sup>
+                        </div>
+                        <div>
+                          t<sub>prot,0,{layer.position}</sub> = 76.27 × ({layer.thickness}/25)<sup>1.28</sup> = {float(layer.base_time)} [min]
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div>Para fibrosilicato como aislación:</div>
+                        <div>
+                          t<sub>ais,0,{layer.position}</sub> = 37.64 × (h/25)<sup>1.498</sup>
+                        </div>
+                        <div>
+                          t<sub>ais,0,{layer.position}</sub> = 37.64 × ({layer.thickness}/25)<sup>1.498</sup> = {float(layer.base_time)} [min]
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
 
-              {/* Cálculos de coeficientes y tiempos */}
               <p>
                 <strong>
                   Coeficiente de posición exp (k<sub>pos,exp,{layer.position}</sub>):
                 </strong>
               </p>
-              <p>
-                k<sub>pos,exp,{layer.position}</sub> = 1 - 0.6 × (Σt<sub>prot,0</sub>/
-                <sub>{layer.is_protection_layer ? 'prot,0' : 'ais,0'},{layer.position}</sub>
-                ) = {float(layer.position_coefficient_exp)}
-              </p>
+              {/* Visualización mejorada del coeficiente de posición exp */}
+              <div style={{ marginLeft: 32, marginBottom: 12 }}>
+                {(() => {
+                  // Determinar si es la primera capa
+                  const isFirstLayer = Number(layer.position) === 1;
+                  // Usar sumatoria de tiempos de protección anteriores si está disponible, si no, 0
+                  const sumPrevProt = (layer as any).sum_prev_prot_times ?? 0;
+                  // Fórmulas y condiciones según material y tipo de capa
+                  if (isFirstLayer) {
+                    // Primera capa: kpos,exp = 1
+                    return (
+                      <div>k<sub>pos,exp,{layer.position}</sub> = 1</div>
+                    );
+                  }
+                  // Para revestimientos (yeso-cartón, yeso-fibra, madera, fibrocemento, fibrosilicato)
+                  if (["PYC", "PYF", "MAD", "TAB", "OSB", "FBC", "FBS"].includes(layer.material)) {
+                    if (sumPrevProt <= layer.base_time / 2) {
+                      return (
+                        <>
+                          <div>
+                            k<sub>pos,exp,{layer.position}</sub> = 1 - 0,6 × (Σt<sub>prot,0,i-1</sub> / t<sub>prot,0,{layer.position}</sub>)
+                          </div>
+                          <div>
+                            = 1 - 0,6 × ({sumPrevProt} / {float(layer.base_time)})
+                          </div>
+                          <div>
+                            = {float(layer.position_coefficient_exp)}
+                          </div>
+                        </>
+                      );
+                    } else {
+                      return (
+                        <>
+                          <div>
+                            k<sub>pos,exp,{layer.position}</sub> = 0,5 × (t<sub>prot,0,{layer.position}</sub> / Σt<sub>prot,0,i-1</sub>)
+                          </div>
+                          <div>
+                            = 0,5 × ({float(layer.base_time)} / {sumPrevProt})
+                          </div>
+                          <div>
+                            = {float(layer.position_coefficient_exp)}
+                          </div>
+                        </>
+                      );
+                    }
+                  }
+                  // Para aislante de lana de roca
+                  if (layer.material === "LDR") {
+                    if (sumPrevProt <= layer.base_time / 2) {
+                      return (
+                        <>
+                          <div>
+                            k<sub>pos,exp,{layer.position}</sub> = 1 - 0,6 × (Σt<sub>prot,0,i-1</sub> / t<sub>ais,0,{layer.position}</sub>)
+                          </div>
+                          <div>
+                            = 1 - 0,6 × ({sumPrevProt} / {float(layer.base_time)})
+                          </div>
+                          <div>
+                            = {float(layer.position_coefficient_exp)}
+                          </div>
+                        </>
+                      );
+                    } else {
+                      return (
+                        <>
+                          <div>
+                            k<sub>pos,exp,{layer.position}</sub> = 0,5 × (t<sub>ais,0,{layer.position}</sub> / Σt<sub>prot,0,i-1</sub>)
+                          </div>
+                          <div>
+                            = 0,5 × ({float(layer.base_time)} / {sumPrevProt})
+                          </div>
+                          <div>
+                            = {float(layer.position_coefficient_exp)}
+                          </div>
+                        </>
+                      );
+                    }
+                  }
+                  // Para aislante de lana de vidrio (solo si tienes fórmula especial, si no, puedes agregarla aquí)
+                  // Por defecto, si no hay fórmula especial:
+                  return (
+                    <div>k<sub>pos,exp,{layer.position}</sub> = {float(layer.position_coefficient_exp)}</div>
+                  );
+                })()}
+              </div>
 
               {layer.is_protection_layer && (
                 <>
@@ -248,21 +329,23 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                       Coeficiente de posición no exp (k<sub>pos,noexp,{layer.position}</sub>):
                     </strong>
                   </p>
-                  {['PYC', 'PYF', 'FBC', 'FBS', 'OSB'].includes(layer.material) ? (
-                    <>
-                      <p>
-                        k<sub>pos,noexp,{layer.position}</sub> = 0.5 × h<sup>0.15</sup>
-                      </p>
-                      <p>
-                        k<sub>pos,noexp,{layer.position}</sub> = 0.5 × {layer.thickness}
-                        <sup>0.15</sup> = {float(layer.position_coefficient_noexp)} 
-                      </p>
-                    </>
-                  ) : (
-                    <p>
-                      k<sub>pos,noexp,{layer.position}</sub> = {float(layer.position_coefficient_noexp)}
-                    </p>
-                  )}
+                  <div style={{ marginLeft: 32, marginBottom: 12 }}>
+                    {['PYC', 'PYF', 'FBC', 'FBS', 'OSB'].includes(layer.material) ? (
+                      <>
+                        <div>
+                          k<sub>pos,noexp,{layer.position}</sub> = 0.5 × h<sup>0.15</sup>
+                        </div>
+                        <div>
+                          k<sub>pos,noexp,{layer.position}</sub> = 0.5 × {layer.thickness}
+                          <sup>0.15</sup> = {float(layer.position_coefficient_noexp)} 
+                        </div>
+                      </>
+                    ) : (
+                      <div>
+                        k<sub>pos,noexp,{layer.position}</sub> = {float(layer.position_coefficient_noexp)}
+                      </div>
+                    )}
+                  </div>
                 </>
               )}
 
@@ -282,7 +365,7 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                 </strong>
               </p>
               {layer.is_protection_layer ? (
-                <div style={{ marginLeft: 20, marginBottom: 16 }}>
+                <div style={{ marginLeft: 32, marginBottom: 12 }}>
                   <div>
                     t<sub>prot,{layer.position}</sub> = (t<sub>prot,0,{layer.position}</sub> × k<sub>pos,exp,{layer.position}</sub> × k<sub>pos,noexp,{layer.position}</sub> + Δt<sub>{layer.position}</sub>) × k<sub>junta,{layer.position}</sub> [min]
                   </div>
@@ -297,14 +380,20 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                   </div>
                 </div>
               ) : (
-                <>
-                  <p>
+                <div style={{ marginLeft: 32, marginBottom: 12 }}>
+                  <div>
                     t<sub>ais,{layer.position}</sub> = (t<sub>ais,0,{layer.position}</sub> × k<sub>pos,exp,{layer.position}</sub> + Δt<sub>{layer.position}</sub>) × k<sub>junta,{layer.position}</sub>
-                  </p>
-                  <p>
-                    t<sub>ais,{layer.position}</sub> = ({float(layer.base_time)} × {float(layer.position_coefficient_exp)} + {float(layer.rf_plaster_correction_time)}) × {float(layer.joint_coefficient)} = {float(layer.total_calculated_time)} [min]
-                  </p>
-                </>
+                  </div>
+                  <div>
+                    = ({float(layer.base_time)} × {float(layer.position_coefficient_exp)} + {float(layer.rf_plaster_correction_time)}) × {float(layer.joint_coefficient)}
+                  </div>
+                  <div>
+                    = {float(layer.base_time * layer.position_coefficient_exp + layer.rf_plaster_correction_time)} × {float(layer.joint_coefficient)}
+                  </div>
+                  <div>
+                    = {float(layer.total_calculated_time)} [min]
+                  </div>
+                </div>
               )}
             </div>
             {idx !== layers.length - 1 && <hr />}
