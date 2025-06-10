@@ -440,37 +440,59 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
               {layer.has_rf_plaster && (
                 <div>
                   <strong>
-                    Corrección por yeso-cartón RF (Δt<sub>{layer.position}</sub>):
+                    Corrección por protección con placas de yeso-cartón RF (Δt<sub>{layer.position}</sub>):
                   </strong>
                   <div style={{ marginLeft: 32, marginTop: 12 }}>
                     {/* Explicación de la fórmula según el tipo de capa/material */}
                     {(() => {
+                      const prevLayer = layers.find(l => Number(l.position) === Number(layer.position) - 1);
+                      const prevBaseTime = prevLayer ? prevLayer.total_calculated_time : 0;
                       if (["LDV", "LDR"].includes(layer.material)) {
                         if (layer.base_time < 6) {
                           return (
-                            <div>
-                              Δt<sub>{layer.position}</sub> = 0,1 × t<sub>prot,0,{layer.position}</sub> + Σt<sub>prot,0,{Number(layer.position) - 1}</sub> + 1,0
-                            </div>
+                            <>
+                              <div>
+                                Δt<sub>{layer.position}</sub> = (0,1 × t<sub>prot,{Number(layer.position) - 1}</sub>) + t<sub>prot,0,{layer.position}</sub> + 1,0
+                              </div>
+                              <div>
+                                Δt<sub>{layer.position}</sub> = (0,1 × {float(prevBaseTime)}) + {float(layer.base_time)} + 1,0
+                              </div>
+                            </>
                           );
                         } else {
                           return (
-                            <div>
-                              Δt<sub>{layer.position}</sub> = 0,22 × t<sub>prot,0,{layer.position}</sub> - 0,1 × Σt<sub>prot,0,{Number(layer.position) - 1}</sub> + 3,5
-                            </div>
+                            <>
+                              <div>
+                                Δt<sub>{layer.position}</sub> = (0,22 × t<sub>prot,{Number(layer.position) - 1}</sub>) - (0,1 × t<sub>prot,0,{layer.position}</sub>) + 3,5
+                              </div>
+                              <div>
+                                Δt<sub>{layer.position}</sub> = (0,22 × {float(prevBaseTime)}) - (0,1 × {float(layer.base_time)}) + 3,5
+                              </div>
+                            </>
                           );
                         }
                       } else {
                         if (layer.base_time < 12) {
                           return (
-                            <div>
-                              Δt<sub>{layer.position}</sub> = 0,03 × Σt<sub>prot,0,{Number(layer.position) - 1}</sub> + 0,9 × {layer.is_protection_layer ? <>t<sub>prot,0,{layer.position}</sub></> : <>t<sub>ais,0,{layer.position}</sub></>} - 2,3
-                            </div>
+                            <>
+                              <div>
+                                Δt<sub>{layer.position}</sub> = (0,03 × t<sub>prot,{Number(layer.position) - 1}</sub>) + (0,9 × {layer.is_protection_layer ? <>t<sub>prot,0,{layer.position}</sub></> : <>t<sub>ais,0,{layer.position}</sub></>}) - 2,3
+                              </div>
+                              <div>
+                                Δt<sub>{layer.position}</sub> = (0,03 × {float(prevBaseTime)}) + (0,9 × {float(layer.base_time)}) - 2,3
+                              </div>
+                            </>
                           );
                         } else {
                           return (
-                            <div>
-                              Δt<sub>{layer.position}</sub> = 0,22 × Σt<sub>prot,0,{Number(layer.position) - 1}</sub> - 0,1 × {layer.is_protection_layer ? <>t<sub>prot,0,{layer.position}</sub></> : <>t<sub>ais,0,{layer.position}</sub></>} + 4,7
-                            </div>
+                            <>
+                              <div>
+                                Δt<sub>{layer.position}</sub> = (0,22 × t<sub>prot,{Number(layer.position) - 1}</sub>) - (0,1 × {layer.is_protection_layer ? <>t<sub>prot,0,{layer.position}</sub></> : <>t<sub>ais,0,{layer.position}</sub></>}) + 4,7
+                              </div>
+                              <div>
+                                Δt<sub>{layer.position}</sub> = (0,22 × {float(prevBaseTime)}) - (0,1 × {float(layer.base_time)}) + 4,7
+                              </div>
+                            </>
                           );
                         }
                       }

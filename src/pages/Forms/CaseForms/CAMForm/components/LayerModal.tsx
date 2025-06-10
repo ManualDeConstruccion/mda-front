@@ -166,7 +166,6 @@ export const LayerModal: React.FC<LayerModalProps> = ({ open, onClose, onSave, i
     delete data.is_insulation; // Este campo se calcula en el backend
     delete data.is_protection_layer; // Este campo se calcula en el backend
 
-    console.log('Datos finales enviados:', data);
     onSave(data);
     onClose();
   };

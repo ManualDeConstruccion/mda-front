@@ -59,7 +59,7 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
   const [showProposedSuccess, setShowProposedSuccess] = useState(false);
   const queryClient = useQueryClient();
 
-  console.log(analyzedSolution);
+  console.log('solución propuesta', proposedSolution);
 
   // Precarga los valores cuando analyzedSolution cambia
   useEffect(() => {
