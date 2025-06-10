@@ -17,7 +17,10 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  SelectChangeEvent
+  SelectChangeEvent,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails
 } from '@mui/material';
 import { useProjectNodes } from '../../../../hooks/useProjectNodes';
 import { useNavigate } from 'react-router-dom';
@@ -28,6 +31,7 @@ import { LayersTable } from './components/LayersTable';
 import { LayerVisualization } from './components/LayerVisualization';
 import { LayerCalculations } from './components/LayerCalculations';
 import { useQueryClient } from '@tanstack/react-query';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, instanceId?: string }) {
   const { data: analyzedSolution, isLoading, refetch } = useCAMApi().useRetrieve(Number(instanceId));
@@ -449,9 +453,28 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
         </Card>
       )}
 
-      {/*Mostrar cálculos de solución propuesta*/}
+      {/* Cálculos de la solución base en un acordeón */}
+      {analyzedSolution?.layers && analyzedSolution.layers.length > 0 && (
+        <Accordion sx={{ mb: 2 }} defaultExpanded={false}>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography>Cálculos de la solución base</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <LayerCalculations layers={analyzedSolution.layers} />
+          </AccordionDetails>
+        </Accordion>
+      )}
+
+      {/* Cálculos de la solución propuesta en un acordeón */}
       {proposedSolution && (
-        <LayerCalculations layers={proposedSolution.layers} />
+        <Accordion sx={{ mb: 2 }} defaultExpanded={false}>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography>Cálculos de la solución propuesta</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <LayerCalculations layers={proposedSolution.layers} />
+          </AccordionDetails>
+        </Accordion>
       )}
       
       <Stack direction="row" spacing={2} mt={2}>
