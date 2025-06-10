@@ -244,10 +244,37 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                   const isFirstLayer = Number(layer.position) === 1;
                   // Usar sumatoria de tiempos de protección anteriores si está disponible, si no, 0
                   const sumPrevProt = layer.sum_prev_prot_times ?? 0;
+                  // Subíndice de la sumatoria
+                  const sumSubIndex = Number(layer.position) - 1;
+                  // Etiquetas para sumatoria y base
+                  const sumLabel = layer.is_protection_layer
+                    ? (<><span>&Sigma;t</span><sub>prot,0,{sumSubIndex}</sub></>)
+                    : (<><span>&Sigma;t</span><sub>prot,0,n-{sumSubIndex}</sub></>);
+                  let baseLabel: JSX.Element = <></>;
+                  let baseDivisor = 0;
+                  let divisorDesc: JSX.Element = <></>;
+                  // Para LDV y LDR, el denominador puede ser especial
+                  if (layer.material === 'LDV') {
+                    baseLabel = <><span>t</span><sub>ais,0,{layer.position}</sub></>;
+                    baseDivisor = layer.base_time / 4;
+                    divisorDesc = <>{baseLabel} / 4</>;
+                  } else if (layer.material === 'LDR') {
+                    baseLabel = <><span>t</span><sub>ais,0,{layer.position}</sub></>;
+                    baseDivisor = layer.base_time / 2;
+                    divisorDesc = <>{baseLabel} / 2</>;
+                  } else if (["PYC", "PYF", "MAD", "TAB", "OSB", "FBC", "FBS"].includes(layer.material)) {
+                    baseLabel = layer.is_protection_layer
+                      ? (<><span>t</span><sub>prot,0,{layer.position}</sub></>)
+                      : (<><span>t</span><sub>ais,0,{layer.position}</sub></>);
+                    baseDivisor = layer.base_time / 2;
+                    divisorDesc = <>{baseLabel} / 2</>;
+                  }
+                  // Mostrar comparación
+                  const comparison = sumPrevProt <= baseDivisor ? '≤' : '>';
                   // Mostrar sumatoria explícitamente si no es la primera capa
                   const sumatoriaDiv = !isFirstLayer ? (
                     <div>
-                      Σt<sub>prot,0,i-1</sub> = {float(sumPrevProt)} [min]
+                      Para {sumLabel} = {float(sumPrevProt)} [min] {comparison} {divisorDesc}
                     </div>
                   ) : null;
                   // Fórmulas y condiciones según material y tipo de capa
@@ -264,7 +291,9 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                         <>
                           {sumatoriaDiv}
                           <div>
-                            k<sub>pos,exp,{layer.position}</sub> = 1 - 0,6 × (Σt<sub>prot,0,i-1</sub> / t<sub>prot,0,{layer.position}</sub>)
+                            k<sub>pos,exp,{layer.position}</sub> = 1 - 0,6 × (
+                              <span>&Sigma;t</span><sub>prot,0,{sumSubIndex}</sub> / {layer.is_protection_layer ? (<><span>t</span><sub>prot,0,{layer.position}</sub></>) : (<><span>t</span><sub>ais,0,{layer.position}</sub></>)}
+                            )
                           </div>
                           <div>
                             = 1 - 0,6 × ({float(sumPrevProt)} / {float(layer.base_time)})
@@ -275,14 +304,19 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                         </>
                       );
                     } else {
+                      // Usar raíz cuadrada y denominador según tipo de capa
                       return (
                         <>
                           {sumatoriaDiv}
                           <div>
-                            k<sub>pos,exp,{layer.position}</sub> = 0,5 × (t<sub>prot,0,{layer.position}</sub> / Σt<sub>prot,0,i-1</sub>)
+                            k<sub>pos,exp,{layer.position}</sub> = 0,5 × √(
+                              {layer.is_protection_layer ? (<><span>t</span><sub>prot,0,{layer.position}</sub></>) : (<><span>t</span><sub>ais,0,{layer.position}</sub></>)}
+                              {' / '}
+                              {sumLabel}
+                            )
                           </div>
                           <div>
-                            = 0,5 × ({float(layer.base_time)} / {float(sumPrevProt)})
+                            = 0,5 × √({float(layer.base_time)} / {float(sumPrevProt)})
                           </div>
                           <div>
                             = {float(layer.position_coefficient_exp)}
@@ -298,7 +332,9 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                         <>
                           {sumatoriaDiv}
                           <div>
-                            k<sub>pos,exp,{layer.position}</sub> = 1 - 0,6 × (Σt<sub>prot,0,i-1</sub> / t<sub>ais,0,{layer.position}</sub>)
+                            k<sub>pos,exp,{layer.position}</sub> = 1 - 0,6 × (
+                              <span>&Sigma;t</span><sub>prot,0,{sumSubIndex}</sub> / t<sub>ais,0,{layer.position}</sub>
+                            )
                           </div>
                           <div>
                             = 1 - 0,6 × ({float(sumPrevProt)} / {float(layer.base_time)})
@@ -313,7 +349,7 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                         <>
                           {sumatoriaDiv}
                           <div>
-                            k<sub>pos,exp,{layer.position}</sub> = 0,5 × (t<sub>ais,0,{layer.position}</sub> / Σt<sub>prot,0,i-1</sub>)
+                            k<sub>pos,exp,{layer.position}</sub> = 0,5 × (t<sub>ais,0,{layer.position}</sub> / <span>&Sigma;t</span><sub>prot,0,{sumSubIndex}</sub>)
                           </div>
                           <div>
                             = 0,5 × ({float(layer.base_time)} / {float(sumPrevProt)})
@@ -332,7 +368,9 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                         <>
                           {sumatoriaDiv}
                           <div>
-                            k<sub>pos,exp,{layer.position}</sub> = 1 - 0,8 × (Σt<sub>prot,0,i-1</sub> / t<sub>ais,0,{layer.position}</sub>)
+                            k<sub>pos,exp,{layer.position}</sub> = 1 - 0,8 × (
+                              <span>&Sigma;t</span><sub>prot,0,{sumSubIndex}</sub> / t<sub>ais,0,{layer.position}</sub>
+                            )
                           </div>
                           <div>
                             = 1 - 0,8 × ({float(sumPrevProt)} / {float(layer.base_time)})
