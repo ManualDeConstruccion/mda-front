@@ -11,8 +11,14 @@ RUN npm ci
 # Copiar el código fuente
 COPY . .
 
+# Cache buster - forzar reconstrucción
+RUN date > /tmp/build_date
+
 # Debug: Mostrar variables de entorno que empiecen con VITE_
-RUN echo "Variables VITE_* disponibles:" && env | grep VITE_ || echo "No se encontraron variables VITE_"
+RUN echo "=== VARIABLES VITE_* DISPONIBLES ===" && \
+    env | grep VITE_ | sort || echo "❌ NO SE ENCONTRARON VARIABLES VITE_" && \
+    echo "=== TODAS LAS VARIABLES DE ENTORNO ===" && \
+    env | sort | head -20
 
 # Construir la aplicación para producción
 RUN npm run build
