@@ -124,7 +124,7 @@
       transition: all $transition-fast;
 
       &:hover {
-        background: darken($error-color, 10%);
+        background: color.adjust($error-color, $lightness: -10%);
         transform: translateY(-1px);
       }
 
@@ -158,7 +158,7 @@
     cursor: pointer;
 
     &:hover {
-      background: darken($error-color, 10%);
+      background: color.adjust($error-color, $lightness: -10%);
     }
   }
 } 
