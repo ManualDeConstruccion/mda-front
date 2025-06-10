@@ -29,13 +29,6 @@ export default defineConfig({
     watch: {
       usePolling: true,
     },
-    proxy: {
-      '/api': {
-        target: 'http://mdc_backend:8000',
-        changeOrigin: true,
-        secure: false,
-      },
-    },
   },
   build: {
     outDir: 'dist',

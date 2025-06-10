@@ -163,7 +163,7 @@
   transition: color $transition-fast;
 
   &:hover {
-    color: darken($primary-color, 10%);
+    color: color.adjust($primary-color, $lightness: -10%);
     text-decoration: underline;
   }
 }

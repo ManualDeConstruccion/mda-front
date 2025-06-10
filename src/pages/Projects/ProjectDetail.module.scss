@@ -259,7 +259,7 @@
     cursor: pointer;
 
     &:hover {
-      background: darken($error-color, 10%);
+      background: color.adjust($error-color, $lightness: -10%);
     }
   }
 } 

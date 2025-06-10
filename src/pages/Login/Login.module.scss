@@ -4,17 +4,23 @@
 .loginContainer {
   min-height: 100vh;
   @include flex-center();
-  background-color: $light-bg-primary;
+  
+  & {
+    background-color: $light-bg-primary;
+  }
 }
 
 .loginBox {
   @include card-container;
-  background-color: $background-paper;
-  border-radius: $border-radius-lg;
-  box-shadow: $shadow-lg;
   width: 100%;
   max-width: 400px;
   text-align: center;
+  
+  & {
+    background-color: $background-paper;
+    border-radius: $border-radius-lg;
+    box-shadow: $shadow-lg;
+  }
 }
 
 .title {
