@@ -1,0 +1,35 @@
+FROM node:18-alpine AS build
+
+WORKDIR /app
+
+# Copiar archivos de configuración
+COPY package*.json ./
+
+# Instalar dependencias
+RUN npm ci
+
+# Copiar el código fuente
+COPY . .
+
+# Debug: Mostrar variables de entorno que empiecen con VITE_
+RUN echo "Variables VITE_* disponibles:" && env | grep VITE_ || echo "No se encontraron variables VITE_"
+
+# Construir la aplicación para producción
+RUN npm run build
+
+# Etapa de producción
+FROM node:18-alpine AS production
+
+WORKDIR /app
+
+# Instalar un servidor HTTP simple
+RUN npm install -g serve
+
+# Copiar los archivos construidos desde la etapa de build
+COPY --from=build /app/dist ./dist
+
+# Exponer el puerto dinámico que Render asigna
+EXPOSE $PORT
+
+# Comando para servir la aplicación en producción
+CMD ["sh", "-c", "serve -s dist -l $PORT"] 
