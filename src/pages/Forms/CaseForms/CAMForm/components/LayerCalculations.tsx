@@ -29,6 +29,10 @@ interface Layer {
   sum_prev_prot_times?: number;
   has_rf_plaster: boolean;
   relative_position?: number;
+  previous_cavity_effect_kpos_exp?: number;
+  previous_cavity_effect_kpos_noexp?: number;
+  previous_cavity_effect_rf_plaster?: number;
+  is_previous_layer_insulation?: boolean;
 }
 
 interface Props {
@@ -48,9 +52,9 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
     if (sortedLayers[idx - 1]?.material === 'CAV') {
       // Lado no expuesto
       if (["LDV", "LDR"].includes(sortedLayers[idx].material)) {
-        effects.push('Se suma Δt_RF (absoluto)');
+        effects.push('Se suma Δt_RF');
       } else {
-        effects.push('Se suma Δt_RF × 3 (absoluto)');
+        effects.push('Se suma Δt_RF × 3');
       }
     }
     // Capa posterior es CAV
@@ -335,7 +339,7 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                               = 1 - 0,6 × ({float(sumPrevProt)} / {float(layer.base_time)})
                             </div>
                             <div>
-                              = {float(layer.position_coefficient_exp)}
+                              = {layer.previous_cavity_effect_kpos_exp ? float(layer.previous_cavity_effect_kpos_exp) : float(layer.position_coefficient_exp)}
                             </div>
                           </>
                         );
@@ -355,7 +359,7 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                               = 0,5 × √({float(layer.base_time)} / {float(sumPrevProt)})
                             </div>
                             <div>
-                              = {float(layer.position_coefficient_exp)}
+                              = {layer.previous_cavity_effect_kpos_exp ? float(layer.previous_cavity_effect_kpos_exp) : float(layer.position_coefficient_exp)}
                             </div>
                           </>
                         );
@@ -376,7 +380,7 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                               = 1 - 0,6 × ({float(sumPrevProt)} / {float(layer.base_time)})
                             </div>
                             <div>
-                              = {float(layer.position_coefficient_exp)}
+                              = {layer.previous_cavity_effect_kpos_exp ? float(layer.previous_cavity_effect_kpos_exp) : float(layer.position_coefficient_exp)}
                             </div>
                           </>
                         );
@@ -391,7 +395,7 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                               = 0,5 × ({float(layer.base_time)} / {float(sumPrevProt)})
                             </div>
                             <div>
-                              = {float(layer.position_coefficient_exp)}
+                              = {layer.previous_cavity_effect_kpos_exp ? float(layer.previous_cavity_effect_kpos_exp) : float(layer.position_coefficient_exp)}
                             </div>
                           </>
                         );
@@ -412,7 +416,7 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                               = 1 - 0,8 × ({float(sumPrevProt)} / {float(layer.base_time)})
                             </div>
                             <div>
-                              = {float(layer.position_coefficient_exp)}
+                              = {layer.previous_cavity_effect_kpos_exp ? float(layer.previous_cavity_effect_kpos_exp) : float(layer.position_coefficient_exp)}
                             </div>
                           </>
                         );
@@ -431,7 +435,7 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                               = ({float(coef)}) × ({float(baseDiv)})<sup>{float(exp)}</sup>
                             </div>
                             <div>
-                              = {float(layer.position_coefficient_exp)}
+                              = {layer.previous_cavity_effect_kpos_exp ? float(layer.previous_cavity_effect_kpos_exp) : float(layer.position_coefficient_exp)}
                             </div>
                           </>
                         );
@@ -444,6 +448,8 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                   })()}
                 </div>
 
+
+                {/* Visualización mejorada del coeficiente de posición no exp */}
                 {layer.is_protection_layer && (
                   <>
                     <p>
@@ -452,21 +458,90 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                       </strong>
                     </p>
                     <div style={{ marginLeft: 32, marginBottom: 12 }}>
-                      {['PYC', 'PYF', 'FBC', 'FBS', 'OSB'].includes(layer.material) ? (
-                        <>
-                          <div>
-                            k<sub>pos,noexp,{layer.position}</sub> = 0.5 × h<sup>0.15</sup>
-                          </div>
-                          <div>
-                            k<sub>pos,noexp,{layer.position}</sub> = 0.5 × {layer.thickness}
-                            <sup>0.15</sup> = {float(layer.position_coefficient_noexp)}
-                          </div>
-                        </>
-                      ) : (
-                        <div>
-                          k<sub>pos,noexp,{layer.position}</sub> = {float(layer.position_coefficient_noexp)}
-                        </div>
-                      )}
+                      {(() => {
+                        // Determinar si se usa la fórmula de aislación
+                        const useInsulationFormula =
+                          layer.is_previous_layer_insulation ||
+                          (!!layer.previous_cavity_effect_kpos_noexp && layer.previous_cavity_effect_kpos_noexp !== 0);
+
+                        // Variables útiles
+                        const h = layer.thickness;
+                        const rho = layer.apparent_density ?? 0;
+                        let formula = '';
+                        let result = '';
+
+                        // Fórmulas según material y tipo de apoyo
+                        switch (layer.material) {
+                          case 'PYC':
+                          case 'PYF':
+                          case 'FBC':
+                          case 'FBS':
+                          case 'OSB':
+                            if (useInsulationFormula) {
+                              formula = `0.5 × h_i^0.15`;
+                              result = `0.5 × ${h}^0.15 = ${float(layer.previous_cavity_effect_kpos_noexp ?? layer.position_coefficient_noexp)}`;
+                            } else {
+                              formula = `1.0`;
+                              result = `1.0`;
+                            }
+                            break;
+                          case 'MAD':
+                            if (useInsulationFormula) {
+                              formula = `0.35 × h_i^0.21`;
+                              result = `0.35 × ${h}^0.21 = ${float(layer.previous_cavity_effect_kpos_noexp ?? layer.position_coefficient_noexp)}`;
+                            } else {
+                              formula = `1.0`;
+                              result = `1.0`;
+                            }
+                            break;
+                          case 'TAB':
+                            if (useInsulationFormula) {
+                              formula = `0.41 × h_i^0.18`;
+                              result = `0.41 × ${h}^0.18 = ${float(layer.previous_cavity_effect_kpos_noexp ?? layer.position_coefficient_noexp)}`;
+                            } else {
+                              formula = `1.0`;
+                              result = `1.0`;
+                            }
+                            break;
+                          case 'LDR':
+                            if (useInsulationFormula) {
+                              formula = `0.18 × h_i^(0.001ρ_i+0.08)`;
+                              result = `0.18 × ${h}^(${0.001 * rho + 0.08}) = ${float(layer.previous_cavity_effect_kpos_noexp ?? layer.position_coefficient_noexp)}`;
+                            } else {
+                              formula = `1.0`;
+                              result = `1.0`;
+                            }
+                            break;
+                          case 'LDV':
+                            if (useInsulationFormula) {
+                              formula = `0.5 × h_i - h_i²/30000 + ρ_i^0.09 - 1.3`;
+                              result = `0.5 × ${h} - ${h}²/30000 + ${rho}^0.09 - 1.3 = ${float(layer.previous_cavity_effect_kpos_noexp ?? layer.position_coefficient_noexp)}`;
+                            } else {
+                              formula = `1.0`;
+                              result = `1.0`;
+                            }
+                            break;
+                          default:
+                            result = float(layer.previous_cavity_effect_kpos_noexp ?? layer.position_coefficient_noexp);
+                        }
+
+                        return (
+                          <>
+                            <div>
+                              {useInsulationFormula
+                                ? <>Fórmula para capas apoyadas por <strong>aislación</strong>:</>
+                                : <>Fórmula para capas apoyadas por <strong>revestimientos de yeso o madera</strong>:</>
+                              }
+                            </div>
+                            <div>
+                              k<sub>pos,noexp,{layer.position}</sub> = {formula}
+                            </div>
+                            <div>
+                              = {result}
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
                   </>
                 )}
@@ -534,7 +609,7 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                       })()}
                     </div>
                     <div style={{ marginLeft: 32, marginBottom: 12 }}>
-                      = {float(layer.rf_plaster_correction_time)} [min]
+                      = {layer.previous_cavity_effect_rf_plaster ? float(layer.previous_cavity_effect_rf_plaster) : float(layer.rf_plaster_correction_time)} [min]
                     </div>
                   </div>
                 )}
@@ -543,9 +618,62 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                 {cavityEffects.length > 0 && (
                   <div style={{ marginBottom: 12 }}>
                     <strong>Efecto de las cavidades vacías (huecas):</strong>
-                    <p style={{ marginLeft: 32, marginTop: 12, marginBottom: 12}}>
-                      {cavityEffects.map((ef, i) => <p key={i}>{ef}</p>)}
-                    </p>
+                    <div style={{ marginLeft: 32, marginTop: 12, marginBottom: 12 }}>
+                      {/* Desarrollo de factores de cavidad según cuadro */}
+                      {(() => {
+                        const isMineralWool = ['LDV', 'LDR'].includes(layer.material);
+                        // kpos,exp
+                        let kposExpDev = null;
+                        if (
+                          layer.previous_cavity_effect_kpos_exp !== undefined &&
+                          layer.previous_cavity_effect_kpos_exp !== null
+                        ) {
+                          kposExpDev = (
+                            <div style={{ marginBottom: 20 }}>
+                              <div>Se aplica 1,6 × k<sub>pos,exp,{layer.position}</sub></div>
+                              <div>
+                                1,6 × {Number(layer.previous_cavity_effect_kpos_exp).toFixed(2)} = {Number(layer.position_coefficient_exp).toFixed(2)}
+                              </div>
+                            </div>
+                          );
+                        }
+                        // Δt
+                        let deltaTDev = null;
+                        if (
+                          layer.previous_cavity_effect_rf_plaster !== undefined &&
+                          layer.previous_cavity_effect_rf_plaster !== null
+                        ) {
+                          if (isMineralWool) {
+                            deltaTDev = (
+                              <div style={{ marginBottom: 12 }}>
+                                <div>Se suma Δt_RF</div>
+                                <div>
+                                  Δt<sub>{layer.position}</sub> = 1 × {Number(layer.previous_cavity_effect_rf_plaster).toFixed(2)}
+                                </div>
+                                <div>
+                                  {Number(layer.rf_plaster_correction_time).toFixed(2)} [min]
+                                </div>
+                              </div>
+                            );
+                          } else {
+                            deltaTDev = (
+                              <div style={{ marginBottom: 12 }}>
+                                <div>Se suma Δt_RF × 3</div>
+                                <div>
+                                  Δt<sub>{layer.position}</sub> = {Number(layer.previous_cavity_effect_rf_plaster).toFixed(2)} × 3 = {Number(layer.rf_plaster_correction_time).toFixed(2)} [min]
+                                </div>
+                              </div>
+                            );
+                          }
+                        }
+                        return (
+                          <>
+                            {kposExpDev}
+                            {deltaTDev}
+                          </>
+                        );
+                      })()}
+                    </div>
                   </div>
                 )}
 
