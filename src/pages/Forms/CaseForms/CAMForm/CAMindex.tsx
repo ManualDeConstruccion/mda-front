@@ -59,8 +59,6 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
   const [showProposedSuccess, setShowProposedSuccess] = useState(false);
   const queryClient = useQueryClient();
 
-  console.log('solución propuesta', proposedSolution);
-
   // Precarga los valores cuando analyzedSolution cambia
   useEffect(() => {
     if (analyzedSolution) {
@@ -428,21 +426,30 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
       {/* Visualización de la solución propuesta si existe */}
       {proposedSolution && (
         <Card sx={{ mb: 3 }}>
-          <CardHeader title="Solución Propuesta" />
+          <CardHeader title="Representación de capas de la solución propuesta" />
           <CardContent>
-            <Typography variant="subtitle1" sx={{ mb: 2 }}>
+            <LayerVisualization layers={proposedSolution.layers} />
+          </CardContent>
+        </Card>
+      )}
+
+      {proposedSolution && (
+        <Card sx={{ mb: 3 }}>
+          <CardHeader title="Capas de la solución propuesta" />
+          <CardContent>
+            <Typography variant="subtitle1" sx={{ mb: 1 }}>
               <b>Tiempo calculado:</b> {proposedSolution.calculated_time} min
             </Typography>
             <Typography variant="subtitle1" sx={{ mb: 2 }}>
               <b>Resistencia al fuego:</b> F-{proposedSolution.fire_resistance}
             </Typography>
-            <LayerVisualization layers={proposedSolution.layers} />
             <Box sx={{ mb: 2 }}>
               <Button
                 variant="contained"
                 color="primary"
                 onClick={() => handleOpenAddLayerModal('anterior')}
               >
+                
                 Agregar Capa Anterior
               </Button>
             </Box>
