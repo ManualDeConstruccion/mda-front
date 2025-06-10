@@ -39,6 +39,7 @@ const MATERIAL_OPTIONS = [
   { value: 'LDV', label: 'Aislación de lana de vidrio con ρ ≥ 11 kg/m³' },
   { value: 'FBC', label: 'Fibrocemento' },
   { value: 'FBS', label: 'Tipo Fibrosilicato' },
+  { value: 'CAV', label: 'Cavidad vacía' },
 ];
 
 const MATERIALS_CARB = ['MAD', 'TAB', 'OSB'];
@@ -123,9 +124,13 @@ export const LayerModal: React.FC<LayerModalProps> = ({ open, onClose, onSave, i
     const newErrors: any = {};
     if (!formData.material) newErrors.material = 'Seleccione un material';
     if (!formData.thickness || isNaN(Number(formData.thickness)) || Number(formData.thickness) <= 0) newErrors.thickness = 'Espesor requerido';
-    if (MATERIALS_CARB.includes(formData.material) && (!formData.carbonization_rate || isNaN(Number(formData.carbonization_rate)))) newErrors.carbonization_rate = 'Tasa de carbonización requerida';
-    if (MATERIALS_DENSITY.includes(formData.material) && (!formData.apparent_density || isNaN(Number(formData.apparent_density)))) newErrors.apparent_density = 'Densidad requerida';
-    if (!formData.joint_coefficient || isNaN(Number(formData.joint_coefficient))) newErrors.joint_coefficient = 'Coeficiente requerido';
+    if (formData.material !== 'CAV') {
+      if (MATERIALS_CARB.includes(formData.material) && (!formData.carbonization_rate || isNaN(Number(formData.carbonization_rate)))) newErrors.carbonization_rate = 'Tasa de carbonización requerida';
+      if (MATERIALS_DENSITY.includes(formData.material) && (!formData.apparent_density || isNaN(Number(formData.apparent_density)))) newErrors.apparent_density = 'Densidad requerida';
+      if (!formData.joint_coefficient || isNaN(Number(formData.joint_coefficient))) newErrors.joint_coefficient = 'Coeficiente requerido';
+    } else {
+      if (!formData.joint_coefficient || isNaN(Number(formData.joint_coefficient))) newErrors.joint_coefficient = 'Coeficiente requerido';
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -201,8 +206,8 @@ export const LayerModal: React.FC<LayerModalProps> = ({ open, onClose, onSave, i
           error={!!errors.thickness}
           helperText={errors.thickness}
         />
-        {/* carbonization_rate solo para MAD, TAB, OSB */}
-        {MATERIALS_CARB.includes(formData.material) && (
+        {/* carbonization_rate solo para MAD, TAB, OSB y no para CAV */}
+        {MATERIALS_CARB.includes(formData.material) && formData.material !== 'CAV' && (
           <TextField
             margin="normal"
             label="Tasa de carbonización (mm/min)"
@@ -215,8 +220,8 @@ export const LayerModal: React.FC<LayerModalProps> = ({ open, onClose, onSave, i
             helperText={errors.carbonization_rate}
           />
         )}
-        {/* apparent_density solo para LDR, LDV */}
-        {MATERIALS_DENSITY.includes(formData.material) && (
+        {/* apparent_density solo para LDR, LDV y no para CAV */}
+        {MATERIALS_DENSITY.includes(formData.material) && formData.material !== 'CAV' && (
           <TextField
             margin="normal"
             label="Densidad aparente (kg/m³)"
@@ -245,7 +250,7 @@ export const LayerModal: React.FC<LayerModalProps> = ({ open, onClose, onSave, i
             <HelpOutlineIcon />
           </IconButton>
         </MuiBox>
-        {/* has_rf_plaster solo para PYC */}
+        {/* has_rf_plaster solo para PYC y no para CAV */}
         {formData.material === 'PYC' && (
           <FormControlLabel
             control={

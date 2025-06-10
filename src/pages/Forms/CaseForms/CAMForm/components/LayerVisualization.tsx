@@ -9,11 +9,24 @@ export const LayerVisualization: React.FC<LayerVisualizationProps> = ({ layers }
   const containerRef = useRef<HTMLDivElement>(null);
   const scale = 3; // Escala visual: 1mm = 3px
 
-  // Calcular el ancho total sumando todos los thickness
-  const totalWidth = layers.reduce((acc, layer) => {
+  // Siempre trabajar con el array ordenado por relative_position
+  const sortedLayers = [...layers].sort((a, b) => (a.relative_position ?? 0) - (b.relative_position ?? 0));
+
+  // Calcular el ancho total usando sortedLayers
+  const totalWidth = sortedLayers.reduce((acc, layer) => {
     const t = typeof layer.thickness === 'number' ? layer.thickness : Number(layer.thickness) || 0;
     return acc + t;
   }, 0);
+
+  // Precalcular los labels (letra para CAV, número para el resto)
+  let cavLetter = 0;
+  const labels = sortedLayers.map(layer => {
+    if (layer.material === 'CAV') {
+      return String.fromCharCode(97 + cavLetter++); // 'a', 'b', ...
+    } else {
+      return layer.position;
+    }
+  });
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -24,27 +37,32 @@ export const LayerVisualization: React.FC<LayerVisualizationProps> = ({ layers }
     const fills = wallLayers.querySelectorAll('.layer-fill');
     let accumulatedWidth = 0;
 
-    // Posicionar líneas y capas
-    lines.forEach((line, index) => {
-      (line as HTMLElement).style.left = accumulatedWidth + 'px';
-
-      if (index < numbers.length) {
-        const thicknessRaw = layers[index]?.thickness;
+    // Posicionar líneas y capas usando sortedLayers
+    sortedLayers.forEach((layer, index) => {
+      // Línea de inicio de la capa
+      if (lines[index]) {
+        (lines[index] as HTMLElement).style.left = accumulatedWidth + 'px';
+      }
+      // Capa de fondo (achurado)
+      if (fills[index]) {
+        const thicknessRaw = layer.thickness;
         const thickness = typeof thicknessRaw === 'number' ? thicknessRaw : Number(thicknessRaw) || 0;
         const scaledThickness = thickness * scale;
-
-        // Posicionar capa de fondo (achurado)
         (fills[index] as HTMLElement).style.left = accumulatedWidth + 'px';
         (fills[index] as HTMLElement).style.width = scaledThickness + 'px';
-
         accumulatedWidth += scaledThickness;
       }
     });
 
+    // Posicionar la última línea al final
+    if (lines[sortedLayers.length]) {
+      (lines[sortedLayers.length] as HTMLElement).style.left = accumulatedWidth + 'px';
+    }
+
     // Centrar los números entre líneas
     numbers.forEach((number, index) => {
       const left = parseInt((lines[index] as HTMLElement).style.left) || 0;
-      const right = parseInt((lines[index + 1] as HTMLElement).style.left) || 0;
+      const right = parseInt((lines[index + 1] as HTMLElement)?.style.left) || 0;
       const center = left + (right - left) / 2;
       (number as HTMLElement).style.left = center + 'px';
     });
@@ -52,10 +70,10 @@ export const LayerVisualization: React.FC<LayerVisualizationProps> = ({ layers }
     // Ajustar ancho del contenedor
     if (lines.length > 0) {
       const lastLine = lines[lines.length - 1];
-      const totalWidth = parseFloat((lastLine as HTMLElement).style.left) + 50;
-      wallLayers.style.width = totalWidth + 'px';
+      const totalWidthPx = parseFloat((lastLine as HTMLElement).style.left) + 50;
+      wallLayers.style.width = totalWidthPx + 'px';
     }
-  }, [layers]);
+  }, [sortedLayers]);
 
   return (
     <Box sx={{ width: '100%', padding: 2, display: 'flex', justifyContent: 'center', mb: 3 }}>
@@ -83,7 +101,7 @@ export const LayerVisualization: React.FC<LayerVisualizationProps> = ({ layers }
             bgcolor: 'black',
           }} />
 
-          {layers.map((layer, index) => (
+          {sortedLayers.map((layer, index) => (
             <React.Fragment key={layer.id || index}>
               {/* Capa con achurado */}
               <Box
@@ -118,7 +136,7 @@ export const LayerVisualization: React.FC<LayerVisualizationProps> = ({ layers }
                   zIndex: 2,
                 }}
               >
-                {layer.position ?? index + 1}
+                {labels[index]}
               </Box>
 
               {/* Línea al final de la capa */}
@@ -172,6 +190,10 @@ const getMaterialStyle = (material: string) => {
         repeating-linear-gradient(0deg, #333 0px, #333 1px, transparent 1px, transparent 4px),
         repeating-linear-gradient(90deg, #333 0px, #333 1px, transparent 1px, transparent 4px)
       `,
+    },
+    CAV: {
+      background: 'repeating-linear-gradient(135deg, #fff 0px, #fff 6px, #eee 6px, #eee 12px)',
+      border: '2px dashed #aaa',
     },
   };
   return styles[material] || {};

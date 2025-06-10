@@ -59,6 +59,8 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
   const [showProposedSuccess, setShowProposedSuccess] = useState(false);
   const queryClient = useQueryClient();
 
+  console.log('solución propuesta', proposedSolution);
+
   // Precarga los valores cuando analyzedSolution cambia
   useEffect(() => {
     if (analyzedSolution) {
@@ -292,18 +294,6 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
                   {/* Aquí irían las opciones de soluciones base */}
                 </Select>
               </FormControl>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    name="is_symmetric"
-                    checked={formData.is_symmetric}
-                    onChange={handleInputChange}
-                  />
-                }
-                label="Solución simétrica"
-              />
             </Grid>
             <Grid item xs={12}>
               <TextField
