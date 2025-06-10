@@ -27,9 +27,13 @@ import { LayerModal } from './components/LayerModal';
 import { LayersTable } from './components/LayersTable';
 import { LayerVisualization } from './components/LayerVisualization';
 import { LayerCalculations } from './components/LayerCalculations';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, instanceId?: string }) {
   const { data: analyzedSolution, isLoading, refetch } = useCAMApi().useRetrieve(Number(instanceId));
+  const { data: proposedSolutionData } = useCAMApi().proposed.solutions.useRetrieve(
+    analyzedSolution?.proposed_solution_id || 0
+  );
   const [formData, setFormData] = useState<CreateAnalyzedSolutionRequest>({
     name: '',
     node: nodeId ? [Number(nodeId)] : [],
@@ -47,9 +51,11 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
   const { patchProject } = useProjectNodes();
   const navigate = useNavigate();
   const camApi = useCAMApi();
-  const proposedSolutionsList = camApi.proposed.solutions.useList();
   const [proposedSolution, setProposedSolution] = useState<any>(null);
   const [showProposedSuccess, setShowProposedSuccess] = useState(false);
+  const queryClient = useQueryClient();
+
+  console.log(analyzedSolution);
 
   // Precarga los valores cuando analyzedSolution cambia
   useEffect(() => {
@@ -64,16 +70,12 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
     }
   }, [analyzedSolution]);
 
-  // Cargar solución propuesta si existe
+  // Actualizar la solución propuesta cuando cambia proposedSolutionData
   useEffect(() => {
-    if (instanceId && Array.isArray(proposedSolutionsList.data)) {
-      proposedSolutionsList.data.forEach((sol: any) => {
-        if (sol.base_solution === Number(instanceId)) {
-          setProposedSolution(sol);
-        }
-      });
+    if (proposedSolutionData) {
+      setProposedSolution(proposedSolutionData);
     }
-  }, [instanceId, proposedSolutionsList.data]);
+  }, [proposedSolutionData]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, checked, type } = e.target;
@@ -130,59 +132,87 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
   };
 
   const handleAddLayer = async (layer: any) => {
-    if (!instanceId) return;
-    
+    if (!instanceId && !proposedSolution) return;
+
     try {
-      console.log('Datos de capa recibidos:', layer);
       const layerData = {
         ...layer,
         apparent_density: layer.is_insulation ? layer.apparent_density : null,
         position_type: layerPosition,
       };
-      console.log('Datos de capa a enviar:', layerData);
-      await camApi.addLayer.mutateAsync({
-        id: Number(instanceId),
-        layer: layerData,
-      });
+
+      if (proposedSolution) {
+        await camApi.proposed.layers.create.mutateAsync({
+          solution: proposedSolution.id,
+          ...layerData,
+          is_base_layer: false,
+        });
+        queryClient.invalidateQueries({ queryKey: ['proposedsolution', proposedSolution.id] });
+      } else {
+        await camApi.addLayer.mutateAsync({
+          id: Number(instanceId),
+          layer: layerData,
+        });
+        await refetch();
+      }
+
       setLayerModalOpen(false);
-      // Refrescar los datos
-      await refetch();
     } catch (err: any) {
-      console.error('Error al agregar capa:', err);
       setError(err.message || 'Error al agregar la capa');
     }
   };
 
-  const handleEditLayer = async (layer: Partial<Layer>) => {
-    if (!instanceId || !selectedLayer?.id) return;
-    
+  const handleEditLayer = async (layer: Partial<Layer> & { is_base_layer?: boolean }) => {
+    if ((!instanceId && !proposedSolution) || !selectedLayer?.id) return;
+
     try {
-      await camApi.editLayer.mutateAsync({
-        id: Number(instanceId),
-        layerId: selectedLayer.id,
-        layer,
-      });
+      if (proposedSolution) {
+        if ((selectedLayer as any).is_base_layer) {
+          setError('No se pueden editar las capas base en la solución propuesta');
+          return;
+        }
+        await camApi.proposed.layers.update.mutateAsync({
+          id: selectedLayer.id,
+          ...layer,
+        });
+        queryClient.invalidateQueries({ queryKey: ['proposedsolution', proposedSolution.id] });
+      } else {
+        await camApi.editLayer.mutateAsync({
+          id: Number(instanceId),
+          layerId: selectedLayer.id,
+          layer,
+        });
+        await refetch();
+      }
+
       setLayerModalOpen(false);
       setSelectedLayer(null);
-      // Refrescar los datos
-      await refetch();
     } catch (err: any) {
       setError(err.message || 'Error al editar la capa');
     }
   };
 
   const handleDeleteLayer = async (layerId: number) => {
-    if (!instanceId) return;
-    
+    if (!instanceId && !proposedSolution) return;
+
     if (!window.confirm('¿Está seguro de eliminar esta capa?')) return;
-    
+
     try {
-      await camApi.deleteLayer.mutateAsync({
-        id: Number(instanceId),
-        layerId,
-      });
-      // Refrescar los datos
-      await refetch();
+      if (proposedSolution) {
+        const layer = proposedSolution.layers.find((l: any) => l.id === layerId);
+        if (layer?.is_base_layer) {
+          setError('No se pueden eliminar las capas base en la solución propuesta');
+          return;
+        }
+        await camApi.proposed.layers.destroy.mutateAsync(layerId);
+        queryClient.invalidateQueries({ queryKey: ['proposedsolution', proposedSolution.id] });
+      } else {
+        await camApi.deleteLayer.mutateAsync({
+          id: Number(instanceId),
+          layerId,
+        });
+        await refetch();
+      }
     } catch (err: any) {
       setError(err.message || 'Error al eliminar la capa');
     }
@@ -201,16 +231,16 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
     setLayerModalOpen(true);
   };
 
-  const handleSaveBaseSolution = () => {
-    camApi.proposed.solutions.createFromBase.mutate({
-      ...formData,
-      layers: analyzedSolution?.layers || [],
-    });
-  };
-
   // Nueva función para generar solución propuesta
   const handleGenerateProposedSolution = async () => {
     if (!instanceId) return;
+    
+    // Verificar si ya existe una solución propuesta
+    if (proposedSolution) {
+      setError('Ya existe una solución propuesta para esta solución base');
+      return;
+    }
+
     try {
       const data = await camApi.generateProposedSolutionFromAnalyzed.mutateAsync(Number(instanceId));
       setProposedSolution(data);
@@ -305,8 +335,8 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
         </Card>
       )}
 
-      {/* Tabla de capas */}
-      {analyzedSolution?.layers && analyzedSolution.layers.length > 0 ? (
+      {/* Tabla de capas de la solución base */}
+      {analyzedSolution?.layers && analyzedSolution.layers.length > 0 && (
         <Card sx={{ mb: 3 }}>
           <CardHeader title="Capas de la solución base" />
           <CardContent>
@@ -322,60 +352,48 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
                 </Typography>
               )}
             </Box>
-            <Box sx={{ mb: 2 }}>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={() => handleOpenAddLayerModal('anterior')}
-              >
-                Agregar Capa Anterior
-              </Button>
-            </Box>
-            <LayersTable
-              layers={analyzedSolution.layers}
-              onEdit={handleOpenEditLayerModal}
-              onDelete={handleDeleteLayer}
-            />
-            <Box sx={{ mt: 2 }}>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={() => handleOpenAddLayerModal('posterior')}
-              >
-                Agregar Capa Posterior
-              </Button>
-            </Box>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card sx={{ mb: 3 }}>
-          <CardHeader title="Capas de la solución" />
-          <CardContent>
-            <Typography variant="body1" sx={{ mb: 2 }}>
-              No hay capas definidas. Agrega la primera capa para comenzar.
-            </Typography>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={() => {
-                setModalMode('add');
-                setLayerPosition('anterior');
-                setLayerModalOpen(true);
-              }}
-            >
-              Agregar Primera Capa
-            </Button>
+            {!proposedSolution && (
+              <>
+                <Box sx={{ mb: 2 }}>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => handleOpenAddLayerModal('anterior')}
+                  >
+                    Agregar Capa Anterior
+                  </Button>
+                </Box>
+                <LayersTable
+                  layers={analyzedSolution.layers}
+                  onEdit={proposedSolution ? () => {} : handleOpenEditLayerModal}
+                  onDelete={proposedSolution ? () => {} : handleDeleteLayer}
+                  readOnlyBaseLayers={!!proposedSolution}
+                />
+                <Box sx={{ mt: 2 }}>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => handleOpenAddLayerModal('posterior')}
+                  >
+                    Agregar Capa Posterior
+                  </Button>
+                </Box>
+              </>
+            )}
+            {proposedSolution && (
+              <LayersTable
+                layers={analyzedSolution.layers}
+                onEdit={() => {}}
+                onDelete={() => {}}
+                readOnlyBaseLayers={true}
+              />
+            )}
           </CardContent>
         </Card>
       )}
 
-      {/* Mostrar cálculos si hay layers */}
-      {analyzedSolution?.layers && analyzedSolution.layers.length > 0 && (
-        <LayerCalculations layers={analyzedSolution.layers} />
-      )}
-
-      {/* Botón de generar solución propuesta solo cuando hay capas */}
-      {analyzedSolution?.layers && analyzedSolution.layers.length > 0 && (
+      {/* Botón de generar solución propuesta solo cuando hay capas y no existe una solución propuesta */}
+      {analyzedSolution?.layers && analyzedSolution.layers.length > 0 && !proposedSolution && (
         <Button
           variant="contained"
           color="primary"
@@ -398,15 +416,37 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
               <b>Resistencia al fuego:</b> F-{proposedSolution.fire_resistance}
             </Typography>
             <LayerVisualization layers={proposedSolution.layers} />
+            <Box sx={{ mb: 2 }}>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={() => handleOpenAddLayerModal('anterior')}
+              >
+                Agregar Capa Anterior
+              </Button>
+            </Box>
             <LayersTable
               layers={proposedSolution.layers}
-              onEdit={() => {}}
-              onDelete={() => {}}
-              readOnlyBaseLayers
+              onEdit={handleOpenEditLayerModal}
+              onDelete={handleDeleteLayer}
+              readOnlyBaseLayers={true}
             />
-            <LayerCalculations layers={proposedSolution.layers} />
+            <Box sx={{ mt: 2 }}>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={() => handleOpenAddLayerModal('posterior')}
+              >
+                Agregar Capa Posterior
+              </Button>
+            </Box>
           </CardContent>
         </Card>
+      )}
+
+      {/*Mostrar cálculos de solución propuesta*/}
+      {proposedSolution && (
+        <LayerCalculations layers={proposedSolution.layers} />
       )}
       
       <Stack direction="row" spacing={2} mt={2}>

@@ -36,8 +36,6 @@ interface Props {
 export const LayerCalculations: React.FC<Props> = ({ layers }) => {
   const float = (n: any, d = 2) => Number(n).toFixed(d);
 
-  console.log(layers);
-
   return (
     <div className="card mb-4">
       <div className="card-header">
