@@ -401,6 +401,18 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
         </Card>
       )}
 
+      {/* Cálculos de la solución base en un acordeón */}
+      {analyzedSolution?.layers && analyzedSolution.layers.length > 0 && (
+        <Accordion sx={{ mb: 2 }} defaultExpanded={false}>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography>Cálculos de la solución base</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <LayerCalculations layers={analyzedSolution.layers} />
+          </AccordionDetails>
+        </Accordion>
+      )}
+
       {/* Botón de generar solución propuesta solo cuando hay capas y no existe una solución propuesta */}
       {analyzedSolution?.layers && analyzedSolution.layers.length > 0 && !proposedSolution && (
         <Button
@@ -451,18 +463,6 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
             </Box>
           </CardContent>
         </Card>
-      )}
-
-      {/* Cálculos de la solución base en un acordeón */}
-      {analyzedSolution?.layers && analyzedSolution.layers.length > 0 && (
-        <Accordion sx={{ mb: 2 }} defaultExpanded={false}>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography>Cálculos de la solución base</Typography>
-          </AccordionSummary>
-          <AccordionDetails>
-            <LayerCalculations layers={analyzedSolution.layers} />
-          </AccordionDetails>
-        </Accordion>
       )}
 
       {/* Cálculos de la solución propuesta en un acordeón */}
