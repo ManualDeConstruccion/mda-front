@@ -27,6 +27,7 @@ interface Layer {
   joint_coefficient: number;
   total_calculated_time: number;
   sum_prev_prot_times?: number;
+  has_rf_plaster: boolean;
 }
 
 interface Props {
@@ -292,7 +293,7 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                           {sumatoriaDiv}
                           <div>
                             k<sub>pos,exp,{layer.position}</sub> = 1 - 0,6 × (
-                              <span>&Sigma;t</span><sub>prot,0,{sumSubIndex}</sub> / {layer.is_protection_layer ? (<><span>t</span><sub>prot,0,{layer.position}</sub></>) : (<><span>t</span><sub>ais,0,{layer.position}</sub></>)}
+                            <span>&Sigma;t</span><sub>prot,0,{sumSubIndex}</sub> / {layer.is_protection_layer ? (<><span>t</span><sub>prot,0,{layer.position}</sub></>) : (<><span>t</span><sub>ais,0,{layer.position}</sub></>)}
                             )
                           </div>
                           <div>
@@ -310,9 +311,9 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                           {sumatoriaDiv}
                           <div>
                             k<sub>pos,exp,{layer.position}</sub> = 0,5 × √(
-                              {layer.is_protection_layer ? (<><span>t</span><sub>prot,0,{layer.position}</sub></>) : (<><span>t</span><sub>ais,0,{layer.position}</sub></>)}
-                              {' / '}
-                              {sumLabel}
+                            {layer.is_protection_layer ? (<><span>t</span><sub>prot,0,{layer.position}</sub></>) : (<><span>t</span><sub>ais,0,{layer.position}</sub></>)}
+                            {' / '}
+                            {sumLabel}
                             )
                           </div>
                           <div>
@@ -333,7 +334,7 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                           {sumatoriaDiv}
                           <div>
                             k<sub>pos,exp,{layer.position}</sub> = 1 - 0,6 × (
-                              <span>&Sigma;t</span><sub>prot,0,{sumSubIndex}</sub> / t<sub>ais,0,{layer.position}</sub>
+                            <span>&Sigma;t</span><sub>prot,0,{sumSubIndex}</sub> / t<sub>ais,0,{layer.position}</sub>
                             )
                           </div>
                           <div>
@@ -369,7 +370,7 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                           {sumatoriaDiv}
                           <div>
                             k<sub>pos,exp,{layer.position}</sub> = 1 - 0,8 × (
-                              <span>&Sigma;t</span><sub>prot,0,{sumSubIndex}</sub> / t<sub>ais,0,{layer.position}</sub>
+                            <span>&Sigma;t</span><sub>prot,0,{sumSubIndex}</sub> / t<sub>ais,0,{layer.position}</sub>
                             )
                           </div>
                           <div>
@@ -423,7 +424,7 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                         </div>
                         <div>
                           k<sub>pos,noexp,{layer.position}</sub> = 0.5 × {layer.thickness}
-                          <sup>0.15</sup> = {float(layer.position_coefficient_noexp)} 
+                          <sup>0.15</sup> = {float(layer.position_coefficient_noexp)}
                         </div>
                       </>
                     ) : (
@@ -433,6 +434,52 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                     )}
                   </div>
                 </>
+              )}
+
+              {/*Cálculo de Δt_i por yeso-cartón RF*/}
+              {layer.has_rf_plaster && (
+                <div>
+                  <strong>
+                    Corrección por yeso-cartón RF (Δt<sub>{layer.position}</sub>):
+                  </strong>
+                  <div style={{ marginLeft: 32, marginTop: 12 }}>
+                    {/* Explicación de la fórmula según el tipo de capa/material */}
+                    {(() => {
+                      if (["LDV", "LDR"].includes(layer.material)) {
+                        if (layer.base_time < 6) {
+                          return (
+                            <div>
+                              Δt<sub>{layer.position}</sub> = 0,1 × t<sub>prot,0,{layer.position}</sub> + Σt<sub>prot,0,{Number(layer.position) - 1}</sub> + 1,0
+                            </div>
+                          );
+                        } else {
+                          return (
+                            <div>
+                              Δt<sub>{layer.position}</sub> = 0,22 × t<sub>prot,0,{layer.position}</sub> - 0,1 × Σt<sub>prot,0,{Number(layer.position) - 1}</sub> + 3,5
+                            </div>
+                          );
+                        }
+                      } else {
+                        if (layer.base_time < 12) {
+                          return (
+                            <div>
+                              Δt<sub>{layer.position}</sub> = 0,03 × Σt<sub>prot,0,{Number(layer.position) - 1}</sub> + 0,9 × {layer.is_protection_layer ? <>t<sub>prot,0,{layer.position}</sub></> : <>t<sub>ais,0,{layer.position}</sub></>} - 2,3
+                            </div>
+                          );
+                        } else {
+                          return (
+                            <div>
+                              Δt<sub>{layer.position}</sub> = 0,22 × Σt<sub>prot,0,{Number(layer.position) - 1}</sub> - 0,1 × {layer.is_protection_layer ? <>t<sub>prot,0,{layer.position}</sub></> : <>t<sub>ais,0,{layer.position}</sub></>} + 4,7
+                            </div>
+                          );
+                        }
+                      }
+                    })()}
+                  </div>
+                  <div style={{ marginLeft: 32, marginBottom: 12 }}>
+                    = {layer.rf_plaster_correction_time.toFixed(2)} [min]
+                  </div>
+                </div>
               )}
 
               <p>

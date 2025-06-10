@@ -39,6 +39,7 @@ export const LayersTable: React.FC<LayersTableProps> = ({ layers, onEdit, onDele
         <TableRow>
           <TableCell>Posición</TableCell>
           <TableCell>Material</TableCell>
+          <TableCell>Protección RF</TableCell>
           <TableCell>Tipo</TableCell>
           <TableCell>Espesor (mm)</TableCell>
           <TableCell>Densidad (kg/m³)</TableCell>
@@ -58,6 +59,7 @@ export const LayersTable: React.FC<LayersTableProps> = ({ layers, onEdit, onDele
             <TableRow key={layer.id || idx}>
               <TableCell>{layer.position ?? idx + 1}</TableCell>
               <TableCell>{MATERIAL_LABELS[layer.material] || layer.material}</TableCell>
+              <TableCell>{layer.has_rf_plaster ? 'Si' : 'No'}</TableCell>
               <TableCell>{layer.is_protection_layer ? 'Protección' : 'Aislación'}</TableCell>
               <TableCell>{layer.thickness?.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</TableCell>
               <TableCell>{layer.apparent_density?.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) || '-'}</TableCell>
