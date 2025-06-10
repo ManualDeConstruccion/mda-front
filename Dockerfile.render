@@ -11,6 +11,9 @@ RUN npm ci
 # Copiar el código fuente
 COPY . .
 
+# Debug: Mostrar variables de entorno que empiecen con VITE_
+RUN echo "Variables VITE_* disponibles:" && env | grep VITE_ || echo "No se encontraron variables VITE_"
+
 # Construir la aplicación para producción
 RUN npm run build
 
