@@ -135,10 +135,15 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
     if (!instanceId && !proposedSolution) return;
 
     try {
+      // Eliminar el campo position y asegurar tipos numéricos
+      const { position, ...rest } = layer;
       const layerData = {
-        ...layer,
-        apparent_density: layer.is_insulation ? layer.apparent_density : null,
-        position_type: layerPosition,
+        ...rest,
+        thickness: layer.thickness ? Number(layer.thickness) : undefined,
+        apparent_density: layer.is_insulation && layer.apparent_density !== undefined && layer.apparent_density !== null ? Number(layer.apparent_density) : null,
+        carbonization_rate: layer.carbonization_rate ? Number(layer.carbonization_rate) : undefined,
+        joint_coefficient: layer.joint_coefficient ? Number(layer.joint_coefficient) : undefined,
+        position_type: layerPosition, // anterior o posterior
       };
 
       if (proposedSolution) {
