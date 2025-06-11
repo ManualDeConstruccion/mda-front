@@ -75,14 +75,14 @@ export const LayersTable: React.FC<LayersTableProps> = ({ layers, onEdit, onDele
                 <TableCell>{MATERIAL_LABELS[layer.material] || layer.material}</TableCell>
                 <TableCell>{layer.material === 'CAV' ? '-' : (layer.has_rf_plaster ? 'Si' : 'No')}</TableCell>
                 <TableCell>{layer.material === 'CAV' ? 'Cavidad' : (layer.is_protection_layer ? 'Protección' : 'Aislación')}</TableCell>
-                <TableCell>{layer.thickness?.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</TableCell>
-                <TableCell>{layer.material === 'CAV' ? '-' : (layer.apparent_density?.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) || '-')}</TableCell>
-                <TableCell>{layer.material === 'CAV' ? '-' : (layer.carbonization_rate?.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '-')}</TableCell>
-                <TableCell>{layer.material === 'CAV' ? '-' : (layer.joint_coefficient?.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 }))}</TableCell>
-                <TableCell>{layer.material === 'CAV' ? '-' : (layer.base_time?.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))}</TableCell>
-                <TableCell>{layer.material === 'CAV' ? '-' : (layer.position_coefficient_exp?.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '-')}</TableCell>
-                <TableCell>{layer.material === 'CAV' ? '-' : (layer.position_coefficient_noexp?.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '-')}</TableCell>
-                <TableCell>{layer.material === 'CAV' ? '-' : (layer.total_calculated_time?.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '-')}</TableCell>
+                <TableCell>{layer.thickness === 0 || layer.thickness == null ? '-' : layer.thickness.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</TableCell>
+                <TableCell>{layer.material === 'CAV' ? '-' : (layer.apparent_density === 0 || layer.apparent_density == null ? '-' : layer.apparent_density.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 }))}</TableCell>
+                <TableCell>{layer.material === 'CAV' ? '-' : (layer.carbonization_rate === 0 || layer.carbonization_rate == null ? '-' : layer.carbonization_rate.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))}</TableCell>
+                <TableCell>{layer.material === 'CAV' ? '-' : (layer.joint_coefficient === 0 || layer.joint_coefficient == null ? '-' : layer.joint_coefficient.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 }))}</TableCell>
+                <TableCell>{layer.material === 'CAV' ? '-' : (layer.base_time === 0 || layer.base_time == null ? '-' : layer.base_time.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))}</TableCell>
+                <TableCell>{layer.material === 'CAV' ? '-' : (layer.position_coefficient_exp === 0 || layer.position_coefficient_exp == null ? '-' : layer.position_coefficient_exp.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))}</TableCell>
+                <TableCell>{layer.material === 'CAV' ? '-' : (layer.position_coefficient_noexp === 0 || layer.position_coefficient_noexp == null ? '-' : layer.position_coefficient_noexp.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))}</TableCell>
+                <TableCell>{layer.material === 'CAV' ? '-' : (layer.total_calculated_time === 0 || layer.total_calculated_time == null ? '-' : layer.total_calculated_time.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))}</TableCell>
                 <TableCell>
                   <Box display="flex" gap={1}>
                     <IconButton onClick={() => onEdit(layer)} size="small" color="primary" disabled={isReadOnly}><EditIcon /></IconButton>
