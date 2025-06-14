@@ -28,7 +28,7 @@ interface Layer {
   total_calculated_time: number;
   sum_prev_prot_times?: number;
   has_rf_plaster: boolean;
-  relative_position?: number;
+  absolute_position?: number;
   previous_cavity_effect_kpos_exp?: number;
   previous_cavity_effect_kpos_noexp?: number;
   previous_cavity_effect_rf_plaster?: number;
@@ -42,8 +42,8 @@ interface Props {
 export const LayerCalculations: React.FC<Props> = ({ layers }) => {
   const float = (n: any, d = 2) => (n != null && !isNaN(Number(n)) ? Number(n).toFixed(d) : '-');
 
-  // Ordenar por relative_position para que los cálculos y efectos sean consistentes con la visualización
-  const sortedLayers = [...layers].sort((a, b) => (a.relative_position ?? 0) - (b.relative_position ?? 0));
+  // Ordenar por absolute_position para que los cálculos y efectos sean consistentes con la visualización
+  const sortedLayers = [...layers].sort((a, b) => (a.absolute_position ?? 0) - (b.absolute_position ?? 0));
 
   // Helper para saber si una capa está adyacente a una CAV (usando sortedLayers)
   const getCavityEffect = (idx: number) => {

@@ -34,8 +34,8 @@ const MATERIAL_LABELS: Record<string, string> = {
 };
 
 export const LayersTable: React.FC<LayersTableProps> = ({ layers, onEdit, onDelete, readOnlyBaseLayers }) => {
-  // Ordenar por relative_position para coincidir con LayerVisualization
-  const sortedLayers = [...layers].sort((a, b) => (a.relative_position ?? 0) - (b.relative_position ?? 0));
+  // Ordenar por absolute_position para coincidir con LayerVisualization
+  const sortedLayers = [...layers].sort((a, b) => (a.absolute_position ?? 0) - (b.absolute_position ?? 0));
   // Precalcular labels: letra para CAV, número para el resto
   let cavLetter = 0;
   const labels = sortedLayers.map(layer => {

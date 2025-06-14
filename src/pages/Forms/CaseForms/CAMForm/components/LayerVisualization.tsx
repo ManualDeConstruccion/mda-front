@@ -9,8 +9,8 @@ export const LayerVisualization: React.FC<LayerVisualizationProps> = ({ layers }
   const containerRef = useRef<HTMLDivElement>(null);
   const scale = 3; // Escala visual: 1mm = 3px
 
-  // Siempre trabajar con el array ordenado por relative_position
-  const sortedLayers = [...layers].sort((a, b) => (a.relative_position ?? 0) - (b.relative_position ?? 0));
+  // Siempre trabajar con el array ordenado por absolute_position
+  const sortedLayers = [...layers].sort((a, b) => (a.absolute_position ?? 0) - (b.absolute_position ?? 0));
 
   // Calcular el ancho total usando sortedLayers
   const totalWidth = sortedLayers.reduce((acc, layer) => {
