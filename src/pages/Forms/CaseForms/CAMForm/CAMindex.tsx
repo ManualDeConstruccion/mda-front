@@ -32,12 +32,14 @@ import { LayerVisualization } from './components/LayerVisualization';
 import { LayerCalculations } from './components/LayerCalculations';
 import { useQueryClient } from '@tanstack/react-query';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { useFireProtectionSolutions } from '../../../../hooks/useFireProtectionSolutions';
 
 export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, instanceId?: string }) {
   const { data: analyzedSolution, isLoading, refetch } = useCAMApi().useRetrieve(Number(instanceId));
   const { data: proposedSolutionData } = useCAMApi().proposed.solutions.useRetrieve(
     analyzedSolution?.proposed_solution_id || 0
   );
+  const { solutionOptions, isLoading: isLoadingSolutions } = useFireProtectionSolutions();
   const [formData, setFormData] = useState<CreateAnalyzedSolutionRequest>({
     name: '',
     node: nodeId ? [Number(nodeId)] : [],
@@ -259,7 +261,7 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
     }
   };
 
-  if (isLoading) return <Typography>Cargando...</Typography>;
+  if (isLoading || isLoadingSolutions) return <Typography>Cargando...</Typography>;
 
   return (
     <Box>
@@ -291,7 +293,11 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
                   <MenuItem value="">
                     <em>Ninguna</em>
                   </MenuItem>
-                  {/* Aquí irían las opciones de soluciones base */}
+                  {solutionOptions.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             </Grid>
