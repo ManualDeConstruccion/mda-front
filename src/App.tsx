@@ -29,7 +29,8 @@ import SelectorFormPage from './pages/Forms/Step1SelectorFormPage';
 import Step2NodeFormCreatePage from './pages/Forms/Step2NodeFormCreatePage';
 import Step3FormPage from './pages/Forms/Step3FormPage';
 import FormReportView from './pages/Forms/FormReportView';
-import ReportConfigurationForm from './pages/Forms/ReportConfigurationForm';
+import ReportConfigurationForm from './pages/ReportConfiguration/ReportConfigurationForm';
+import ReportConfigurationPage from './pages/ReportConfiguration/ReportConfigurationPage';
 
 /** ────────────────────────────────────────────────────────────────────────────
  *  🎛️  React‑Query client (sin refetch on focus)
@@ -124,7 +125,7 @@ const App: React.FC = () => {
                     <Route path="form/node/:mode/:id?" element={<Step2NodeFormCreatePage />} />
                     <Route path="/form/:formTypeModel/:nodeId" element={<Step3FormPage />} />
                     <Route path="form/:formTypeModel/:nodeId/informe" element={<FormReportView />} />
-                    <Route path="/herramientas/configuracion-informes" element={<ReportConfigurationForm />} />
+                    <Route path="/herramientas/configuracion-informes" element={<ReportConfigurationPage />} />
                     <Route path="/herramientas/configuracion-informes/:nodeId" element={<ReportConfigurationForm />} />
                   </Route>
 
