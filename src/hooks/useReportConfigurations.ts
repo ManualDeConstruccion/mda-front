@@ -11,122 +11,120 @@ interface Margins {
   left: number;
 }
 
-interface ReportConfiguration {
+export interface ReportConfiguration {
   id?: number;
+  user: number;
+  node: number | null;
+  node_type: string | null;
+  is_default: boolean;
   page_size: 'A4' | 'letter' | 'legal' | 'oficio' | 'custom';
   custom_page_width?: number;
   custom_page_height?: number;
   orientation: 'portrait' | 'landscape';
   margins: Margins;
-  header?: string;
-  footer?: string;
-  logo?: string;
+  header_text: string;
+  header_font_size: number;
+  header_font_style: string;
+  footer_text: string;
+  footer_font_size: number;
+  footer_font_style: string;
+  logo: string;
+  logo_position: string;
+  logo_size: string;
   show_page_numbers: boolean;
   page_number_position: 'bottom_center' | 'bottom_right' | 'bottom_left';
+  created_at?: string;
   updated_at?: string;
 }
 
 type HeadersType = Record<string, string>;
 
-function getMostRecentConfig(data: any): ReportConfiguration | undefined {
-  if (Array.isArray(data)) {
-    if (data.length === 0) return undefined;
-    // Ordenar por updated_at descendente, luego por id descendente
-    return data
-      .slice()
-      .sort((a, b) => {
-        if (a.updated_at && b.updated_at && a.updated_at !== b.updated_at) {
-          return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
-        }
-        return (b.id || 0) - (a.id || 0);
-      })[0];
-  }
-  if (data && typeof data === 'object' && data.id) {
-    return data as ReportConfiguration;
-  }
-  return undefined;
-}
+export type UseReportConfigurationsOptions = {
+  userId?: number;
+  nodeId?: number;
+};
 
-export const useReportConfigurations = (nodeId?: number) => {
+export const useReportConfigurations = (options: UseReportConfigurationsOptions) => {
   const queryClient = useQueryClient();
   const { accessToken } = useAuth();
 
   const baseHeaders: HeadersType = { Authorization: `Bearer ${accessToken}` };
 
-  // Query para obtener la configuración efectiva
-  const { data: rawConfig, isLoading, isError, error } = useQuery({
-    queryKey: ['reportConfiguration', nodeId],
-    queryFn: async () => {
-      const url = nodeId 
-        ? `${API_URL}/report-configurations/get_effective_config/?node_id=${nodeId}`
-        : `${API_URL}/report-configurations/`;
-      const response = await axios.get(url, { headers: baseHeaders });
-      return response.data;
-    },
-    enabled: !!accessToken
-  });
+  // Construir URL según el modo
+  const getUrl = () => {
+    if (options.nodeId) {
+      return `${API_URL}/node-report-configurations/?node_id=${options.nodeId}`;
+    }
+    if (options.userId) {
+      return `${API_URL}/user-report-configurations/?user_id=${options.userId}`;
+    }
+    throw new Error('Either userId or nodeId must be provided');
+  };
 
-  const configuration = getMostRecentConfig(rawConfig);
+  // Query para obtener la configuración
+  const { data: configuration, isLoading, isError, error } = useQuery({
+    queryKey: ['reportConfiguration', options.userId, options.nodeId],
+    queryFn: async () => {
+      console.log('Fetching configuration with options:', options);
+      const response = await axios.get(getUrl(), { headers: baseHeaders });
+      console.log('Configuration response:', response.data);
+      return response.data as ReportConfiguration;
+    },
+    enabled: !!accessToken && (!!options.userId || !!options.nodeId)
+  });
 
   // Mutation para crear o actualizar la configuración
   const { mutate: updateConfiguration, isPending: isUpdating } = useMutation({
     mutationFn: async (data: FormData | Partial<ReportConfiguration>) => {
-      let url: string;
-      let method: 'post' | 'put';
-      let headers: HeadersType = { ...baseHeaders };
+      console.log('Mutation data:', data);
+      console.log('Current configuration:', configuration);
 
-      // Si existe configuration.id, actualizar (PUT), si no, crear (POST)
-      if (configuration && configuration.id) {
-        url = `${API_URL}/report-configurations/${configuration.id}/`;
-        method = 'put';
-      } else {
-        url = nodeId 
-          ? `${API_URL}/report-configurations/?node_id=${nodeId}`
-          : `${API_URL}/report-configurations/`;
-        method = 'post';
-      }
+      const headers = data instanceof FormData 
+        ? { ...baseHeaders, 'Content-Type': 'multipart/form-data' }
+        : baseHeaders;
 
-      if (data instanceof FormData) {
-        headers = { ...headers, 'Content-Type': 'multipart/form-data' };
-      }
+      try {
+        // Primero intentamos obtener la configuración existente
+        const existingConfig = await axios.get<ReportConfiguration[]>(getUrl(), { headers });
+        const configExists = existingConfig.data && existingConfig.data.length > 0;
 
-      if (method === 'put') {
-        // PUT para actualizar
-        if (data instanceof FormData) {
-          const response = await axios.put<ReportConfiguration>(url, data, { headers });
+        // Construir la URL base con los parámetros de consulta
+        const baseUrl = `${API_URL}/${options.nodeId ? 'node' : 'user'}-report-configurations/`;
+        const queryParams = options.nodeId ? `node_id=${options.nodeId}` : `user_id=${options.userId}`;
+
+        if (configExists) {
+          // Si existe, actualizamos
+          const configId = existingConfig.data[0].id;
+          console.log('Updating existing configuration:', configId);
+          const response = await axios.put<ReportConfiguration>(
+            `${baseUrl}${configId}/?${queryParams}`,
+            data,
+            { headers }
+          );
+          console.log('Update response:', response.data);
           return response.data;
         } else {
-          const response = await axios.put<ReportConfiguration>(url, data, { headers });
+          // Si no existe, creamos una nueva
+          console.log('Creating new configuration');
+          const response = await axios.post<ReportConfiguration>(
+            `${baseUrl}?${queryParams}`,
+            data,
+            { headers }
+          );
+          console.log('Create response:', response.data);
           return response.data;
         }
-      } else {
-        // POST para crear
-        if (data instanceof FormData) {
-          const response = await axios.post<ReportConfiguration>(url, data, { headers });
-          return response.data;
-        } else {
-          const response = await axios.post<ReportConfiguration>(url, data, { headers });
-          return response.data;
-        }
+      } catch (error) {
+        console.error('Error in mutation:', error);
+        throw error;
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['reportConfiguration', nodeId] });
-    }
-  });
-
-  // Mutation para restaurar la configuración por defecto
-  const { mutate: restoreDefault, isPending: isRestoring } = useMutation({
-    mutationFn: async () => {
-      const response = await axios.post(
-        `${API_URL}/report-configurations/restore_default/?node_id=${nodeId}`,
-        {},
-        { headers: baseHeaders }
-      );
-      return response.data;
+    onSuccess: (data) => {
+      console.log('Mutation successful:', data);
+      queryClient.invalidateQueries({ queryKey: ['reportConfiguration', options.userId, options.nodeId] });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['reportConfiguration', nodeId] });
+    onError: (error) => {
+      console.error('Mutation error:', error);
     }
   });
 
@@ -136,8 +134,6 @@ export const useReportConfigurations = (nodeId?: number) => {
     isError,
     error,
     updateConfiguration,
-    restoreDefault,
-    isUpdating,
-    isRestoring
+    isUpdating
   };
 }; 

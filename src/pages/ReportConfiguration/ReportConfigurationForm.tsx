@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
 import { useReportConfigurations } from '../../hooks/useReportConfigurations';
 import {
   Box,
@@ -21,6 +20,7 @@ import {
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import DeleteIcon from '@mui/icons-material/Delete';
+import { useAuth } from '../../context/AuthContext';
 
 interface ReportConfigurationFormProps {
   nodeId?: number;
@@ -41,9 +41,15 @@ interface FormData {
     bottom: number;
     left: number;
   };
-  header: string;
-  footer: string;
+  header_text: string;
+  header_font_size: number;
+  header_font_style: string;
+  footer_text: string;
+  footer_font_size: number;
+  footer_font_style: string;
   logo: string;
+  logo_position: string;
+  logo_size: string;
   show_page_numbers: boolean;
   page_number_position: 'bottom_center' | 'bottom_right' | 'bottom_left';
 }
@@ -57,9 +63,15 @@ const defaultFormData: FormData = {
     bottom: 20,
     left: 20
   },
-  header: '',
-  footer: '',
+  header_text: '',
+  header_font_size: 12,
+  header_font_style: 'normal',
+  footer_text: '',
+  footer_font_size: 12,
+  footer_font_style: 'normal',
   logo: '',
+  logo_position: 'left',
+  logo_size: 'medium',
   show_page_numbers: true,
   page_number_position: 'bottom_center'
 };
@@ -82,25 +94,24 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
 const ReportConfigurationForm: React.FC<ReportConfigurationFormProps> = ({ 
-  nodeId: propNodeId, 
+  nodeId,
   title,
   onSave,
   onCancel,
   showActions = true
 }) => {
-  const { nodeId: paramNodeId } = useParams<{ nodeId: string }>();
-  const nodeId = propNodeId || (paramNodeId ? parseInt(paramNodeId) : undefined);
-  
+  const { user } = useAuth();
   const {
     configuration,
     isLoading,
     isError,
     error,
     updateConfiguration,
-    restoreDefault,
-    isUpdating,
-    isRestoring
-  } = useReportConfigurations(nodeId);
+    isUpdating
+  } = useReportConfigurations({ 
+    userId: nodeId ? undefined : user?.id,
+    nodeId 
+  });
 
   const [formData, setFormData] = useState<FormData>(defaultFormData);
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -112,18 +123,31 @@ const ReportConfigurationForm: React.FC<ReportConfigurationFormProps> = ({
     severity: 'success' as 'success' | 'error'
   });
 
+  if (!user?.id && !nodeId) {
+    return (
+      <Alert severity="error">
+        No se ha iniciado sesión. Por favor, inicie sesión para continuar.
+      </Alert>
+    );
+  }
+
   useEffect(() => {
     if (configuration) {
-      console.log('Configuration received:', configuration); // Debug log
       setFormData({
         page_size: configuration.page_size || defaultFormData.page_size,
         custom_page_width: configuration.custom_page_width,
         custom_page_height: configuration.custom_page_height,
         orientation: configuration.orientation || defaultFormData.orientation,
         margins: configuration.margins || defaultFormData.margins,
-        header: configuration.header || '',
-        footer: configuration.footer || '',
+        header_text: configuration.header_text || '',
+        header_font_size: configuration.header_font_size || defaultFormData.header_font_size,
+        header_font_style: configuration.header_font_style || defaultFormData.header_font_style,
+        footer_text: configuration.footer_text || '',
+        footer_font_size: configuration.footer_font_size || defaultFormData.footer_font_size,
+        footer_font_style: configuration.footer_font_style || defaultFormData.footer_font_style,
         logo: configuration.logo || '',
+        logo_position: configuration.logo_position || defaultFormData.logo_position,
+        logo_size: configuration.logo_size || defaultFormData.logo_size,
         show_page_numbers: configuration.show_page_numbers ?? defaultFormData.show_page_numbers,
         page_number_position: configuration.page_number_position || defaultFormData.page_number_position
       });
@@ -135,7 +159,6 @@ const ReportConfigurationForm: React.FC<ReportConfigurationFormProps> = ({
   }, [configuration]);
 
   const handleChange = (field: keyof FormData, value: any) => {
-    console.log('Field changed:', field, 'New value:', value); // Debug log
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -192,11 +215,23 @@ const ReportConfigurationForm: React.FC<ReportConfigurationFormProps> = ({
     try {
       const formDataToSend = new FormData();
       
-      Object.entries(formData).forEach(([key, value]) => {
+      if (nodeId) {
+        formDataToSend.append('node_id', nodeId.toString());
+      } else if (user?.id) {
+        formDataToSend.append('user_id', user.id.toString());
+      }
+      
+      const dataToSend = {
+        ...formData,
+        custom_page_width: formData.custom_page_width ? Math.round(formData.custom_page_width) : null,
+        custom_page_height: formData.custom_page_height ? Math.round(formData.custom_page_height) : null
+      };
+      
+      Object.entries(dataToSend).forEach(([key, value]) => {
         if (key === 'margins') {
           formDataToSend.append(key, JSON.stringify(value));
-        } else {
-          formDataToSend.append(key, value as string);
+        } else if (value !== null && value !== undefined) {
+          formDataToSend.append(key, value.toString());
         }
       });
 
@@ -207,31 +242,18 @@ const ReportConfigurationForm: React.FC<ReportConfigurationFormProps> = ({
       await updateConfiguration(formDataToSend);
       setSnackbar({
         open: true,
-        message: 'Configuración guardada exitosamente',
+        message: configuration?.id 
+          ? 'Configuración actualizada exitosamente' 
+          : 'Nueva configuración creada exitosamente',
         severity: 'success'
       });
       onSave?.();
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error saving configuration:', error);
+      const errorMessage = error.response?.data?.detail || 'Error al guardar la configuración';
       setSnackbar({
         open: true,
-        message: 'Error al guardar la configuración',
-        severity: 'error'
-      });
-    }
-  };
-
-  const handleRestoreDefault = async () => {
-    try {
-      await restoreDefault();
-      setSnackbar({
-        open: true,
-        message: 'Configuración restaurada a valores por defecto',
-        severity: 'success'
-      });
-    } catch (error) {
-      setSnackbar({
-        open: true,
-        message: 'Error al restaurar la configuración',
+        message: errorMessage,
         severity: 'error'
       });
     }
@@ -289,8 +311,9 @@ const ReportConfigurationForm: React.FC<ReportConfigurationFormProps> = ({
                   fullWidth
                   label="Ancho (mm)"
                   type="number"
+                  inputProps={{ step: 1, min: 1 }}
                   value={formData.custom_page_width || ''}
-                  onChange={(e) => handleChange('custom_page_width', parseFloat(e.target.value) || 0)}
+                  onChange={(e) => handleChange('custom_page_width', parseInt(e.target.value) || 0)}
                 />
               </Grid>
               <Grid item xs={12} md={3}>
@@ -298,8 +321,9 @@ const ReportConfigurationForm: React.FC<ReportConfigurationFormProps> = ({
                   fullWidth
                   label="Alto (mm)"
                   type="number"
+                  inputProps={{ step: 1, min: 1 }}
                   value={formData.custom_page_height || ''}
-                  onChange={(e) => handleChange('custom_page_height', parseFloat(e.target.value) || 0)}
+                  onChange={(e) => handleChange('custom_page_height', parseInt(e.target.value) || 0)}
                 />
               </Grid>
             </>
@@ -364,77 +388,168 @@ const ReportConfigurationForm: React.FC<ReportConfigurationFormProps> = ({
           </Grid>
 
           <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Encabezado"
-              multiline
-              rows={2}
-              value={formData.header}
-              onChange={(e) => handleChange('header', e.target.value)}
-            />
+            <Typography variant="h6" gutterBottom>
+              Encabezado
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Texto del Encabezado"
+                  multiline
+                  rows={2}
+                  value={formData.header_text}
+                  onChange={(e) => handleChange('header_text', e.target.value)}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Tamaño de Fuente"
+                  type="number"
+                  value={formData.header_font_size}
+                  onChange={(e) => handleChange('header_font_size', parseFloat(e.target.value) || 0)}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Estilo de Fuente</InputLabel>
+                  <Select
+                    value={formData.header_font_style}
+                    label="Estilo de Fuente"
+                    onChange={(e) => handleChange('header_font_style', e.target.value)}
+                  >
+                    <MenuItem value="normal">Normal</MenuItem>
+                    <MenuItem value="bold">Negrita</MenuItem>
+                    <MenuItem value="italic">Cursiva</MenuItem>
+                    <MenuItem value="bold italic">Negrita y Cursiva</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
           </Grid>
 
           <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Pie de Página"
-              multiline
-              rows={2}
-              value={formData.footer}
-              onChange={(e) => handleChange('footer', e.target.value)}
-            />
+            <Typography variant="h6" gutterBottom>
+              Pie de Página
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Texto del Pie de Página"
+                  multiline
+                  rows={2}
+                  value={formData.footer_text}
+                  onChange={(e) => handleChange('footer_text', e.target.value)}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Tamaño de Fuente"
+                  type="number"
+                  value={formData.footer_font_size}
+                  onChange={(e) => handleChange('footer_font_size', parseFloat(e.target.value) || 0)}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Estilo de Fuente</InputLabel>
+                  <Select
+                    value={formData.footer_font_style}
+                    label="Estilo de Fuente"
+                    onChange={(e) => handleChange('footer_font_style', e.target.value)}
+                  >
+                    <MenuItem value="normal">Normal</MenuItem>
+                    <MenuItem value="bold">Negrita</MenuItem>
+                    <MenuItem value="italic">Cursiva</MenuItem>
+                    <MenuItem value="bold italic">Negrita y Cursiva</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
           </Grid>
 
           <Grid item xs={12}>
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="subtitle1" gutterBottom>
-                Logo
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Button
-                  component="label"
-                  variant="outlined"
-                  startIcon={<CloudUploadIcon />}
-                >
-                  Subir Logo
-                  <input
-                    type="file"
-                    hidden
-                    accept={ALLOWED_FILE_TYPES.join(',')}
-                    onChange={handleLogoChange}
-                  />
-                </Button>
-                {logoPreview && (
-                  <>
-                    <Box
-                      component="img"
-                      src={logoPreview}
-                      alt="Logo preview"
-                      sx={{
-                        maxHeight: 100,
-                        maxWidth: 200,
-                        objectFit: 'contain'
-                      }}
-                    />
-                    <IconButton
-                      color="error"
-                      onClick={handleRemoveLogo}
-                      size="small"
+            <Typography variant="h6" gutterBottom>
+              Logo
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <Box sx={{ mb: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Button
+                      component="label"
+                      variant="outlined"
+                      startIcon={<CloudUploadIcon />}
                     >
-                      <DeleteIcon />
-                    </IconButton>
-                  </>
-                )}
-              </Box>
-              {logoError && (
-                <Typography color="error" variant="caption">
-                  {logoError}
-                </Typography>
-              )}
-              <Typography variant="caption" color="textSecondary" sx={{ display: 'block', mt: 1 }}>
-                Formatos permitidos: JPEG, PNG, GIF, WEBP. Tamaño máximo: 10MB
-              </Typography>
-            </Box>
+                      Subir Logo
+                      <input
+                        type="file"
+                        hidden
+                        accept={ALLOWED_FILE_TYPES.join(',')}
+                        onChange={handleLogoChange}
+                      />
+                    </Button>
+                    {logoPreview && (
+                      <>
+                        <Box
+                          component="img"
+                          src={logoPreview}
+                          alt="Logo preview"
+                          sx={{
+                            maxHeight: 100,
+                            maxWidth: 200,
+                            objectFit: 'contain'
+                          }}
+                        />
+                        <IconButton
+                          color="error"
+                          onClick={handleRemoveLogo}
+                          size="small"
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </>
+                    )}
+                  </Box>
+                  {logoError && (
+                    <Typography color="error" variant="caption">
+                      {logoError}
+                    </Typography>
+                  )}
+                </Box>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Posición del Logo</InputLabel>
+                  <Select
+                    value={formData.logo_position}
+                    label="Posición del Logo"
+                    onChange={(e) => handleChange('logo_position', e.target.value)}
+                  >
+                    <MenuItem value="left">Izquierda</MenuItem>
+                    <MenuItem value="center">Centro</MenuItem>
+                    <MenuItem value="right">Derecha</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Tamaño del Logo</InputLabel>
+                  <Select
+                    value={formData.logo_size}
+                    label="Tamaño del Logo"
+                    onChange={(e) => handleChange('logo_size', e.target.value)}
+                  >
+                    <MenuItem value="small">Pequeño</MenuItem>
+                    <MenuItem value="medium">Mediano</MenuItem>
+                    <MenuItem value="large">Grande</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
           </Grid>
 
           <Grid item xs={12} md={6}>
@@ -471,16 +586,6 @@ const ReportConfigurationForm: React.FC<ReportConfigurationFormProps> = ({
           {showActions && (
             <Grid item xs={12}>
               <Box display="flex" gap={2} justifyContent="flex-end">
-                {nodeId && (
-                  <Button
-                    variant="outlined"
-                    color="secondary"
-                    onClick={handleRestoreDefault}
-                    disabled={isRestoring}
-                  >
-                    {isRestoring ? <CircularProgress size={24} /> : 'Restaurar Valores por Defecto'}
-                  </Button>
-                )}
                 {onCancel && (
                   <Button
                     variant="outlined"

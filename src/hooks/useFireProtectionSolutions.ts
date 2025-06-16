@@ -55,7 +55,7 @@ export const useFireProtectionSolutions = (filters?: FireProtectionSolutionFilte
   const { data: solutions, isLoading, isError, error } = useQuery({
     queryKey: ['fireProtectionSolutions', filters],
     queryFn: async () => {
-      const url = `${API_URL}/fire-protection/solutions/${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      const url = `${API_URL}/fire-protection-solutions/${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
       const response = await axios.get<FireProtectionSolution[]>(url, axiosConfig);
       return response.data;
     },
