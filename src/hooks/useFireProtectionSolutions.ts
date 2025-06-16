@@ -63,10 +63,7 @@ export const useFireProtectionSolutions = (filters?: FireProtectionSolutionFilte
   });
 
   // Transformar las soluciones para el selector
-  const solutionOptions = solutions?.map(solution => ({
-    value: solution.id,
-    label: `${solution.codigo} - ${solution.titulo}`
-  })) || [];
+  const solutionOptions = solutions || [];
 
   return {
     solutions,

@@ -69,7 +69,12 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
       setFormData({
         name: analyzedSolution.name || '',
         node: analyzedSolution.node || [],
-        base_solution: analyzedSolution.base_solution,
+        base_solution: (
+          analyzedSolution.base_solution?.id ||
+          analyzedSolution.base_solution?.value ||
+          (typeof analyzedSolution.base_solution === 'number' ? analyzedSolution.base_solution : '') ||
+          ''
+        ),
         is_symmetric: analyzedSolution.is_symmetric,
         description: analyzedSolution.description || '',
       });
@@ -91,11 +96,11 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
     }));
   };
 
-  const handleSelectChange = (e: SelectChangeEvent<number>) => {
+  const handleSelectChange = (e: SelectChangeEvent<number | string>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: value === '' ? '' : Number(value)
     }));
   };
 
