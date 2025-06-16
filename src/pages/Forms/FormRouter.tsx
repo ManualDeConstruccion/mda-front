@@ -20,6 +20,9 @@ const FormRouter: React.FC<FormRouterProps> = ({ formTypeModel, nodeData, select
   const navigate = useNavigate();
   const { createProject } = useProjectNodes();
 
+
+  console.log('nodeData desde FormRouter:', nodeData);
+
   // Obtener el hook de API desde el registry
   const registry = formRegistry[formTypeModel];
   const api = registry?.useApi ? registry.useApi() : null;

@@ -2,17 +2,49 @@ import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Typography, Button, Divider } from '@mui/material';
 import { useCAMApi } from '../../../../../hooks/FormHooks/useCAMApi';
+import { PrintPreviewLayout } from '../../../../../components/common/PrintPreviewLayout/PrintPreviewLayout';
+import { formRegistry } from '../../../formRegistry';
+import { useFormNode } from '../../../../../context/FormNodeContext';
+import { useAuth } from '../../../../../context/AuthContext';
+import { useReportConfigurations } from '../../../../../hooks/useReportConfigurations';
 
 const CAMReportView: React.FC = () => {
   const { formTypeModel, nodeId } = useParams<{ formTypeModel: string, nodeId: string }>();
+  const registry = formRegistry[formTypeModel || 'analyzedsolution'];
+  const { data: analyzedSolution, isLoading } = useCAMApi().useRetrieve(Number(nodeId));
+  const { nodeData } = useFormNode();
+  const { user } = useAuth();
+  const nodoCorrecto = nodeData.nodoCorrecto || nodeData.id || nodeData.node;
+
+  // Primer intento: configuración por nodo
+  const {
+    configuration: nodeConfig,
+    isLoading: isNodeConfigLoading,
+    isError: isNodeConfigError,
+    error: nodeConfigError
+  } = useReportConfigurations({ nodeId: nodoCorrecto });
+
+  // Segundo intento: configuración por usuario (si no hay config por nodo)
+  const userId = nodeData.owner || user?.id;
+  const {
+    configuration: userConfig,
+    isLoading: isUserConfigLoading,
+    isError: isUserConfigError,
+    error: userConfigError
+  } = useReportConfigurations({ userId });
+
+  // Decide cuál usar
+  const reportConfig = nodeConfig || userConfig;
+  console.log('Configuración usada en reporte:', reportConfig);
+
   const navigate = useNavigate();
   // Por ahora solo CAM, pero podrías condicionar por formTypeModel
-  const { data: analyzedSolution, isLoading } = useCAMApi().useRetrieve(Number(nodeId));
 
   if (isLoading) return <Typography>Cargando informe...</Typography>;
   if (!analyzedSolution) return <Typography>No se encontró la solución.</Typography>;
 
   return (
+    <PrintPreviewLayout config={reportConfig}>
     <Box sx={{ p: 4, bgcolor: '#fff' }}>
       
       <Typography variant="h4" gutterBottom>
@@ -74,9 +106,10 @@ const CAMReportView: React.FC = () => {
       <Box sx={{ mt: 4 }}>
         <Button variant="outlined" onClick={() => navigate(-1)}>
           Volver
-        </Button>
+          </Button>
+        </Box>
       </Box>
-    </Box>
+    </PrintPreviewLayout>
   );
 };
 

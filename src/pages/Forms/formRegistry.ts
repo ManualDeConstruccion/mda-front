@@ -6,13 +6,15 @@ export const formRegistry: Record<string, {
   FormComponent: React.ComponentType<any>,
   useApi: () => any,
   contentType: string,
-  ReportComponent?: React.ComponentType<{ nodeId: string }>
+  ReportComponent?: React.ComponentType<{ nodeId: string }>,
+  getNodeId: (instance: any) => string | undefined
 }> = {
   analyzedsolution: {
     FormComponent: CAMForm,
     useApi: useCAMApi,
     contentType: 'fire_protection.analyzedsolution',
     ReportComponent: CAMReportView,
+    getNodeId: (instance) => instance?.node,
   },
   // Agrega aquí otros modelos en el futuro
 }; 
