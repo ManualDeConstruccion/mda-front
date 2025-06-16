@@ -68,7 +68,8 @@ export const useReportConfigurations = (options: UseReportConfigurationsOptions)
       console.log('Fetching configuration with options:', options);
       const response = await axios.get(getUrl(), { headers: baseHeaders });
       console.log('Configuration response:', response.data);
-      return response.data as ReportConfiguration;
+      // Si es array, retorna el primer elemento, si no, retorna undefined
+      return Array.isArray(response.data) ? response.data[0] : response.data;
     },
     enabled: !!accessToken && (!!options.userId || !!options.nodeId)
   });

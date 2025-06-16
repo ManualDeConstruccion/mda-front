@@ -25,6 +25,11 @@ interface FireProtectionSolution {
   updated_at: string;
 }
 
+interface SolutionOption {
+  value: number;
+  label: string;
+}
+
 interface FireProtectionSolutionFilters {
   search?: string;
   institucion?: string;
@@ -56,14 +61,14 @@ export const useFireProtectionSolutions = (filters?: FireProtectionSolutionFilte
     queryKey: ['fireProtectionSolutions', filters],
     queryFn: async () => {
       const url = `${API_URL}/fire-protection-solutions/${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-      const response = await axios.get<FireProtectionSolution[]>(url, axiosConfig);
+      const response = await axios.get<SolutionOption[]>(url, axiosConfig);
       return response.data;
     },
     enabled: !!accessToken
   });
 
-  // Transformar las soluciones para el selector
-  const solutionOptions = solutions || [];
+  // Usar directamente la respuesta del backend
+  const solutionOptions: SolutionOption[] = solutions || [];
 
   return {
     solutions,
