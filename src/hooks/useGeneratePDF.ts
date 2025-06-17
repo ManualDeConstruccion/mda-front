@@ -10,6 +10,13 @@ interface GeneratePDFOptions {
   filename?: string;
 }
 
+interface GeneratePDFFromHTMLOptions {
+  html: string;
+  configId: number;
+  filename?: string;
+  nodeId?: string | number;
+}
+
 export const useGeneratePDF = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,5 +53,37 @@ export const useGeneratePDF = () => {
     }
   };
 
-  return { generatePDF, isGenerating, error };
+  const generatePDFFromHTML = async ({ html, configId, filename = 'reporte.pdf', nodeId }: GeneratePDFFromHTMLOptions) => {
+    setIsGenerating(true);
+    setError(null);
+    try {
+      const response = await axios.post(
+        `${API_URL}/export-report/html-to-pdf/`,
+        {
+          html,
+          config_id: configId,
+          ...(nodeId ? { node_id: nodeId } : {}),
+        },
+        {
+          responseType: 'blob',
+        }
+      );
+      const blob = response.data;
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error desconocido');
+      console.error(err);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  return { generatePDF, generatePDFFromHTML, isGenerating, error };
 };
