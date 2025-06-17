@@ -38,6 +38,23 @@ const getPageSizeMM = (config: PageSizeConfig | undefined) => {
   return size;
 };
 
+function buildReportHtml(innerHtml: string, css: string, fontsLinks: string) {
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        ${fontsLinks}
+        <style>${css}</style>
+      </head>
+      <body>
+        <div class="${PDF_PREVIEW_CLASSNAME}">
+          ${innerHtml}
+        </div>
+      </body>
+    </html>
+  `;
+}
+
 const CAMReportView: React.FC = () => {
   const { formTypeModel, nodeId } = useParams<{ formTypeModel: string, nodeId: string }>();
   const registry = formRegistry[formTypeModel || 'analyzedsolution'];
@@ -78,19 +95,7 @@ const CAMReportView: React.FC = () => {
     if (reportConfig && previewContentRef.current) {
       const css = getPrintCSS(reportConfig);
       const fontsLinks = PDF_FONTS_LINKS.join('\n');
-      const html = `
-        <html>
-          <head>
-            ${fontsLinks}
-            <style>${css}</style>
-          </head>
-          <body>
-            <div class="${PDF_PREVIEW_CLASSNAME}">
-              ${previewContentRef.current.innerHTML}
-            </div>
-          </body>
-        </html>
-      `;
+      const html = buildReportHtml(previewContentRef.current.innerHTML, css, fontsLinks);
       setIframeHtml(html);
     }
   }, [reportConfig, analyzedSolution]);
@@ -233,19 +238,8 @@ const CAMReportView: React.FC = () => {
             if (canGeneratePDF && previewContentRef.current) {
               const css = getPrintCSS(reportConfig);
               const fontsLinks = PDF_FONTS_LINKS.join('\n');
-              const html = `
-                <html>
-                  <head>
-                    ${fontsLinks}
-                    <style>${css}</style>
-                  </head>
-                  <body>
-                    <div class="${PDF_PREVIEW_CLASSNAME}">
-                      ${previewContentRef.current.innerHTML}
-                    </div>
-                  </body>
-                </html>
-              `;
+              const html = buildReportHtml(previewContentRef.current.innerHTML, css, fontsLinks);
+              console.log('HTML enviado al backend para PDF:', html); // <--- Aquí
               generatePDFFromHTML({ html, configId: reportConfig.id, filename: `reporte_nodo_${nodoCorrecto}.pdf`, nodeId: nodoCorrecto });
             }
           }}

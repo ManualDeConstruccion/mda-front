@@ -21,7 +21,7 @@ export function getPrintCSS(config: any) {
   const orientation = config.orientation === 'landscape' ? `${height} ${width}` : `${width} ${height}`;
   const margins = config.get_margins
     ? config.get_margins()
-    : { top: 20, right: 20, bottom: 20, left: 20 };
+    : { top: 0, right: 0, bottom: 0, left: 0 };
   return `
     @page {
       size: ${orientation};
@@ -37,11 +37,13 @@ export function getPrintCSS(config: any) {
     .${PDF_PREVIEW_CLASSNAME} {
       width: ${width};
       height: ${height};
-      margin: 0 auto;
+      margin: 0;
       background: #fff;
       box-sizing: border-box;
       font-family: 'Roboto', Arial, sans-serif;
-      /* Los márgenes internos los da @page, no padding aquí */
+      position: fixed;
+      top: 0;
+      left: 0;
     }
   `;
 }
