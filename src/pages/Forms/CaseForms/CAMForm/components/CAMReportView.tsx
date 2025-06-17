@@ -9,6 +9,7 @@ import { useAuth } from '../../../../../context/AuthContext';
 import { useReportConfigurations } from '../../../../../hooks/useReportConfigurations';
 import { useGeneratePDF } from '../../../../../hooks/useGeneratePDF';
 import { getPrintCSS, PDF_PREVIEW_CLASSNAME, PDF_FONTS_LINKS } from '../../../../../utils/printCss';
+import PagedIframePreview from '../../../../../components/common/PagedIframePreview';
 
 type PageSizeConfig = {
   page_size?: string;
@@ -44,7 +45,20 @@ function buildReportHtml(innerHtml: string, css: string, fontsLinks: string) {
     <html>
       <head>
         ${fontsLinks}
-        <style>${css}</style>
+        <style>
+          ${css}
+          .pagedjs_page {
+            box-shadow: 0 0 8px 2px #000;
+            margin-bottom: 32px !important;
+            border: 1px solid #000;
+            background: transparent;
+          }
+          .pagedjs_pages {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+          }
+        </style>
       </head>
       <body>
         <div class="${PDF_PREVIEW_CLASSNAME}">
@@ -166,6 +180,141 @@ const CAMReportView: React.FC = () => {
                 t<sub>ais,n</sub> = tiempo de aislación asociado solamente a la última capa de la solución constructiva
               </Typography>
             </Box>
+            <Typography variant="h4" gutterBottom>
+              Informe de Resistencia al Fuego (CAM)
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            {/* Explicación del cálculo de tiempo de aislación */}
+            <Box sx={{ mb: 4 }}>
+              <Typography variant="body1" gutterBottom>
+                <span style={{ fontFamily: 'serif', fontSize: '1.2em' }}>
+                  t<sub>ais</sub> = <span style={{ fontSize: '1.1em', verticalAlign: 'middle' }}>
+                    <span style={{ display: 'inline-block', textAlign: 'center' }}>
+                      <span style={{ borderBottom: '1px solid #000', display: 'block' }}>
+                        n-1
+                      </span>
+                      <span style={{ fontSize: '0.8em' }}>∑</span>
+                      <span style={{ display: 'block' }}>i=1</span>
+                    </span>
+                  </span>
+                  t<sub>prot,i</sub> + t<sub>ais,n</sub>
+                </span>
+              </Typography>
+              <Typography variant="body2" gutterBottom>
+                <i>en que:</i>
+              </Typography>
+              <Typography variant="body2">
+                t<sub>ais</sub> = tiempo de aislación total de la estructura ensamblada (min)
+              </Typography>
+              <Typography variant="body2">
+                <span style={{ fontFamily: 'serif' }}>
+                  <span style={{ fontSize: '1.1em', verticalAlign: 'middle' }}>
+                    <span style={{ display: 'inline-block', textAlign: 'center' }}>
+                      <span style={{ borderBottom: '1px solid #000', display: 'block' }}>
+                        n-1
+                      </span>
+                      <span style={{ fontSize: '0.8em' }}>∑</span>
+                      <span style={{ display: 'block' }}>i=1</span>
+                    </span>
+                  </span>
+                  t<sub>prot,i</sub>
+                </span>
+                = sumatoria de los tiempos de protección t<sub>prot,i</sub> de las capas (en la dirección del flujo de calor) que preceden a la última capa en la cara no expuesta al fuego, en minutos
+              </Typography>
+              <Typography variant="body2">
+                t<sub>ais,n</sub> = tiempo de aislación asociado solamente a la última capa de la solución constructiva
+              </Typography>
+            </Box>
+            <Typography variant="h4" gutterBottom>
+              Informe de Resistencia al Fuego (CAM)
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            {/* Explicación del cálculo de tiempo de aislación */}
+            <Box sx={{ mb: 4 }}>
+              <Typography variant="body1" gutterBottom>
+                <span style={{ fontFamily: 'serif', fontSize: '1.2em' }}>
+                  t<sub>ais</sub> = <span style={{ fontSize: '1.1em', verticalAlign: 'middle' }}>
+                    <span style={{ display: 'inline-block', textAlign: 'center' }}>
+                      <span style={{ borderBottom: '1px solid #000', display: 'block' }}>
+                        n-1
+                      </span>
+                      <span style={{ fontSize: '0.8em' }}>∑</span>
+                      <span style={{ display: 'block' }}>i=1</span>
+                    </span>
+                  </span>
+                  t<sub>prot,i</sub> + t<sub>ais,n</sub>
+                </span>
+              </Typography>
+              <Typography variant="body2" gutterBottom>
+                <i>en que:</i>
+              </Typography>
+              <Typography variant="body2">
+                t<sub>ais</sub> = tiempo de aislación total de la estructura ensamblada (min)
+              </Typography>
+              <Typography variant="body2">
+                <span style={{ fontFamily: 'serif' }}>
+                  <span style={{ fontSize: '1.1em', verticalAlign: 'middle' }}>
+                    <span style={{ display: 'inline-block', textAlign: 'center' }}>
+                      <span style={{ borderBottom: '1px solid #000', display: 'block' }}>
+                        n-1
+                      </span>
+                      <span style={{ fontSize: '0.8em' }}>∑</span>
+                      <span style={{ display: 'block' }}>i=1</span>
+                    </span>
+                  </span>
+                  t<sub>prot,i</sub>
+                </span>
+                = sumatoria de los tiempos de protección t<sub>prot,i</sub> de las capas (en la dirección del flujo de calor) que preceden a la última capa en la cara no expuesta al fuego, en minutos
+              </Typography>
+              <Typography variant="body2">
+                t<sub>ais,n</sub> = tiempo de aislación asociado solamente a la última capa de la solución constructiva
+              </Typography>
+            </Box>
+            <Typography variant="h4" gutterBottom>
+              Informe de Resistencia al Fuego (CAM)
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            {/* Explicación del cálculo de tiempo de aislación */}
+            <Box sx={{ mb: 4 }}>
+              <Typography variant="body1" gutterBottom>
+                <span style={{ fontFamily: 'serif', fontSize: '1.2em' }}>
+                  t<sub>ais</sub> = <span style={{ fontSize: '1.1em', verticalAlign: 'middle' }}>
+                    <span style={{ display: 'inline-block', textAlign: 'center' }}>
+                      <span style={{ borderBottom: '1px solid #000', display: 'block' }}>
+                        n-1
+                      </span>
+                      <span style={{ fontSize: '0.8em' }}>∑</span>
+                      <span style={{ display: 'block' }}>i=1</span>
+                    </span>
+                  </span>
+                  t<sub>prot,i</sub> + t<sub>ais,n</sub>
+                </span>
+              </Typography>
+              <Typography variant="body2" gutterBottom>
+                <i>en que:</i>
+              </Typography>
+              <Typography variant="body2">
+                t<sub>ais</sub> = tiempo de aislación total de la estructura ensamblada (min)
+              </Typography>
+              <Typography variant="body2">
+                <span style={{ fontFamily: 'serif' }}>
+                  <span style={{ fontSize: '1.1em', verticalAlign: 'middle' }}>
+                    <span style={{ display: 'inline-block', textAlign: 'center' }}>
+                      <span style={{ borderBottom: '1px solid #000', display: 'block' }}>
+                        n-1
+                      </span>
+                      <span style={{ fontSize: '0.8em' }}>∑</span>
+                      <span style={{ display: 'block' }}>i=1</span>
+                    </span>
+                  </span>
+                  t<sub>prot,i</sub>
+                </span>
+                = sumatoria de los tiempos de protección t<sub>prot,i</sub> de las capas (en la dirección del flujo de calor) que preceden a la última capa en la cara no expuesta al fuego, en minutos
+              </Typography>
+              <Typography variant="body2">
+                t<sub>ais,n</sub> = tiempo de aislación asociado solamente a la última capa de la solución constructiva
+              </Typography>
+            </Box>
             <Typography variant="h6" gutterBottom>
               Ejemplo de adición de una capa de yeso-cartón tipo ST de 15 mm, por la cara no expuesta al fuego, a una solución base de clasificación F-30
             </Typography>
@@ -181,12 +330,12 @@ const CAMReportView: React.FC = () => {
         </PrintPreviewLayout>
       </div>
 
-      {/* Preview en iframe con zoom */}
-      <div
-        style={{
+      {/* Preview en iframe con paginación avanzada */}
+      <Box
+        sx={{
           width: '100%',
           height: '100%',
-          background: '#888',
+          background: 'transparent',
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'flex-start',
@@ -195,31 +344,20 @@ const CAMReportView: React.FC = () => {
           boxSizing: 'border-box',
         }}
       >
-        <div
-          style={{
+        <Box
+          sx={{
             width: `${pageWidthPx}px`,
             height: `${pageHeightPx}px`,
+            minWidth: '100%',
             background: 'transparent',
             display: 'block',
             overflow: 'visible',
             transition: 'width 0.2s, height 0.2s',
           }}
         >
-          <iframe
-            srcDoc={iframeHtml}
-            style={{
-              width: '100%',
-              height: '100%',
-              border: 'none',
-              background: 'transparent',
-              display: 'block',
-              overflow: 'visible',
-            }}
-            title="Preview PDF"
-            scrolling="no"
-          />
-        </div>
-      </div>
+          <PagedIframePreview html={iframeHtml} style={{ width: '100%', height: '100%' }} />
+        </Box>
+      </Box>
       {/* Navegador de páginas (placeholder) */}
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 3, mb: 2 }}>
         <Typography variant="body2" color="text.secondary">
@@ -239,7 +377,6 @@ const CAMReportView: React.FC = () => {
               const css = getPrintCSS(reportConfig);
               const fontsLinks = PDF_FONTS_LINKS.join('\n');
               const html = buildReportHtml(previewContentRef.current.innerHTML, css, fontsLinks);
-              console.log('HTML enviado al backend para PDF:', html); // <--- Aquí
               generatePDFFromHTML({ html, configId: reportConfig.id, filename: `reporte_nodo_${nodoCorrecto}.pdf`, nodeId: nodoCorrecto });
             }
           }}

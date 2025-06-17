@@ -105,6 +105,34 @@ export const PrintPreviewLayout: React.FC<PrintPreviewLayoutProps> = ({ config, 
   const logoSize = getLogoSize(config.logo_size);
   const margins = config.margins;
 
+  // CSS para el footer con número de página usando running elements
+  const pagedFooterCss = `
+    .footer {
+      position: running(footer);
+      width: 100%;
+      text-align: center;
+      font-size: ${config.footer_font_size || 12}px;
+      color: #444;
+      ${config.footer_font_style === 'bold' ? 'font-weight: bold;' : ''}
+      ${config.footer_font_style === 'italic' ? 'font-style: italic;' : ''}
+      ${config.footer_text ? '' : 'min-height: 1em;'}
+    }
+    ${config.show_page_numbers ? `
+      .footer::after {
+        content: "${config.footer_text ? config.footer_text + ' — ' : ''}Página " counter(page) " de " counter(pages);
+      }
+    ` : config.footer_text ? `
+      .footer::after {
+        content: "${config.footer_text}";
+      }
+    ` : ''}
+    @page {
+      @bottom-center {
+        content: element(footer);
+      }
+    }
+  `;
+
   return (
     <div
       className={PDF_PREVIEW_CLASSNAME}
@@ -119,6 +147,8 @@ export const PrintPreviewLayout: React.FC<PrintPreviewLayoutProps> = ({ config, 
         display: 'block',
       }}
     >
+      {/* CSS global para el footer paginado */}
+      <style>{pagedFooterCss}</style>
       <div
         style={{
           position: 'absolute',
@@ -186,39 +216,8 @@ export const PrintPreviewLayout: React.FC<PrintPreviewLayoutProps> = ({ config, 
           {children}
         </div>
 
-        {/* Pie de página */}
-        {config.footer_text && (
-          <div
-            style={{
-              position: 'absolute',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              fontSize: mmToPx(config.footer_font_size / 4),
-              ...fontStyle(config.footer_font_style),
-            }}
-          >
-            {config.footer_text}
-          </div>
-        )}
-
-        {/* Número de página */}
-        {config.show_page_numbers && (
-          <div
-            style={{
-              position: 'absolute',
-              bottom: mmToPx(2),
-              left: config.page_number_position === 'bottom_left' ? 0 : undefined,
-              right: config.page_number_position === 'bottom_right' ? 0 : undefined,
-              textAlign: config.page_number_position === 'bottom_center' ? 'center' : 'left',
-              width: config.page_number_position === 'bottom_center' ? '100%' : 'auto',
-              fontSize: mmToPx(3),
-              color: '#888',
-            }}
-          >
-            Página 1
-          </div>
-        )}
+        {/* Footer como running element para Paged.js */}
+        <div className="footer" />
       </div>
     </div>
   );
