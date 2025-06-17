@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Typography, Button, Divider } from '@mui/material';
 import { useCAMApi } from '../../../../../hooks/FormHooks/useCAMApi';
@@ -8,6 +8,35 @@ import { useFormNode } from '../../../../../context/FormNodeContext';
 import { useAuth } from '../../../../../context/AuthContext';
 import { useReportConfigurations } from '../../../../../hooks/useReportConfigurations';
 import { useGeneratePDF } from '../../../../../hooks/useGeneratePDF';
+import { getPrintCSS, PDF_PREVIEW_CLASSNAME, PDF_FONTS_LINKS } from '../../../../../utils/printCss';
+
+type PageSizeConfig = {
+  page_size?: string;
+  custom_page_width?: number;
+  custom_page_height?: number;
+  orientation?: string;
+};
+
+const getPageSizeMM = (config: PageSizeConfig | undefined) => {
+  if (!config) return { width: 210, height: 297 };
+  if (config.page_size === 'custom') {
+    return {
+      width: config.custom_page_width || 210,
+      height: config.custom_page_height || 297,
+    };
+  }
+  const sizes = {
+    'A4': { width: 210, height: 297 },
+    'letter': { width: 216, height: 279 },
+    'legal': { width: 216, height: 356 },
+    'oficio': { width: 216, height: 330 },
+  };
+  let size = sizes[config.page_size as keyof typeof sizes] || sizes['A4'];
+  if (config.orientation === 'landscape') {
+    size = { width: size.height, height: size.width };
+  }
+  return size;
+};
 
 const CAMReportView: React.FC = () => {
   const { formTypeModel, nodeId } = useParams<{ formTypeModel: string, nodeId: string }>();
@@ -16,7 +45,7 @@ const CAMReportView: React.FC = () => {
   const { nodeData } = useFormNode();
   const { user } = useAuth();
   const nodoCorrecto = nodeData.nodoCorrecto || nodeData.id || nodeData.node;
-  const { generatePDF, generatePDFFromHTML } = useGeneratePDF();
+  const { generatePDFFromHTML } = useGeneratePDF();
   // Primer intento: configuración por nodo
   const {
     configuration: nodeConfig,
@@ -38,15 +67,42 @@ const CAMReportView: React.FC = () => {
   const reportConfig = nodeConfig || userConfig;
 
   const navigate = useNavigate();
-  // Por ahora solo CAM, pero podrías condicionar por formTypeModel
-
   const canGeneratePDF = !!reportConfig && !!reportConfig.id;
 
-  const previewRef = useRef<HTMLDivElement>(null);
+  // Para el iframe preview
+  const [iframeHtml, setIframeHtml] = useState('');
+  const previewContentRef = useRef<HTMLDivElement>(null);
+  const [zoom, setZoom] = useState(1);
+
+  useEffect(() => {
+    if (reportConfig && previewContentRef.current) {
+      const css = getPrintCSS(reportConfig);
+      const fontsLinks = PDF_FONTS_LINKS.join('\n');
+      const html = `
+        <html>
+          <head>
+            ${fontsLinks}
+            <style>${css}</style>
+          </head>
+          <body>
+            <div class="${PDF_PREVIEW_CLASSNAME}">
+              ${previewContentRef.current.innerHTML}
+            </div>
+          </body>
+        </html>
+      `;
+      setIframeHtml(html);
+    }
+  }, [reportConfig, analyzedSolution]);
+
+  const pageSize = getPageSizeMM(reportConfig);
+
+  const MM_TO_PX = 96 / 25.4;
+  const pageWidthPx = pageSize.width * MM_TO_PX * zoom;
+  const pageHeightPx = pageSize.height * MM_TO_PX * zoom;
 
   if (isLoading) return <Typography>Cargando informe...</Typography>;
   if (!analyzedSolution) return <Typography>No se encontró la solución.</Typography>;
-
   if (isNodeConfigLoading || isUserConfigLoading) {
     return <div>Cargando configuración...</div>;
   }
@@ -56,9 +112,10 @@ const CAMReportView: React.FC = () => {
 
   return (
     <>
-      <div ref={previewRef}>
+      {/* Contenido oculto para extraer el HTML */}
+      <div ref={previewContentRef} style={{ display: 'none' }}>
         <PrintPreviewLayout config={reportConfig}>
-          <Box sx={{ p: 4, bgcolor: '#fff' }}>
+          <Box sx={{ bgcolor: '#fff' }}>
             <Typography variant="h4" gutterBottom>
               Informe de Resistencia al Fuego (CAM)
             </Typography>
@@ -118,6 +175,46 @@ const CAMReportView: React.FC = () => {
           </Box>
         </PrintPreviewLayout>
       </div>
+
+      {/* Preview en iframe con zoom */}
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          background: '#888',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'flex-start',
+          overflow: 'auto',
+          padding: '40px 0',
+          boxSizing: 'border-box',
+        }}
+      >
+        <div
+          style={{
+            width: `${pageWidthPx}px`,
+            height: `${pageHeightPx}px`,
+            background: 'transparent',
+            display: 'block',
+            overflow: 'visible',
+            transition: 'width 0.2s, height 0.2s',
+          }}
+        >
+          <iframe
+            srcDoc={iframeHtml}
+            style={{
+              width: '100%',
+              height: '100%',
+              border: 'none',
+              background: 'transparent',
+              display: 'block',
+              overflow: 'visible',
+            }}
+            title="Preview PDF"
+            scrolling="no"
+          />
+        </div>
+      </div>
       {/* Navegador de páginas (placeholder) */}
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 3, mb: 2 }}>
         <Typography variant="body2" color="text.secondary">
@@ -133,8 +230,22 @@ const CAMReportView: React.FC = () => {
           variant="contained"
           color="primary"
           onClick={() => {
-            if (canGeneratePDF && previewRef.current) {
-              const html = previewRef.current.innerHTML;
+            if (canGeneratePDF && previewContentRef.current) {
+              const css = getPrintCSS(reportConfig);
+              const fontsLinks = PDF_FONTS_LINKS.join('\n');
+              const html = `
+                <html>
+                  <head>
+                    ${fontsLinks}
+                    <style>${css}</style>
+                  </head>
+                  <body>
+                    <div class="${PDF_PREVIEW_CLASSNAME}">
+                      ${previewContentRef.current.innerHTML}
+                    </div>
+                  </body>
+                </html>
+              `;
               generatePDFFromHTML({ html, configId: reportConfig.id, filename: `reporte_nodo_${nodoCorrecto}.pdf`, nodeId: nodoCorrecto });
             }
           }}
@@ -152,4 +263,4 @@ const CAMReportView: React.FC = () => {
   );
 };
 
-export default CAMReportView; 
+export default CAMReportView;
