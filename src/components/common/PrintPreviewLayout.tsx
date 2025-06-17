@@ -1,5 +1,5 @@
 import React from 'react';
-import { PDF_PREVIEW_CLASSNAME } from '../../../utils/printCss';
+import { PDF_PREVIEW_CLASSNAME } from '../../utils/printCss';
 
 interface Margins {
   top: number;

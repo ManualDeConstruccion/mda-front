@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Typography, Button, Divider } from '@mui/material';
 import { useCAMApi } from '../../../../../hooks/FormHooks/useCAMApi';
-import { PrintPreviewLayout } from '../../../../../components/common/PrintPreviewLayout/PrintPreviewLayout';
+import { PrintPreviewLayout } from '../../../../../components/common/PrintPreviewLayout';
 import { formRegistry } from '../../../formRegistry';
 import { useFormNode } from '../../../../../context/FormNodeContext';
 import { useAuth } from '../../../../../context/AuthContext';
