@@ -360,6 +360,15 @@ const ReportConfigurationForm: React.FC<ReportConfigurationFormProps> = ({
               <Grid item xs={12} sm={6} md={3}>
                 <TextField
                   fullWidth
+                  label="Izquierdo"
+                  type="number"
+                  value={formData.margins.left}
+                  onChange={(e) => handleMarginChange('left', e.target.value)}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <TextField
+                  fullWidth
                   label="Derecho"
                   type="number"
                   value={formData.margins.right}
@@ -373,15 +382,6 @@ const ReportConfigurationForm: React.FC<ReportConfigurationFormProps> = ({
                   type="number"
                   value={formData.margins.bottom}
                   onChange={(e) => handleMarginChange('bottom', e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <TextField
-                  fullWidth
-                  label="Izquierdo"
-                  type="number"
-                  value={formData.margins.left}
-                  onChange={(e) => handleMarginChange('left', e.target.value)}
                 />
               </Grid>
             </Grid>
