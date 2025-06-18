@@ -10,6 +10,7 @@ import { useReportConfigurations } from '../../../../../hooks/useReportConfigura
 import { useGeneratePDF } from '../../../../../hooks/useGeneratePDF';
 import { getPrintCSS, PDF_PREVIEW_CLASSNAME, PDF_FONTS_LINKS } from '../../../../../utils/printCss';
 import PagedIframePreview from '../../../../../components/common/PagedIframePreview';
+import { LayerCalculations } from './LayerCalculations';
 
 type PageSizeConfig = {
   page_size?: string;
@@ -181,144 +182,7 @@ const CAMReportView: React.FC = () => {
                 t<sub>ais,n</sub> = tiempo de aislación asociado solamente a la última capa de la solución constructiva
               </Typography>
             </Box>
-            <Typography variant="h4" gutterBottom>
-              Informe de Resistencia al Fuego (CAM)
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-            {/* Explicación del cálculo de tiempo de aislación */}
-            <Box sx={{ mb: 4 }}>
-              <Typography variant="body1" gutterBottom>
-                <span style={{ fontFamily: 'serif', fontSize: '1.2em' }}>
-                  t<sub>ais</sub> = <span style={{ fontSize: '1.1em', verticalAlign: 'middle' }}>
-                    <span style={{ display: 'inline-block', textAlign: 'center' }}>
-                      <span style={{ borderBottom: '1px solid #000', display: 'block' }}>
-                        n-1
-                      </span>
-                      <span style={{ fontSize: '0.8em' }}>∑</span>
-                      <span style={{ display: 'block' }}>i=1</span>
-                    </span>
-                  </span>
-                  t<sub>prot,i</sub> + t<sub>ais,n</sub>
-                </span>
-              </Typography>
-              <Typography variant="body2" gutterBottom>
-                <i>en que:</i>
-              </Typography>
-              <Typography variant="body2">
-                t<sub>ais</sub> = tiempo de aislación total de la estructura ensamblada (min)
-              </Typography>
-              <Typography variant="body2">
-                <span style={{ fontFamily: 'serif' }}>
-                  <span style={{ fontSize: '1.1em', verticalAlign: 'middle' }}>
-                    <span style={{ display: 'inline-block', textAlign: 'center' }}>
-                      <span style={{ borderBottom: '1px solid #000', display: 'block' }}>
-                        n-1
-                      </span>
-                      <span style={{ fontSize: '0.8em' }}>∑</span>
-                      <span style={{ display: 'block' }}>i=1</span>
-                    </span>
-                  </span>
-                  t<sub>prot,i</sub>
-                </span>
-                = sumatoria de los tiempos de protección t<sub>prot,i</sub> de las capas (en la dirección del flujo de calor) que preceden a la última capa en la cara no expuesta al fuego, en minutos
-              </Typography>
-              <Typography variant="body2">
-                t<sub>ais,n</sub> = tiempo de aislación asociado solamente a la última capa de la solución constructiva
-              </Typography>
-            </Box>
-            <Typography variant="h4" gutterBottom>
-              Informe de Resistencia al Fuego (CAM)
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-            {/* Explicación del cálculo de tiempo de aislación */}
-            <Box sx={{ mb: 4 }}>
-              <Typography variant="body1" gutterBottom>
-                <span style={{ fontFamily: 'serif', fontSize: '1.2em' }}>
-                  t<sub>ais</sub> = <span style={{ fontSize: '1.1em', verticalAlign: 'middle' }}>
-                    <span style={{ display: 'inline-block', textAlign: 'center' }}>
-                      <span style={{ borderBottom: '1px solid #000', display: 'block' }}>
-                        n-1
-                      </span>
-                      <span style={{ fontSize: '0.8em' }}>∑</span>
-                      <span style={{ display: 'block' }}>i=1</span>
-                    </span>
-                  </span>
-                  t<sub>prot,i</sub> + t<sub>ais,n</sub>
-                </span>
-              </Typography>
-              <Typography variant="body2" gutterBottom>
-                <i>en que:</i>
-              </Typography>
-              <Typography variant="body2">
-                t<sub>ais</sub> = tiempo de aislación total de la estructura ensamblada (min)
-              </Typography>
-              <Typography variant="body2">
-                <span style={{ fontFamily: 'serif' }}>
-                  <span style={{ fontSize: '1.1em', verticalAlign: 'middle' }}>
-                    <span style={{ display: 'inline-block', textAlign: 'center' }}>
-                      <span style={{ borderBottom: '1px solid #000', display: 'block' }}>
-                        n-1
-                      </span>
-                      <span style={{ fontSize: '0.8em' }}>∑</span>
-                      <span style={{ display: 'block' }}>i=1</span>
-                    </span>
-                  </span>
-                  t<sub>prot,i</sub>
-                </span>
-                = sumatoria de los tiempos de protección t<sub>prot,i</sub> de las capas (en la dirección del flujo de calor) que preceden a la última capa en la cara no expuesta al fuego, en minutos
-              </Typography>
-              <Typography variant="body2">
-                t<sub>ais,n</sub> = tiempo de aislación asociado solamente a la última capa de la solución constructiva
-              </Typography>
-            </Box>
-            <Typography variant="h4" gutterBottom>
-              Informe de Resistencia al Fuego (CAM)
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-            {/* Explicación del cálculo de tiempo de aislación */}
-            <Box sx={{ mb: 4 }}>
-              <Typography variant="body1" gutterBottom>
-                <span style={{ fontFamily: 'serif', fontSize: '1.2em' }}>
-                  t<sub>ais</sub> = <span style={{ fontSize: '1.1em', verticalAlign: 'middle' }}>
-                    <span style={{ display: 'inline-block', textAlign: 'center' }}>
-                      <span style={{ borderBottom: '1px solid #000', display: 'block' }}>
-                        n-1
-                      </span>
-                      <span style={{ fontSize: '0.8em' }}>∑</span>
-                      <span style={{ display: 'block' }}>i=1</span>
-                    </span>
-                  </span>
-                  t<sub>prot,i</sub> + t<sub>ais,n</sub>
-                </span>
-              </Typography>
-              <Typography variant="body2" gutterBottom>
-                <i>en que:</i>
-              </Typography>
-              <Typography variant="body2">
-                t<sub>ais</sub> = tiempo de aislación total de la estructura ensamblada (min)
-              </Typography>
-              <Typography variant="body2">
-                <span style={{ fontFamily: 'serif' }}>
-                  <span style={{ fontSize: '1.1em', verticalAlign: 'middle' }}>
-                    <span style={{ display: 'inline-block', textAlign: 'center' }}>
-                      <span style={{ borderBottom: '1px solid #000', display: 'block' }}>
-                        n-1
-                      </span>
-                      <span style={{ fontSize: '0.8em' }}>∑</span>
-                      <span style={{ display: 'block' }}>i=1</span>
-                    </span>
-                  </span>
-                  t<sub>prot,i</sub>
-                </span>
-                = sumatoria de los tiempos de protección t<sub>prot,i</sub> de las capas (en la dirección del flujo de calor) que preceden a la última capa en la cara no expuesta al fuego, en minutos
-              </Typography>
-              <Typography variant="body2">
-                t<sub>ais,n</sub> = tiempo de aislación asociado solamente a la última capa de la solución constructiva
-              </Typography>
-            </Box>
-            <Typography variant="h6" gutterBottom>
-              Ejemplo de adición de una capa de yeso-cartón tipo ST de 15 mm, por la cara no expuesta al fuego, a una solución base de clasificación F-30
-            </Typography>
+           
             <Typography variant="body2" gutterBottom>
               <b>NOTA:</b> para simplificación del cálculo de este ejemplo, se considera el análisis sólo en una dirección de flujo de calor.
             </Typography>
@@ -327,6 +191,22 @@ const CAMReportView: React.FC = () => {
               <Typography><b>Nombre:</b> {analyzedSolution.name}</Typography>
               <Typography><b>Descripción:</b> {analyzedSolution.description}</Typography>
             </Box>
+
+            {/* Add LayerCalculations for base solution */}
+            {analyzedSolution.layers && analyzedSolution.layers.length > 0 && (
+              <Box sx={{ mt: 4 }}>
+                <Typography variant="h6" gutterBottom>Cálculos de la Solución Base</Typography>
+                <LayerCalculations layers={analyzedSolution.layers} />
+              </Box>
+            )}
+
+            {/* Add LayerCalculations for proposed solution if it exists */}
+            {analyzedSolution.proposed_solution && analyzedSolution.proposed_solution.layers && analyzedSolution.proposed_solution.layers.length > 0 && (
+              <Box sx={{ mt: 4 }}>
+                <Typography variant="h6" gutterBottom>Cálculos de la Solución Propuesta</Typography>
+                <LayerCalculations layers={analyzedSolution.proposed_solution.layers} />
+              </Box>
+            )}
           </Box>
         </PrintPreviewLayout>
       </div>
