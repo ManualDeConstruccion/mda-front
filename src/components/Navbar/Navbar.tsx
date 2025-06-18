@@ -48,8 +48,8 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick, isPublic = false }) => {
         {shouldShowFullNavbar && (
           <IconButton
             color="inherit"
-            aria-label="open drawer"
-            onClick={onMenuClick}
+            aria-label="go to home"
+            onClick={handleLogoClick}
             edge="start"
             className={styles.menuButton}
             id="sidebar-toggle"

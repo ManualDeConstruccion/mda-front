@@ -66,7 +66,7 @@ const Landing: React.FC = () => {
             proceso constructivo.
           </p>
 
-          <Link to="/login" className={styles.ctaButton}>
+          <Link to="/home" className={styles.ctaButton}>
             Empezar ahora
           </Link>
         </section>
