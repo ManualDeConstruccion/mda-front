@@ -110,6 +110,7 @@ const CAMReportView: React.FC = () => {
       const css = getPrintCSS(reportConfig);
       const fontsLinks = PDF_FONTS_LINKS.join('\n');
       const html = buildReportHtml(previewContentRef.current.innerHTML, css, fontsLinks);
+      console.log('Generated HTML for preview:', html);
       setIframeHtml(html);
     }
   }, [reportConfig, analyzedSolution]);
@@ -358,12 +359,7 @@ const CAMReportView: React.FC = () => {
           <PagedIframePreview html={iframeHtml} style={{ width: '100%', height: '100%' }} />
         </Box>
       </Box>
-      {/* Navegador de páginas (placeholder) */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 3, mb: 2 }}>
-        <Typography variant="body2" color="text.secondary">
-          [Navegador de páginas aquí]
-        </Typography>
-      </Box>
+      
       {/* Botones centrados */}
       <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 2, mb: 3 }}>
         <Button variant="outlined" onClick={() => navigate(-1)}>
@@ -377,6 +373,7 @@ const CAMReportView: React.FC = () => {
               const css = getPrintCSS(reportConfig);
               const fontsLinks = PDF_FONTS_LINKS.join('\n');
               const html = buildReportHtml(previewContentRef.current.innerHTML, css, fontsLinks);
+              console.log('Generated HTML for PDF:', html);
               generatePDFFromHTML({ html, configId: reportConfig.id, filename: `reporte_nodo_${nodoCorrecto}.pdf`, nodeId: nodoCorrecto });
             }
           }}

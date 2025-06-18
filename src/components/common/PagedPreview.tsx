@@ -14,7 +14,7 @@ const PagedPreview: React.FC<PagedPreviewProps> = ({ html }) => {
 
     const renderPreview = async () => {
       try {
-        // Limpia contenido previo
+        // Limpia contenido previo solo una vez
         containerRef.current!.innerHTML = '';
 
         // Carga dinámica de Paged.js
@@ -32,6 +32,9 @@ const PagedPreview: React.FC<PagedPreviewProps> = ({ html }) => {
         const tempContainer = document.createElement('div');
         tempContainer.innerHTML = html;
         
+        // Log del HTML generado
+        console.log('HTML generado para PagedPreview:', html);
+
         // Añadimos el contenido al contenedor principal
         containerRef.current!.appendChild(tempContainer);
 

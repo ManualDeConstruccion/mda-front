@@ -50,14 +50,6 @@ const PAGE_SIZES_MM = {
   'oficio': { width: 216, height: 330 }
 };
 
-const fontStyle = (style: string) => {
-  let fontWeight = 'normal';
-  let fontStyle = 'normal';
-  if (style.includes('bold')) fontWeight = 'bold';
-  if (style.includes('italic')) fontStyle = 'italic';
-  return { fontWeight, fontStyle };
-};
-
 const mmToPx = (mm: number): number => Math.round(mm * MM_TO_PX);
 
 const getPageDimensions = (config: ReportConfiguration) => {
@@ -105,8 +97,20 @@ export const PrintPreviewLayout: React.FC<PrintPreviewLayoutProps> = ({ config, 
   const logoSize = getLogoSize(config.logo_size);
   const margins = config.margins;
 
-  // CSS para el footer con número de página usando running elements
-  const pagedFooterCss = `
+  // CSS para header y footer como running elements
+  const pagedHeaderFooterCss = `
+    .header {
+      position: running(header);
+      width: 100%;
+      text-align: center;
+      font-size: ${config.header_font_size || 14}px;
+      color: #222;
+      ${config.header_font_style === 'bold' ? 'font-weight: bold;' : ''}
+      ${config.header_font_style === 'italic' ? 'font-style: italic;' : ''}
+      ${config.header_text ? '' : 'min-height: 1em;'}
+      height: 0;
+      overflow: hidden;
+    }
     .footer {
       position: running(footer);
       width: 100%;
@@ -116,6 +120,8 @@ export const PrintPreviewLayout: React.FC<PrintPreviewLayoutProps> = ({ config, 
       ${config.footer_font_style === 'bold' ? 'font-weight: bold;' : ''}
       ${config.footer_font_style === 'italic' ? 'font-style: italic;' : ''}
       ${config.footer_text ? '' : 'min-height: 1em;'}
+      height: 0;
+      overflow: hidden;
     }
     ${config.show_page_numbers ? `
       .footer::after {
@@ -127,6 +133,9 @@ export const PrintPreviewLayout: React.FC<PrintPreviewLayoutProps> = ({ config, 
       }
     ` : ''}
     @page {
+      @top-center {
+        content: element(header);
+      }
       @bottom-center {
         content: element(footer);
       }
@@ -147,8 +156,8 @@ export const PrintPreviewLayout: React.FC<PrintPreviewLayoutProps> = ({ config, 
         display: 'block',
       }}
     >
-      {/* CSS global para el footer paginado */}
-      <style>{pagedFooterCss}</style>
+      {/* CSS global para header y footer paginados */}
+      <style>{pagedHeaderFooterCss}</style>
       <div
         style={{
           position: 'absolute',
@@ -161,13 +170,18 @@ export const PrintPreviewLayout: React.FC<PrintPreviewLayoutProps> = ({ config, 
           boxSizing: 'border-box',
           overflow: 'visible',
           background: 'transparent',
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
-        {/* Logo */}
+        {/* Header y Footer como running elements al inicio del flujo */}
+        <div className="header">{config.header_text}</div>
+        <div className="footer" />
+        {/* Logo (opcional) */}
         {config.logo && (
           <div
             style={{
-              position: 'absolute',
+              position: 'relative',
               top: 0,
               left: config.logo_position === 'left' ? 0 : undefined,
               right: config.logo_position === 'right' ? 0 : undefined,
@@ -186,28 +200,11 @@ export const PrintPreviewLayout: React.FC<PrintPreviewLayoutProps> = ({ config, 
             />
           </div>
         )}
-
-        {/* Encabezado */}
-        {config.header_text && (
-          <div
-            style={{
-              position: 'absolute',
-              top: (config.logo ? logoSize.height : 0),
-              left: 0,
-              right: 0,
-              fontSize: mmToPx(config.header_font_size / 4),
-              ...fontStyle(config.header_font_style),
-            }}
-          >
-            {config.header_text}
-          </div>
-        )}
-
         {/* Contenido principal */}
         <div
           style={{
-            marginTop: (config.logo ? logoSize.height : 0) + (config.header_text ? mmToPx(config.header_font_size / 4) : 0),
-            marginBottom: (config.footer_text ? mmToPx(config.footer_font_size / 4) : 0),
+            marginTop: 0,
+            marginBottom: 0,
             marginLeft: 0,
             marginRight: 0,
             flex: 1,
@@ -215,9 +212,6 @@ export const PrintPreviewLayout: React.FC<PrintPreviewLayoutProps> = ({ config, 
         >
           {children}
         </div>
-
-        {/* Footer como running element para Paged.js */}
-        <div className="footer" />
       </div>
     </div>
   );
