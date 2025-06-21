@@ -276,8 +276,8 @@ export function useCAMApi() {
   const generateProposedSolutionFromAnalyzed = useMutation({
     mutationFn: async (analyzedSolutionId: number) => {
       const { data } = await axios.post(
-        `${BASE_URL}${analyzedSolutionId}/generate-proposed-solution/`,
-        {},
+        `${PROPOSED_SOLUTIONS_URL}create_from_base/`,
+        { base_solution_id: analyzedSolutionId },
         axiosConfig
       );
       return data;
