@@ -398,6 +398,25 @@ export default function CAMForm({ nodeId, instanceId }: { nodeId?: string, insta
         </Card>
       )}
 
+      {/* Agregar capa inicial cuando no hay capas */}
+      {analyzedSolution && (!analyzedSolution.layers || analyzedSolution.layers.length === 0) && !proposedSolution && (
+        <Card sx={{ mb: 3 }}>
+          <CardHeader title="Capas de la solución base" />
+          <CardContent>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              No hay capas definidas. Agrega la primera capa para comenzar.
+            </Typography>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={() => handleOpenAddLayerModal('anterior')}
+            >
+              Agregar capa inicial
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Cálculos de la solución base en un acordeón */}
       {analyzedSolution?.layers && analyzedSolution.layers.length > 0 && (
         <Accordion sx={{ mb: 2 }} defaultExpanded={false}>
