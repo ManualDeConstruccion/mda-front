@@ -287,6 +287,36 @@ export function useCAMApi() {
     },
   });
 
+  // Corregir posiciones de capas en soluciones base
+  const fixAnalyzedSolutionLayerPositions = useMutation({
+    mutationFn: async (solutionId: number) => {
+      const { data } = await axios.post(
+        `${BASE_URL}fix_layer_positions/`,
+        { solution_id: solutionId },
+        axiosConfig
+      );
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['analyzedsolutions'] });
+    },
+  });
+
+  // Corregir posiciones de capas en soluciones propuestas
+  const fixProposedSolutionLayerPositions = useMutation({
+    mutationFn: async (solutionId: number) => {
+      const { data } = await axios.post(
+        `${PROPOSED_SOLUTIONS_URL}fix_layer_positions/`,
+        { solution_id: solutionId },
+        axiosConfig
+      );
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['proposedsolutions'] });
+    },
+  });
+
   return {
     useList,
     create,
@@ -298,6 +328,7 @@ export function useCAMApi() {
     editLayer,
     deleteLayer,
     generateProposedSolutionFromAnalyzed,
+    fixLayerPositions: fixAnalyzedSolutionLayerPositions,
     proposed: {
       solutions: {
         useList: useProposedSolutionsList,
@@ -307,6 +338,7 @@ export function useCAMApi() {
         update: updateProposedSolution,
         partialUpdate: partialUpdateProposedSolution,
         destroy: destroyProposedSolution,
+        fixLayerPositions: fixProposedSolutionLayerPositions,
       },
       layers: {
         useList: useProposedLayersList,
