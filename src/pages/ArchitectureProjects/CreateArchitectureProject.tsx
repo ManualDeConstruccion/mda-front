@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useProjectNodes } from '../../hooks/useProjectNodes';
 import { TypeCode } from '../../types/project_nodes.types';
+import CharacterCounter from '../../components/common/CharacterCounter/CharacterCounter';
+import { CHARACTER_LIMITS } from '../../utils/validation';
 import styles from './CreateArchitectureProject.module.scss';
 
 const CreateArchitectureProject: React.FC = () => {
@@ -29,6 +31,13 @@ const CreateArchitectureProject: React.FC = () => {
     }));
   };
 
+  const handleCharacterCounterChange = (name: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!projectId) return;
@@ -50,28 +59,24 @@ const CreateArchitectureProject: React.FC = () => {
       <h1 className={styles.title}>Crear Nuevo Proyecto de Arquitectura</h1>
 
       <form onSubmit={handleSubmit} className={styles.form}>
-        <div className={styles.formGroup}>
-          <label htmlFor="name">Nombre del Proyecto</label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            value={formData.name}
-            onChange={handleInputChange}
-            required
-          />
-        </div>
+        <CharacterCounter
+          name="name"
+          label="Nombre del Proyecto"
+          value={formData.name}
+          onChange={(value) => handleCharacterCounterChange('name', value)}
+          maxLength={CHARACTER_LIMITS.PROJECT_TITLE}
+          required={true}
+        />
 
-        <div className={styles.formGroup}>
-          <label htmlFor="description">Descripción</label>
-          <textarea
-            id="description"
-            name="description"
-            value={formData.description}
-            onChange={handleInputChange}
-            required
-          />
-        </div>
+        <CharacterCounter
+          name="description"
+          label="Descripción"
+          value={formData.description}
+          onChange={(value) => handleCharacterCounterChange('description', value)}
+          maxLength={CHARACTER_LIMITS.PROJECT_DESCRIPTION}
+          multiline={true}
+          required={true}
+        />
 
         <div className={styles.formGroup}>
           <label htmlFor="status">Estado Inicial</label>

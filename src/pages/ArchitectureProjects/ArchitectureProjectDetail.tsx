@@ -8,8 +8,10 @@ import {
   Home as HomeIcon,
   AttachMoney as BudgetIcon,
   People as PeopleIcon,
-  Edit as EditIcon
+  Edit as EditIcon,
+  Delete as DeleteIcon
 } from '@mui/icons-material';
+import DeleteConfirmationModal from '../../components/common/DeleteConfirmationModal';
 
 const ArchitectureProjectDetail: React.FC = () => {
   const { projectId, architectureId } = useParams<{ projectId: string; architectureId: string }>();
@@ -20,8 +22,10 @@ const ArchitectureProjectDetail: React.FC = () => {
   // Get all stages for the selector
   const { projects: stages } = useProjectNodes<ArchitectureProjectNode>({ parent: Number(architectureId), type: 'stage' });
 
-  const { projects: architectureProjects } = useProjectNodes<ArchitectureProjectNode>({ type: 'architecture_subproject' });
+  const { projects: architectureProjects, deleteProject } = useProjectNodes<ArchitectureProjectNode>({ type: 'architecture_subproject' });
   const architectureProject = architectureProjects?.find(p => p.id === Number(architectureId));
+
+  const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
 
   useEffect(() => {
     if (stages && stages.length > 0 && !activeStageId) {
@@ -52,6 +56,12 @@ const ArchitectureProjectDetail: React.FC = () => {
             onClick={() => navigate(`/proyectos/${projectId}/arquitectura/${architectureId}/editar`)}
           >
             <EditIcon /> Editar Proyecto
+          </button>
+          <button 
+            className={styles.deleteButton}
+            onClick={() => setDeleteModalOpen(true)}
+          >
+            <DeleteIcon /> Eliminar Proyecto
           </button>
           <button 
             className={styles.backButton}
@@ -103,6 +113,23 @@ const ArchitectureProjectDetail: React.FC = () => {
           />
         )}
       </section>
+
+      <DeleteConfirmationModal
+        open={isDeleteModalOpen}
+        title="Eliminar proyecto de arquitectura"
+        message="¿Estás seguro de que deseas eliminar este proyecto de arquitectura? Esta acción es irreversible."
+        onCancel={() => setDeleteModalOpen(false)}
+        onConfirm={async () => {
+          try {
+            await deleteProject.mutateAsync(Number(architectureId));
+            setDeleteModalOpen(false);
+            navigate(`/proyectos/${projectId}`);
+          } catch (error) {
+            console.error('Error al eliminar el proyecto de arquitectura:', error);
+            setDeleteModalOpen(false);
+          }
+        }}
+      />
     </div>
   );
 };

@@ -1,6 +1,6 @@
 // src/context/AuthContext.tsx
 import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
-import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosError, InternalAxiosRequestConfig, AxiosInstance } from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, UseQueryOptions } from '@tanstack/react-query';
 import { clearAccordionStates } from '../pages/ArchitectureProjects/ListadoDeAntecedentes';
@@ -40,6 +40,9 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
   withCredentials: true,
 });
+
+// ==== NEW SHARED REFRESH STATE (add near the top, after api instance) ====
+let refreshPromise: Promise<string | null> | null = null;
 
 // Función para verificar si el token está por expirar (5 minutos antes)
 const isTokenExpiringSoon = (token: string): boolean => {
@@ -110,58 +113,107 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
-  // Configurar los interceptores de axios
+  // Configurar los interceptores de axios (instancia local y global)
   useEffect(() => {
-    // Interceptor de solicitud
-    const requestInterceptor = api.interceptors.request.use(
-      async (config: InternalAxiosRequestConfig) => {
-        const token = localStorage.getItem('access_token');
-        if (token) {
-          // Verificar si el token está por expirar
-          if (isTokenExpiringSoon(token)) {
-            const newToken = await refreshAccessToken();
-            if (newToken) {
-              config.headers.Authorization = `Bearer ${newToken}`;
-            }
-          } else {
+    /**
+     * Adjunta los interceptores a la instancia indicada y devuelve
+     * una función de limpieza para eyectarlos al desmontar.
+     */
+    const attachInterceptors = (axiosInstance: AxiosInstance) => {
+      // 1. Interceptor de solicitud → añade/actualiza el header `Authorization`
+      const requestInterceptor = axiosInstance.interceptors.request.use(
+        (config: InternalAxiosRequestConfig) => {
+          const token = localStorage.getItem('access_token');
+          if (token) {
             config.headers.Authorization = `Bearer ${token}`;
           }
-        }
-        return config;
-      },
-      (error) => {
-        return Promise.reject(error);
-      }
-    );
+          return config;
+        },
+        (error) => Promise.reject(error)
+      );
 
-    // Interceptor de respuesta
-    const responseInterceptor = api.interceptors.response.use(
-      (response) => response,
-      async (error: AxiosError) => {
-        const originalRequest = error.config;
-        
-        if (error.response?.status === 401 && 
-            originalRequest?.url !== '/api/auth/token/refresh/') {
-          console.log('Error 401 detectado, intentando refresh token...');
-          try {
-            const newToken = await refreshAccessToken();
-            if (newToken && originalRequest) {
-              console.log('Token refrescado, reintentando petición original');
-              originalRequest.headers.Authorization = `Bearer ${newToken}`;
-              return api(originalRequest);
-            }
-          } catch (refreshError) {
-            console.error('Error en el proceso de refresh:', refreshError);
+      // 2. Interceptor de respuesta → refresca o hace logout
+      const responseInterceptor = axiosInstance.interceptors.response.use(
+        (response) => response,
+        async (error: AxiosError) => {
+          const originalRequest: any = error.config;
+          const status = error.response?.status;
+
+          const accessTokenExists = !!localStorage.getItem('access_token');
+          const refreshTokenExists = !!localStorage.getItem('refresh_token');
+
+          // Evitar intentar refrescar si la request fallida ES la de refresh
+          const isRefreshRequest = originalRequest?.url?.includes('/api/auth/token/refresh');
+
+          const shouldAttemptRefresh =
+            status === 401 &&
+            !isRefreshRequest &&
+            accessTokenExists &&
+            refreshTokenExists &&
+            !originalRequest?._retry;
+
+          // Si el refresh token ya falló ➜ cerrar sesión directamente
+          if (status === 401 && isRefreshRequest) {
             logout();
+            return Promise.reject(error);
           }
+
+          if (!shouldAttemptRefresh) {
+            return Promise.reject(error);
+          }
+
+          // Evitar bucles infinitos
+          originalRequest._retry = true;
+
+          // Si ya hay un refresh en curso, espera a que finalice
+          if (refreshPromise) {
+            const newToken = await refreshPromise;
+            if (newToken) {
+              originalRequest.headers.Authorization = `Bearer ${newToken}`;
+              return axiosInstance(originalRequest);
+            }
+            return Promise.reject(error);
+          }
+
+          // Ejecutar refresh solo una vez
+          refreshPromise = refreshAccessToken()
+            .catch((refreshError) => {
+              refreshPromise = null;
+              throw refreshError;
+            })
+            .then((newToken) => {
+              refreshPromise = null;
+              return newToken;
+            });
+
+          try {
+            const newToken = await refreshPromise;
+            if (newToken) {
+              originalRequest.headers.Authorization = `Bearer ${newToken}`;
+              return axiosInstance(originalRequest);
+            }
+          } catch (_ignored) {
+            /* El logout ya fue gestionado dentro de refreshAccessToken */
+          }
+
+          return Promise.reject(error);
         }
-        return Promise.reject(error);
-      }
-    );
+      );
+
+      // Función de limpieza
+      return () => {
+        axiosInstance.interceptors.request.eject(requestInterceptor);
+        axiosInstance.interceptors.response.eject(responseInterceptor);
+      };
+    };
+
+    // Adjuntar a la instancia personalizada `api` y a la instancia global `axios`
+    const detachApi = attachInterceptors(api);
+    const detachGlobal = attachInterceptors(axios);
 
     return () => {
-      api.interceptors.request.eject(requestInterceptor);
-      api.interceptors.response.eject(responseInterceptor);
+      detachApi();
+      detachGlobal();
     };
   }, [refreshAccessToken]);
 
@@ -183,7 +235,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('user');
     clearAccordionStates();
     // Primero navega fuera de las rutas protegidas
-    navigate('/login');
+    navigate('/');
     // Luego limpia el contexto (en el siguiente tick)
     setTimeout(() => {
       setAccessToken(null);

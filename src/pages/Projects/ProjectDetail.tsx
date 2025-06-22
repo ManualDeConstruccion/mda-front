@@ -14,6 +14,7 @@ import {
   People as PeopleIcon,
   Settings as SettingsIcon
 } from '@mui/icons-material';
+import DeleteConfirmationModal from '../../components/common/DeleteConfirmationModal';
 
 const ProjectDetail: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -32,6 +33,7 @@ const ProjectDetail: React.FC = () => {
   });
 
   const [isEditing, setIsEditing] = useState(false);
+  const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: project?.name || '',
     description: project?.description || '',
@@ -83,18 +85,36 @@ const ProjectDetail: React.FC = () => {
     e.preventDefault();
     try {
       const formDataToSend = new FormData();
+      
+      // Compara el estado actual del formulario con los datos originales del proyecto
+      // y añade solo los campos que han cambiado.
       Object.entries(formData).forEach(([key, value]) => {
-        if (value !== null) {
-          if (typeof value === 'boolean') {
-            formDataToSend.append(key, value.toString());
-          } else if (value instanceof File) {
-            formDataToSend.append(key, value);
-          } else {
-            formDataToSend.append(key, value as string);
+        const originalValue = project ? project[key as keyof typeof project] : undefined;
+
+        // Si el valor es un archivo, siempre se adjunta si existe.
+        if (value instanceof File) {
+          formDataToSend.append(key, value);
+          return;
+        }
+
+        // Si el valor ha cambiado con respecto al original, lo añadimos.
+        if (value !== originalValue) {
+          if (value !== null && value !== undefined) {
+             if (typeof value === 'boolean') {
+              formDataToSend.append(key, value.toString());
+            } else {
+              formDataToSend.append(key, value as string);
+            }
           }
         }
       });
-
+      
+      // No enviar un formulario vacío si no hay cambios
+      if (Array.from(formDataToSend.keys()).length === 0) {
+        setIsEditing(false);
+        return;
+      }
+      
       await updateProject.mutateAsync({ id: project.id, data: formDataToSend });
       setIsEditing(false);
     } catch (error) {
@@ -102,16 +122,7 @@ const ProjectDetail: React.FC = () => {
     }
   };
 
-  const handleDelete = async () => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar este proyecto?')) {
-      try {
-        await deleteProject.mutateAsync(project.id);
-        navigate('/proyectos');
-      } catch (error) {
-        console.error('Error al eliminar el proyecto:', error);
-      }
-    }
-  };
+  const handleDelete = () => setDeleteModalOpen(true);
 
   return (
     <div className={styles.container}>
@@ -197,12 +208,12 @@ const ProjectDetail: React.FC = () => {
               </div>
 
               <div className={styles.formGroup}>
-                <label>
-                  <input 
-                    type="checkbox" 
-                    name="is_active" 
-                    checked={formData.is_active} 
-                    onChange={handleInputChange} 
+                <label className={styles.checkboxLabel}>
+                  <input
+                    type="checkbox"
+                    name="is_active"
+                    checked={formData.is_active}
+                    onChange={handleInputChange}
                   />
                   Proyecto Activo
                 </label>
@@ -210,12 +221,15 @@ const ProjectDetail: React.FC = () => {
 
               <div className={styles.formGroup}>
                 <label>Imagen de portada</label>
-                <input 
-                  type="file" 
-                  name="cover_image" 
-                  accept="image/*" 
-                  onChange={handleFileChange} 
-                />
+                <label className={styles.fileInputLabel}>
+                  Subir imagen
+                  <input
+                    type="file"
+                    name="cover_image"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                  />
+                </label>
                 {previewUrl && (
                   <div className={styles.imagePreview}>
                     <img src={previewUrl} alt="Vista previa" />
@@ -223,9 +237,11 @@ const ProjectDetail: React.FC = () => {
                 )}
               </div>
 
-              <button type="submit" className={styles.submitButton}>
-                Guardar Cambios
-              </button>
+              <div className={styles.formActions}>
+                <button type="submit" className={styles.submitButton}>
+                  Guardar Cambios
+                </button>
+              </div>
             </form>
           ) : (
             <section className={styles.infoSection}>
@@ -316,6 +332,23 @@ const ProjectDetail: React.FC = () => {
           </div>
         </aside>
       </div>
+
+      <DeleteConfirmationModal
+        open={isDeleteModalOpen}
+        title="Eliminar proyecto"
+        message="¿Estás seguro de que deseas eliminar este proyecto? Esta acción es irreversible."
+        onCancel={() => setDeleteModalOpen(false)}
+        onConfirm={async () => {
+          try {
+            await deleteProject.mutateAsync(project.id);
+            setDeleteModalOpen(false);
+            navigate('/proyectos');
+          } catch (error) {
+            console.error('Error al eliminar el proyecto:', error);
+            setDeleteModalOpen(false);
+          }
+        }}
+      />
     </div>
   );
 };

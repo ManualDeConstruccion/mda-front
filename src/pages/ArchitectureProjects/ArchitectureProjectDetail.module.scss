@@ -193,3 +193,23 @@
   min-height: 200px;
   color: $text-secondary;
 }
+
+.deleteButton {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-md;
+  border: none;
+  border-radius: $border-radius-sm;
+  background: $error-color;
+  color: $white;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: color.adjust($error-color, $lightness: -10%);
+    transform: translateY(-1px);
+  }
+
+  svg { font-size: 1.2rem; }
+}

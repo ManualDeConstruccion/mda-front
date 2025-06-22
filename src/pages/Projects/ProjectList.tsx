@@ -5,6 +5,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useProjectNodes } from '../../hooks/useProjectNodes';
 import { ArchitectureProjectNode } from '../../types/architecture.types';
 import { ProjectNode } from '../../types/project_nodes.types';
+import { Villa } from '@mui/icons-material';
 import styles from './ProjectList.module.scss';
 
 const ProjectList: React.FC = () => {
@@ -54,7 +55,7 @@ const ProjectList: React.FC = () => {
                 </div>
               ) : (
                 <div className={styles.placeholderImage}>
-                  <span>Sin imagen</span>
+                  <Villa className={styles.buildingIcon} />
                 </div>
               )}
 

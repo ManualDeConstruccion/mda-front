@@ -96,12 +96,19 @@ export const useProjectNodes = <T extends ProjectNode = ProjectNode>(filters?: P
       if (!isFormData && config.headers['Content-Type'] === 'application/json' && typeof data === 'object') {
         body = JSON.stringify(data);
       }
-      const response = await axios.put(`${API_URL}/project-nodes/${id}/`, body, config);
+      const response = await axios.patch(`${API_URL}/project-nodes/${id}/`, body, config);
       return response.data;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['projectNodes'] });
-      queryClient.invalidateQueries({ queryKey: ['projectNode', variables.id] });
+      // Solo invalidar las queries específicas que necesitan actualización
+      queryClient.invalidateQueries({ 
+        queryKey: ['projectNodes'],
+        exact: false 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['projectNode', variables.id],
+        exact: true 
+      });
     },
   });
 
