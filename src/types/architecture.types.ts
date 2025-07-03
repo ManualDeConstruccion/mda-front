@@ -1,21 +1,10 @@
 import { ProjectNode } from './project_nodes.types';
 
-export interface ArchitectureProject {
-  id: number;
-  created: string;
-  modified: string;
-  project: number;
-  permit_subtype: number | null;
-  permit_subtype_name: string | null;
-}
-
 export interface ArchitectureData {
   id: number;
   node: number;
   is_active: boolean;
   start_date: string | null;
-  permit_subtype: number | null;
-  permit_subtype_name?: string;
   created_at: string;
   updated_at: string;
 }
@@ -24,15 +13,6 @@ export interface ArchitectureData {
 export interface ArchitectureProjectNode extends ProjectNode {
   architecture_data: ArchitectureData | null;
 }
-
-export interface CreateArchitectureProjectDto {
-  name: string;
-  description?: string;
-  permit_subtype?: number;
-  parent: number;
-}
-
-export interface UpdateArchitectureProjectDto extends Partial<CreateArchitectureProjectDto> {}
 
 // Tipos para los permisos
 export interface PermitSubTypeItem {
