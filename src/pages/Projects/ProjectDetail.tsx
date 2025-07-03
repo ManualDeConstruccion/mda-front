@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useProjectNodes } from '../../hooks/useProjectNodes';
-import { ArchitectureProjectNode } from '../../types/architecture.types';
+import { ProjectNode } from '../../types/project_nodes.types';
 import { TypeCode } from '../../types/project_nodes.types';
 import styles from './ProjectDetail.module.scss';
 import {
@@ -20,13 +20,13 @@ const ProjectDetail: React.FC = () => {
   const navigate = useNavigate();
   
   // Obtener el proyecto principal
-  const { projects, updateProject, deleteProject } = useProjectNodes<ArchitectureProjectNode>({
+  const { projects, updateProject, deleteProject } = useProjectNodes<ProjectNode>({
     type: 'project' as TypeCode
   });
   const project = projects?.find(p => p.id === Number(projectId));
 
   // Obtener los proyectos de arquitectura asociados
-  const { projects: architectureProjects } = useProjectNodes<ArchitectureProjectNode>({
+  const { projects: architectureProjects } = useProjectNodes<ProjectNode>({
     parent: Number(projectId),
     type: 'architecture_subproject' as TypeCode
   });

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useProjectNodes } from '../../hooks/useProjectNodes';
-import { ArchitectureProjectNode } from '../../types/architecture.types';
+import { ProjectNode } from '../../types/project_nodes.types';
 import styles from './ArchitectureProjectDetail.module.scss';
 import ListadoDeAntecedentes from './ListadoDeAntecedentes';
 import {
@@ -18,9 +18,9 @@ const ArchitectureProjectDetail: React.FC = () => {
   const [activeStageId, setActiveStageId] = useState<number | null>(null);
 
   // Get all stages for the selector
-  const { projects: stages } = useProjectNodes<ArchitectureProjectNode>({ parent: Number(architectureId), type: 'stage' });
+  const { projects: stages } = useProjectNodes<ProjectNode>({ parent: Number(architectureId), type: 'stage' });
 
-  const { projects: architectureProjects } = useProjectNodes<ArchitectureProjectNode>({ type: 'architecture_subproject' });
+  const { projects: architectureProjects } = useProjectNodes<ProjectNode>({ type: 'architecture_subproject' });
   const architectureProject = architectureProjects?.find(p => p.id === Number(architectureId));
 
   useEffect(() => {
@@ -67,7 +67,6 @@ const ArchitectureProjectDetail: React.FC = () => {
           <section className={styles.infoSection}>
             <h2>Detalles del Proyecto</h2>
             <p><strong>Descripción:</strong> {architectureProject.description}</p>
-            <p><strong>Subtipo de permiso:</strong> {architectureProject.architecture_data?.permit_subtype_name || 'No definido'}</p>
           </section>
         </main>
 
