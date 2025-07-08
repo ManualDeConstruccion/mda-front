@@ -55,6 +55,8 @@ export default function SelectorFormPage() {
   const navigate = useNavigate();
   const { categories, isLoading } = useFormCategoriesTree(search, selectedTypes.length === 1 ? selectedTypes[0] : undefined);
 
+  console.log('categories', categories);
+
   const handleSelectForm = (form: any) => {
     setSelectedForm({
       ...form,
