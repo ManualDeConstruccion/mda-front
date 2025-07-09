@@ -147,13 +147,22 @@ export const LayerModal: React.FC<LayerModalProps> = ({ open, onClose, onSave, i
       data.position = position;
     }
 
+    // Convertir campos numéricos
+    data.thickness = Number(formData.thickness);
+    data.joint_coefficient = Number(formData.joint_coefficient);
+
     // Manejar campos específicos según el material
     if (MATERIALS_DENSITY.includes(formData.material)) {
       // Para materiales aislantes, asegurarse de que apparent_density tenga un valor
-      data.apparent_density = formData.apparent_density || null;
+      // Solo convertir a null si está vacío o es undefined, no si es 0
+      data.apparent_density = (formData.apparent_density === '' || formData.apparent_density === undefined || formData.apparent_density === null) 
+        ? null 
+        : Number(formData.apparent_density);
       data.carbonization_rate = null;
     } else if (MATERIALS_CARB.includes(formData.material)) {
-      data.carbonization_rate = data.carbonization_rate || 0.65;
+      data.carbonization_rate = (formData.carbonization_rate === '' || formData.carbonization_rate === undefined || formData.carbonization_rate === null)
+        ? 0.65
+        : Number(formData.carbonization_rate);
       data.apparent_density = null;
     } else if (MATERIALS_THICKNESS.includes(formData.material)) {
       data.carbonization_rate = null;

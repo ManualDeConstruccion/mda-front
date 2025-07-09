@@ -3,7 +3,6 @@
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useProjectNodes } from '../../hooks/useProjectNodes';
-import { ArchitectureProjectNode } from '../../types/architecture.types';
 import { ProjectNode } from '../../types/project_nodes.types';
 import { Villa } from '@mui/icons-material';
 import styles from './ProjectList.module.scss';
@@ -83,7 +82,7 @@ const ProjectList: React.FC = () => {
 };
 
 const ProjectArchitectureList: React.FC<{ projectId: number }> = ({ projectId }) => {
-  const { projects: architectureProjects, isLoadingProjects: isLoading } = useProjectNodes<ArchitectureProjectNode>({
+  const { projects: architectureProjects, isLoadingProjects: isLoading } = useProjectNodes<ProjectNode>({
     parent: projectId,
     type: 'architecture_subproject',
   });

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProjectNodes } from '../../hooks/useProjectNodes';
-import { ArchitectureProjectNode } from '../../types/architecture.types';
+import { ProjectNode } from '../../types/project_nodes.types';
 import styles from './EditArchitectureProject.module.scss';
 import {
   Save as SaveIcon,
@@ -21,8 +21,8 @@ const EditArchitectureProject: React.FC = () => {
   const { projectId, architectureId } = useParams<{ projectId: string; architectureId: string }>();
   const navigate = useNavigate();
 
-  const { projects: architectureProjects, updateProject } = useProjectNodes<ArchitectureProjectNode>({ type: 'architecture_subproject' });
-  const { projects: childNodes, createProject, deleteProject } = useProjectNodes<ArchitectureProjectNode>({ parent: Number(architectureId) });
+  const { projects: architectureProjects, updateProject } = useProjectNodes<ProjectNode>({ type: 'architecture_subproject' });
+  const { projects: childNodes, createProject, deleteProject } = useProjectNodes<ProjectNode>({ parent: Number(architectureId) });
 
   const architectureProject = architectureProjects?.find(p => p.id === Number(architectureId));
   const stages = useMemo(() => childNodes?.filter(node => node.type === 'stage') || [], [childNodes]);

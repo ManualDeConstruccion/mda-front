@@ -287,9 +287,7 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                     // Subíndice de la sumatoria
                     const sumSubIndex = Number(layer.position) - 1;
                     // Etiquetas para sumatoria y base
-                    const sumLabel = layer.is_protection_layer
-                      ? (<><span>&Sigma;t</span><sub>prot,0,{sumSubIndex}</sub></>)
-                      : (<><span>&Sigma;t</span><sub>prot,0,n-{sumSubIndex}</sub></>);
+                    const sumLabel = (<><span>&Sigma;t</span><sub>prot,0,{sumSubIndex}</sub></>);
                     let baseLabel: JSX.Element = <></>;
                     let baseDivisor = 0;
                     let divisorDesc: JSX.Element = <></>;
@@ -318,12 +316,6 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                       </div>
                     ) : null;
                     // Fórmulas y condiciones según material y tipo de capa
-                    if (isFirstLayer) {
-                      // Primera capa: kpos,exp = 1
-                      return (
-                        <div>k<sub>pos,exp,{layer.position}</sub> = 1</div>
-                      );
-                    }
                     // Para revestimientos (yeso-cartón, yeso-fibra, madera, fibrocemento, fibrosilicato)
                     if (["PYC", "PYF", "MAD", "TAB", "OSB", "FBC", "FBS"].includes(layer.material)) {
                       if (sumPrevProt <= layer.base_time / 2) {
@@ -619,9 +611,39 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                   <div style={{ marginBottom: 12 }}>
                     <strong>Efecto de las cavidades vacías (huecas):</strong>
                     <div style={{ marginLeft: 32, marginTop: 12, marginBottom: 12 }}>
-                      {/* Desarrollo de factores de cavidad según cuadro */}
+                      {/* --- LADO EXPUESTO A LA CAVIDAD (CAPA ANTERIOR) --- */}
                       {(() => {
-                        const isMineralWool = ['LDV', 'LDR'].includes(layer.material);
+                        if (
+                          layer.previous_cavity_effect_kpos_noexp !== undefined &&
+                          layer.previous_cavity_effect_kpos_noexp !== null
+                        ) {
+                          const isIsolation = ['LDV', 'LDR'].includes(layer.material);
+                          if (isIsolation) {
+                            return (
+                              <div style={{ marginBottom: 20 }}>
+                                <div>El material es aislante, por lo que k<sub>pos,noexp</sub> se ajusta a 1.0</div>
+                                <div>
+                                  k<sub>pos,noexp,{layer.position}</sub>: {Number(layer.previous_cavity_effect_kpos_noexp).toFixed(2)} → {Number(layer.position_coefficient_noexp).toFixed(2)}
+                                </div>
+                              </div>
+                            );
+                          } else {
+                            return (
+                              <div style={{ marginBottom: 20 }}>
+                                <div>El material es revestimiento, por lo que k<sub>pos,noexp</sub> se recalcula asumiendo que la capa anterior es aislante.</div>
+                                <div>
+                                  k<sub>pos,noexp,{layer.position}</sub>: {Number(layer.previous_cavity_effect_kpos_noexp).toFixed(2)} → {Number(layer.position_coefficient_noexp).toFixed(2)}
+                                </div>
+                              </div>
+                            );
+                          }
+                        }
+                        return null;
+                      })()}
+
+                      {/* --- LADO NO EXPUESTO A LA CAVIDAD (CAPA POSTERIOR) --- */}
+                      {(() => {
+                        const isIsolation = ['LDV', 'LDR'].includes(layer.material);
                         // kpos,exp
                         let kposExpDev = null;
                         if (
@@ -643,24 +665,21 @@ export const LayerCalculations: React.FC<Props> = ({ layers }) => {
                           layer.previous_cavity_effect_rf_plaster !== undefined &&
                           layer.previous_cavity_effect_rf_plaster !== null
                         ) {
-                          if (isMineralWool) {
+                          if (isIsolation) {
                             deltaTDev = (
                               <div style={{ marginBottom: 12 }}>
-                                <div>Se suma Δt_RF</div>
+                                <div>El material es aislante, se suma Δt_RF</div>
                                 <div>
-                                  Δt<sub>{layer.position}</sub> = 1 × {Number(layer.previous_cavity_effect_rf_plaster).toFixed(2)}
-                                </div>
-                                <div>
-                                  {Number(layer.rf_plaster_correction_time).toFixed(2)} [min]
+                                  Δt<sub>{layer.position}</sub>: {Number(layer.previous_cavity_effect_rf_plaster).toFixed(2)} → {Number(layer.rf_plaster_correction_time).toFixed(2)} [min]
                                 </div>
                               </div>
                             );
                           } else {
                             deltaTDev = (
                               <div style={{ marginBottom: 12 }}>
-                                <div>Se suma Δt_RF × 3</div>
+                                <div>El material es revestimiento, se suma Δt_RF × 3</div>
                                 <div>
-                                  Δt<sub>{layer.position}</sub> = {Number(layer.previous_cavity_effect_rf_plaster).toFixed(2)} × 3 = {Number(layer.rf_plaster_correction_time).toFixed(2)} [min]
+                                  Δt<sub>{layer.position}</sub>: {Number(layer.previous_cavity_effect_rf_plaster).toFixed(2)} × 3 = {Number(layer.rf_plaster_correction_time).toFixed(2)} [min]
                                 </div>
                               </div>
                             );
