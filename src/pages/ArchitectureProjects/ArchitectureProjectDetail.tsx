@@ -22,7 +22,7 @@ const ArchitectureProjectDetail: React.FC = () => {
   // Get all stages for the selector
   const { projects: stages } = useProjectNodes<ProjectNode>({ parent: Number(architectureId), type: 'stage' });
 
-  const { projects: architectureProjects, deleteProject } = useProjectNodes<ArchitectureProjectNode>({ type: 'architecture_subproject' });
+  const { projects: architectureProjects, deleteProject } = useProjectNodes<ProjectNode>({ type: 'architecture_subproject' });
   const architectureProject = architectureProjects?.find(p => p.id === Number(architectureId));
 
   const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
