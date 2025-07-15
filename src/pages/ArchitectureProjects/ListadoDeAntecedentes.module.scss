@@ -83,8 +83,34 @@
 }
 
 .addButton {
-  margin-top: 50px;
-  @include action-button($primary-color);
+  margin-top: $spacing-md;
+  padding: $spacing-xs $spacing-sm;
+  border: none;
+  border-radius: $border-radius-sm;
+  background: $primary-color;
+  color: $white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  transition: all $transition-fast;
+  box-shadow: $shadow-sm;
+  font-size: $font-size-sm;
+  font-weight: 500;
+
+  &:hover {
+    background: darken($primary-color, 10%);
+    transform: translateY(-2px);
+    box-shadow: $shadow-md;
+  }
+
+  svg {
+    font-size: 1rem;
+  }
+
+  span {
+    white-space: nowrap;
+  }
 }
 
 // Popover styles

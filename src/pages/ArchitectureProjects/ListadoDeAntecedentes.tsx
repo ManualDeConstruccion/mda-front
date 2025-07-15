@@ -282,20 +282,18 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
             </tbody>
           </table>
         </Box>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<AddIcon />}
+        <button
+          className={styles.addButton}
           onClick={(e) => {
             setAnchorEl(e.currentTarget);
             setSelectedListId(null);
             setCreatingList(true);
             setError(null);
           }}
-          className={styles.addButton}
         >
-          Agregar Listado
-        </Button>
+          <AddIcon />
+          <span>Agregar Listado</span>
+        </button>
       </div>
 
       {/* Popover para agregar listado o antecedentes */}
@@ -303,19 +301,68 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
         open={!!anchorEl && Boolean(creatingList || selectedListId)}
         anchorEl={anchorEl}
         onClose={handleMenuClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
       >
-        <NodeTypeMenu
-          isCreatingList={creatingList}
-          selectedListId={selectedListId}
-          newListName={newListName}
-          onNewListNameChange={setNewListName}
-          onCreateList={handleCreateList}
-          onCreateAntecedent={handleCreateAntecedent}
-          onStartCreatingList={() => { setCreatingList(true); setNewListName(''); }}
-          error={error}
-        />
+        <Box sx={{ p: 2, minWidth: 300 }}>
+          <Typography variant="h6" gutterBottom>
+            {creatingList ? 'Crear Nuevo Listado' : 'Agregar Antecedente'}
+          </Typography>
+          {creatingList && (
+            <>
+              <input
+                type="text"
+                placeholder="Nombre del listado"
+                value={newListName}
+                onChange={(e) => setNewListName(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  marginBottom: '16px',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px'
+                }}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    handleCreateList();
+                  }
+                }}
+              />
+              {error && (
+                <Typography color="error" variant="body2" sx={{ mb: 1 }}>
+                  {error}
+                </Typography>
+              )}
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  variant="contained"
+                  onClick={handleCreateList}
+                  disabled={!newListName.trim()}
+                >
+                  Crear Listado
+                </Button>
+                <Button
+                  variant="outlined"
+                  onClick={handleMenuClose}
+                >
+                  Cancelar
+                </Button>
+              </Box>
+            </>
+          )}
+          {!creatingList && selectedListId && (
+            <NodeTypeMenu
+              isCreatingList={creatingList}
+              selectedListId={selectedListId}
+              newListName={newListName}
+              onNewListNameChange={setNewListName}
+              onCreateList={handleCreateList}
+              onCreateAntecedent={handleCreateAntecedent}
+              onStartCreatingList={() => { setCreatingList(true); setNewListName(''); }}
+              error={error}
+            />
+          )}
+        </Box>
       </Popover>
 
       {/* Modal de confirmación para eliminar */}
