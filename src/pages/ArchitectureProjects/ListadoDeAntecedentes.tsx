@@ -15,6 +15,7 @@ import EditListNode from '../EditArchitectureNodes/EditListNode';
 import { useFormNode } from '../../context/FormNodeContext';
 import { useNavigate } from 'react-router-dom';
 import { useProjectNodes } from '../../hooks/useProjectNodes';
+import Toast from '../../components/common/Toast';
 
 // Importar componentes refactorizados
 import NodeTree from './components/NodeTree';
@@ -85,6 +86,13 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [editingNode, setEditingNode] = useState<ProjectNode | null>(null);
+  
+  // Estado para notificaciones Toast
+  const [toast, setToast] = useState<{
+    message: string;
+    type: 'success' | 'error' | 'info';
+    show: boolean;
+  } | null>(null);
 
   const { setSelectedForm, setNodeData, setProjectId, setArchitectureProjectId } = useFormNode();
   const navigate = useNavigate();
@@ -256,8 +264,18 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
     try {
       await reorderNodes(parentId, nodeOrders);
       queryClient.invalidateQueries({ queryKey: ['projectNodeTree', stageId] });
+      setToast({
+        message: 'Orden actualizado correctamente',
+        type: 'success',
+        show: true
+      });
     } catch (error) {
       console.error('Error al reordenar nodos:', error);
+      setToast({
+        message: 'Error al actualizar el orden',
+        type: 'error',
+        show: true
+      });
       throw error;
     }
   };
@@ -423,6 +441,15 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
         node={editingConstructionSolutionNode}
         stageId={stageId}
       /> */}
+      
+      {/* Toast de notificaciones */}
+      {toast?.show && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 };

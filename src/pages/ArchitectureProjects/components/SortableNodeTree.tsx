@@ -79,10 +79,13 @@ const SortableNodeTree: React.FC<SortableNodeTreeProps> = ({
         const parentId = newNodes[0]?.parent;
         if (parentId) {
           try {
+            // Optimistic update: mostrar el cambio inmediatamente
+            // El backend se encargará de actualizar la numeración
             await onReorderNodes(parentId, nodeOrders);
             console.log('Nodos reordenados exitosamente');
           } catch (error) {
             console.error('Error al reordenar los nodos:', error);
+            // Mostrar notificación de error más elegante
             alert('Error al reordenar los nodos. Por favor, intenta de nuevo.');
           }
         }
