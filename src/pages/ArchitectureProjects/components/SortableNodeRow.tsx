@@ -4,26 +4,61 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { ProjectNode } from '../../../types/project_nodes.types';
 import styles from '../ListadoDeAntecedentes.module.scss';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
-interface NodeRowProps {
+interface SortableNodeRowProps {
   node: ProjectNode;
   depth: number;
   onEdit: (node: ProjectNode) => void;
   onDelete: (node: ProjectNode) => void;
   indentClass?: string;
+  isDragging?: boolean;
+  isOver?: boolean;
 }
 
-const NodeRow: React.FC<NodeRowProps> = ({ node, onEdit, onDelete, indentClass }) => {
+const SortableNodeRow: React.FC<SortableNodeRowProps> = ({ 
+  node, 
+  onEdit, 
+  onDelete, 
+  indentClass,
+  isDragging = false,
+  isOver = false,
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: node.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 1000 : 'auto',
+  };
+
   return (
-    <tr>
+    <tr 
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className={`${isDragging ? styles.dragging : ''} ${isOver ? styles.over : ''}`}
+    >
       <td className={`${styles.tableCellIndent} ${indentClass || ''}`}>
         {node.file_url ? (
           <a href={node.file_url} target="_blank" rel="noopener noreferrer" className={styles.textDocument}>
             {node.numbered_name || node.name}
           </a>
         ) : (
-          <Typography className={styles.textDocument}>{node.numbered_name || node.name}</Typography>
+          <Typography className={styles.textDocument}>
+            {node.numbered_name || node.name}
+          </Typography>
         )}
+        {isDragging && <span className={styles.dragIndicator}>↔</span>}
       </td>
       <td className={styles.tableCell}>{node.type_name}</td>
       <td className={styles.tableCell}>{node.start_date ? new Date(node.start_date).toLocaleDateString() : '-'}</td>
@@ -35,7 +70,9 @@ const NodeRow: React.FC<NodeRowProps> = ({ node, onEdit, onDelete, indentClass }
           size="small" 
           onClick={(e) => {
             e.stopPropagation();
-            onEdit(node);
+            if (!isDragging) {
+              onEdit(node);
+            }
           }}
         >
           <EditIcon />
@@ -45,7 +82,9 @@ const NodeRow: React.FC<NodeRowProps> = ({ node, onEdit, onDelete, indentClass }
           color="error"
           onClick={(e) => {
             e.stopPropagation();
-            onDelete(node);
+            if (!isDragging) {
+              onDelete(node);
+            }
           }}
           className={styles.tableCellRightButton}
         >
@@ -56,4 +95,4 @@ const NodeRow: React.FC<NodeRowProps> = ({ node, onEdit, onDelete, indentClass }
   );
 };
 
-export default NodeRow; 
+export default SortableNodeRow; 

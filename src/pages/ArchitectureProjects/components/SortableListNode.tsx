@@ -6,8 +6,10 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { ProjectNode } from '../../../types/project_nodes.types';
 import styles from '../ListadoDeAntecedentes.module.scss';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
-interface ListNodeProps {
+interface SortableListNodeProps {
   node: ProjectNode;
   depth: number;
   isOpen: boolean;
@@ -17,9 +19,11 @@ interface ListNodeProps {
   onDelete: (node: ProjectNode) => void;
   children: React.ReactNode;
   indentClass?: string;
+  isDragging?: boolean;
+  isOver?: boolean;
 }
 
-const ListNode: React.FC<ListNodeProps> = ({
+const SortableListNode: React.FC<SortableListNodeProps> = ({
   node,
   depth,
   isOpen,
@@ -28,26 +32,59 @@ const ListNode: React.FC<ListNodeProps> = ({
   onEdit,
   onDelete,
   children,
-  indentClass
+  indentClass,
+  isDragging = false,
+  isOver = false,
 }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: node.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 1000 : 'auto',
+  };
+
   return (
     <React.Fragment>
-      <tr className={styles.listadoRow}>
+      <tr 
+        ref={setNodeRef}
+        style={style}
+        {...attributes}
+        {...listeners}
+        className={`${styles.listadoRow} ${isDragging ? styles.dragging : ''} ${isOver ? styles.over : ''}`}
+      >
         <td 
           className={`${styles.listadoCellNombre} ${depth > 0 ? styles.listadoCellNombreIndent : ''} ${indentClass ? indentClass : ''}`} 
-          onClick={() => onToggle(node.id)}
+          onClick={(e) => {
+            // Prevenir el clic durante el arrastre
+            if (!isDragging) {
+              onToggle(node.id);
+            }
+          }}
         >
           <Box display="flex" alignItems="center" gap={1}>
             <IconButton 
               size="small" 
               onClick={e => { 
                 e.stopPropagation(); 
-                onToggle(node.id); 
+                if (!isDragging) {
+                  onToggle(node.id); 
+                }
               }}
             >
               {isOpen ? <ExpandMoreIcon sx={{ transform: 'rotate(180deg)' }} /> : <ExpandMoreIcon />}
             </IconButton>
-            <Typography className={styles.textNombre}>{node.numbered_name || node.name}</Typography>
+            <Typography className={styles.textNombre}>
+              {node.numbered_name || node.name}
+            </Typography>
+            {isDragging && <span className={styles.dragIndicator}>↔</span>}
           </Box>
           {node.description && (
             <Typography className={styles.textDescripcion}>
@@ -65,7 +102,9 @@ const ListNode: React.FC<ListNodeProps> = ({
             size="small" 
             onClick={e => { 
               e.stopPropagation(); 
-              onEdit(node); 
+              if (!isDragging) {
+                onEdit(node); 
+              }
             }}
           >
             <EditIcon />
@@ -74,7 +113,9 @@ const ListNode: React.FC<ListNodeProps> = ({
             size="small"
             onClick={e => { 
               e.stopPropagation(); 
-              onAdd(node.id); 
+              if (!isDragging) {
+                onAdd(node.id); 
+              }
             }}
             className={styles.botonAzul}
           >
@@ -85,7 +126,9 @@ const ListNode: React.FC<ListNodeProps> = ({
             color="error"
             onClick={e => {
               e.stopPropagation();
-              onDelete(node);
+              if (!isDragging) {
+                onDelete(node);
+              }
             }}
             className={styles.botonRojo}
           >
@@ -98,4 +141,4 @@ const ListNode: React.FC<ListNodeProps> = ({
   );
 };
 
-export default ListNode; 
+export default SortableListNode; 

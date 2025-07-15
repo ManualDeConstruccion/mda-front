@@ -18,6 +18,7 @@ import { useProjectNodes } from '../../hooks/useProjectNodes';
 
 // Importar componentes refactorizados
 import NodeTree from './components/NodeTree';
+import SortableNodeTree from './components/SortableNodeTree';
 import NodeTypeMenu from './components/NodeTypeMenu';
 
 interface ListadoDeAntecedentesProps {
@@ -89,7 +90,7 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
   const navigate = useNavigate();
 
   // For creating lists and antecedentes, fallback to useProjectNodes for mutations
-  const { createProject: createList, deleteProject } = useProjectNodes();
+  const { createProject: createList, deleteProject, reorderNodes } = useProjectNodes();
 
   if (isLoading) return <Typography>Cargando...</Typography>;
   if (!tree) return <Typography>No hay datos.</Typography>;
@@ -97,7 +98,12 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
   // Obtener los lists hijos del stage
   const lists = (tree.children || [])
     .filter((n: any) => n.type === 'list')
-    .sort((a: any, b: any) => a.name.localeCompare(b.name));
+    .sort((a: any, b: any) => {
+      // Ordenar por numbered_name si está disponible, sino por name
+      const aName = a.numbered_name || a.name;
+      const bName = b.numbered_name || b.name;
+      return aName.localeCompare(bName);
+    });
 
   // Manejadores de eventos
   const handleAccordionToggle = (listId: number) => {
@@ -245,6 +251,17 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
     }
   };
 
+  // Función para manejar el reordenamiento de nodos
+  const handleReorderNodes = async (parentId: number, nodeOrders: { id: number; order: number }[]) => {
+    try {
+      await reorderNodes(parentId, nodeOrders);
+      queryClient.invalidateQueries({ queryKey: ['projectNodeTree', stageId] });
+    } catch (error) {
+      console.error('Error al reordenar nodos:', error);
+      throw error;
+    }
+  };
+
   return (
     <div>
       <Typography variant="h5" gutterBottom>Listado de antecedentes</Typography>
@@ -263,7 +280,7 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
               </tr>
             </thead>
             <tbody>
-              <NodeTree
+              <SortableNodeTree
                 nodes={lists}
                 openAccordions={openAccordions}
                 onToggleAccordion={handleAccordionToggle}
@@ -278,6 +295,7 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
                   setDeleteTarget(node);
                   setShowDeleteModal(true);
                 }}
+                onReorderNodes={handleReorderNodes}
               />
             </tbody>
           </table>

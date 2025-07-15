@@ -134,7 +134,7 @@ export const useProjectNodes = <T extends ProjectNode = ProjectNode>(filters?: P
 
   const reorderNodes = async (parentId: number, nodeOrders: Array<{ id: number; order: number }>) => {
     try {
-      const response = await axios.post(`${API_URL}/project-nodes/reorder/`, {
+      const response = await axios.post(`${API_URL}/project-nodes/reorder_with_numbering/`, {
         parent_id: parentId,
         node_orders: nodeOrders
       }, axiosConfig);

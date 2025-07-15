@@ -38,6 +38,7 @@ export interface ProjectNode {
   type?: TypeCode;
   node_type?: NodeType;
   type_name?: string;
+  numbered_name?: string;
   file_type: FileType | null;
   parent: number | null;
   children: ProjectNode[];
