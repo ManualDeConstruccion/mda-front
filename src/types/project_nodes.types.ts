@@ -54,6 +54,7 @@ export interface ProjectNode {
   end_date: string | null;
   status: NodeStatus;
   progress_percent: number;
+  order: number;
   created_at: string;
   updated_at: string;
   file_url?: string | null;
