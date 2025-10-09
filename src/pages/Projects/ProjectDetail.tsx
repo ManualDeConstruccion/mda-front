@@ -12,9 +12,19 @@ import {
   Description as DocumentIcon,
   Build as BuildIcon,
   People as PeopleIcon,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon
 } from '@mui/icons-material';
 import DeleteConfirmationModal from '../../components/common/DeleteConfirmationModal';
+import PropertyTab from '../../components/ProjectTabs/PropertyTab';
+import CIPTab from '../../components/ProjectTabs/CIPTab';
+import OwnerTab from '../../components/ProjectTabs/OwnerTab';
+import ArchitectTab from '../../components/ProjectTabs/ArchitectTab';
+import ProfessionalsTab from '../../components/ProjectTabs/ProfessionalsTab';
+import { PropertyData, CIPData, OwnerData, ArchitectData, ProfessionalsData } from '../../types/property.types';
+
+type TabType = 'propiedad' | 'cip' | 'propietario' | 'arquitecto' | 'profesionales';
 
 const ProjectDetail: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -34,6 +44,18 @@ const ProjectDetail: React.FC = () => {
 
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>('propiedad');
+  const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
+  const [isPropertyEditing, setIsPropertyEditing] = useState(false);
+  const [propertyData, setPropertyData] = useState<PropertyData | undefined>(undefined);
+  const [isCIPEditing, setIsCIPEditing] = useState(false);
+  const [cipData, setCipData] = useState<CIPData | undefined>(undefined);
+  const [isOwnerEditing, setIsOwnerEditing] = useState(false);
+  const [ownerData, setOwnerData] = useState<OwnerData | undefined>(undefined);
+  const [isArchitectEditing, setIsArchitectEditing] = useState(false);
+  const [architectData, setArchitectData] = useState<ArchitectData | undefined>(undefined);
+  const [isProfessionalsEditing, setIsProfessionalsEditing] = useState(false);
+  const [professionalsData, setProfessionalsData] = useState<ProfessionalsData | undefined>(undefined);
   const [formData, setFormData] = useState({
     name: project?.name || '',
     description: project?.description || '',
@@ -123,6 +145,36 @@ const ProjectDetail: React.FC = () => {
   };
 
   const handleDelete = () => setDeleteModalOpen(true);
+
+  const handlePropertySave = (data: PropertyData) => {
+    setPropertyData(data);
+    // Aquí se enviaría al backend cuando esté disponible
+    console.log('Property data saved:', data);
+  };
+
+  const handleCIPSave = (data: CIPData) => {
+    setCipData(data);
+    // Aquí se enviaría al backend cuando esté disponible
+    console.log('CIP data saved:', data);
+  };
+
+  const handleOwnerSave = (data: OwnerData) => {
+    setOwnerData(data);
+    // Aquí se enviaría al backend cuando esté disponible
+    console.log('Owner data saved:', data);
+  };
+
+  const handleArchitectSave = (data: ArchitectData) => {
+    setArchitectData(data);
+    // Aquí se enviaría al backend cuando esté disponible
+    console.log('Architect data saved:', data);
+  };
+
+  const handleProfessionalsSave = (data: ProfessionalsData) => {
+    setProfessionalsData(data);
+    // Aquí se enviaría al backend cuando esté disponible
+    console.log('Professionals data saved:', data);
+  };
 
   return (
     <div className={styles.container}>
@@ -245,7 +297,7 @@ const ProjectDetail: React.FC = () => {
             </form>
           ) : (
             <section className={styles.infoSection}>
-              <h2>Detalles del Proyecto</h2>
+              <h2>Estado del Proyecto</h2>
               <div className={styles.projectDetails}>
                 <div className={styles.coverImage}>
                   {project.cover_image_url ? (
@@ -267,6 +319,112 @@ const ProjectDetail: React.FC = () => {
               </div>
             </section>
           )}
+
+          {/* Nueva sección colapsable: Detalles de Proyectos */}
+          <section className={styles.collapsibleSection}>
+            <div 
+              className={styles.collapsibleHeader}
+              onClick={() => setIsDetailsExpanded(!isDetailsExpanded)}
+            >
+              <h2>Detalles de Proyectos</h2>
+              <button className={styles.toggleButton}>
+                {isDetailsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+              </button>
+            </div>
+
+            {isDetailsExpanded && (
+              <div className={styles.collapsibleContent}>
+                {/* Pestañas de navegación */}
+                <div className={styles.tabsContainer}>
+                  <div className={styles.tabs}>
+                    <button
+                      className={`${styles.tab} ${activeTab === 'propiedad' ? styles.active : ''}`}
+                      onClick={() => setActiveTab('propiedad')}
+                    >
+                      Propiedad
+                    </button>
+                    <button
+                      className={`${styles.tab} ${activeTab === 'cip' ? styles.active : ''}`}
+                      onClick={() => setActiveTab('cip')}
+                    >
+                      CIP
+                    </button>
+                    <button
+                      className={`${styles.tab} ${activeTab === 'propietario' ? styles.active : ''}`}
+                      onClick={() => setActiveTab('propietario')}
+                    >
+                      Propietario
+                    </button>
+                    <button
+                      className={`${styles.tab} ${activeTab === 'arquitecto' ? styles.active : ''}`}
+                      onClick={() => setActiveTab('arquitecto')}
+                    >
+                      Arquitecto
+                    </button>
+                    <button
+                      className={`${styles.tab} ${activeTab === 'profesionales' ? styles.active : ''}`}
+                      onClick={() => setActiveTab('profesionales')}
+                    >
+                      Profesionales
+                    </button>
+                  </div>
+
+                  <div className={styles.tabContent}>
+                    {activeTab === 'propiedad' && (
+                      <div className={styles.tabPane}>
+                        <PropertyTab
+                          data={propertyData}
+                          onSave={handlePropertySave}
+                          isEditing={isPropertyEditing}
+                          onEditChange={setIsPropertyEditing}
+                        />
+                      </div>
+                    )}
+                    {activeTab === 'cip' && (
+                      <div className={styles.tabPane}>
+                        <CIPTab
+                          data={cipData}
+                          onSave={handleCIPSave}
+                          isEditing={isCIPEditing}
+                          onEditChange={setIsCIPEditing}
+                        />
+                      </div>
+                    )}
+                    {activeTab === 'propietario' && (
+                      <div className={styles.tabPane}>
+                        <OwnerTab
+                          data={ownerData}
+                          onSave={handleOwnerSave}
+                          isEditing={isOwnerEditing}
+                          onEditChange={setIsOwnerEditing}
+                        />
+                      </div>
+                    )}
+                    {activeTab === 'arquitecto' && (
+                      <div className={styles.tabPane}>
+                        <ArchitectTab
+                          data={architectData}
+                          onSave={handleArchitectSave}
+                          isEditing={isArchitectEditing}
+                          onEditChange={setIsArchitectEditing}
+                        />
+                      </div>
+                    )}
+                    {activeTab === 'profesionales' && (
+                      <div className={styles.tabPane}>
+                        <ProfessionalsTab
+                          data={professionalsData}
+                          onSave={handleProfessionalsSave}
+                          isEditing={isProfessionalsEditing}
+                          onEditChange={setIsProfessionalsEditing}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </section>
 
           <section className={styles.architectureSection}>
             <div className={styles.sectionHeader}>
@@ -305,32 +463,6 @@ const ProjectDetail: React.FC = () => {
             )}
           </section>
         </main>
-
-        <aside className={styles.sideMenu}>
-          <div className={styles.menuSection}>
-            <Link 
-              to={`/proyectos/${projectId}/documentos`}
-              className={styles.menuButton}
-            >
-              <DocumentIcon className={styles.icon} />
-              Documentos
-            </Link>
-            <Link 
-              to={`/proyectos/${projectId}/construccion`}
-              className={styles.menuButton}
-            >
-              <BuildIcon className={styles.icon} />
-              Construcción
-            </Link>
-            <Link 
-              to={`/proyectos/${projectId}/profesionales`}
-              className={styles.menuButton}
-            >
-              <PeopleIcon className={styles.icon} />
-              Profesionales
-            </Link>
-          </div>
-        </aside>
       </div>
 
       <DeleteConfirmationModal

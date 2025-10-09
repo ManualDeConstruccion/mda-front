@@ -6,7 +6,8 @@ import { useAuth } from '../context/AuthContext';
 import { mapProjectNode } from '../mappers/project_node_mapper';
 import { ProjectNode, CreateProjectNodeDto, UpdateProjectNodeDto, TypeCode } from '../types/project_nodes.types';
 
-const API_URL = import.meta.env.VITE_API_URL;
+// Normalize API_URL to remove trailing slash
+const API_URL = import.meta.env.VITE_API_URL?.replace(/\/$/, '') || '';
 
 interface ProjectNodesFilters {
   parent?: number;

@@ -22,6 +22,20 @@
   @include form-group;
 }
 
+.errorMessage {
+  color: $error-color;
+  font-size: $font-size-sm;
+  margin-top: $spacing-xs;
+  display: block;
+}
+
+.requiredLabel {
+  color: $text-secondary;
+  font-size: $font-size-xs;
+  font-weight: normal;
+  margin-left: $spacing-xs;
+}
+
 .formActions {
   @include flex-container(row, $spacing-md);
   justify-content: flex-end;

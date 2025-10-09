@@ -37,8 +37,8 @@ const menuStructure: (MenuItem | MenuGroup)[] = [
     icon: <FolderIcon />,
     text: 'Proyectos',
     items: [
-      { path: '/proyectos/crear', icon: <AddIcon />, text: 'Crear Proyecto' },
-      { path: '/proyectos/lista', icon: <ListIcon />, text: 'Lista proyectos' }
+      { path: '/proyectos/lista', icon: <ListIcon />, text: 'Mis Proyectos' },
+      { path: '/proyectos/crear', icon: <AddIcon />, text: 'Crear Proyecto Nuevo' }      
     ]
   },
   {

@@ -35,7 +35,7 @@ const CharacterCounter: React.FC<CharacterCounterProps> = ({
     <div className={styles.inputContainer}>
       <label className={styles.label}>
         {label}
-        {required && <span className={styles.required}>*</span>}
+        {required && <span className={styles.required}>(obligatorio)</span>}
       </label>
       
       <InputComponent

@@ -11,7 +11,10 @@
 }
 
 .required {
-  color: $error-color;
+  color: $text-secondary;
+  font-size: $font-size-xs;
+  font-weight: normal;
+  margin-left: $spacing-xs;
 }
 
 .input {

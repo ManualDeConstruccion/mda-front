@@ -3,7 +3,7 @@
 @use 'sass:color';
 
 .container {
-  padding: $spacing-xl;
+  padding: $spacing-sm;
   max-width: 1400px;
   margin: 0 auto;
 }
@@ -56,12 +56,14 @@
 }
 
 .content {
-  display: grid;
-  grid-template-columns: 1fr 250px;
-  gap: $spacing-xl;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
 }
 
 .mainInfo {
+  width: 100%;
+
   .infoSection {
     @include card-container;
     margin-bottom: $spacing-xl;
@@ -76,6 +78,7 @@
       display: grid;
       grid-template-columns: 300px 1fr;
       gap: $spacing-xl;
+      margin-bottom: $spacing-xl;
 
       .coverImage {
         img {
@@ -107,6 +110,142 @@
         }
       }
     }
+  }
+}
+
+// Estilos para la sección colapsable
+.collapsibleSection {
+  @include card-container;
+  margin-bottom: $spacing-xl;
+}
+
+.collapsibleHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding: $spacing-md 0;
+  user-select: none;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background-color: rgba($primary-color, 0.02);
+    border-radius: $border-radius-sm;
+  }
+
+  h2 {
+    margin: 0;
+    margin-bottom: $spacing-lg;
+    color: $text-primary;
+  }
+
+  .toggleButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: $primary-color;
+    padding: $spacing-xs;
+    border-radius: 50%;
+    transition: all $transition-fast;
+
+    svg {
+      font-size: 1.8rem;
+    }
+
+    &:hover {
+      background-color: rgba($primary-color, 0.1);
+    }
+  }
+}
+
+.collapsibleContent {
+  animation: slideDown 0.3s ease-out;
+  overflow: hidden;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    max-height: 2000px;
+    transform: translateY(0);
+  }
+}
+
+// Estilos para las pestañas
+.tabsContainer {
+  margin-top: $spacing-sm;
+  padding-top: $spacing-sm;
+}
+
+.tabs {
+  display: flex;
+  width: 100%;
+  border-bottom: 2px solid $border-color;
+  margin-bottom: $spacing-sm;
+}
+
+.tab {
+  flex: 1;
+  background: none;
+  border: none;
+  padding: $spacing-sm $spacing-sm;
+  font-size: $font-size-md;
+  font-weight: 500;
+  color: $text-secondary;
+  cursor: pointer;
+  transition: all $transition-fast;
+  position: relative;
+  border-bottom: 3px solid transparent;
+  text-align: center;
+
+  &:hover {
+    color: $primary-color;
+    background: rgba($primary-color, 0.05);
+  }
+
+  &.active {
+    color: $primary-color;
+    border-bottom-color: $primary-color;
+    font-weight: 600;
+  }
+}
+
+.tabContent {
+  min-height: 200px;
+}
+
+.tabPane {
+  animation: fadeIn 0.3s ease-in;
+
+  h3 {
+    margin-top: 0;
+    margin-bottom: $spacing-sm;
+    color: $text-primary;
+    font-size: $font-size-lg;
+  }
+
+  p {
+    color: $text-secondary;
+    line-height: 1.6;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
