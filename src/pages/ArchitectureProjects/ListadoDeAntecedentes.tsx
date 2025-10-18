@@ -15,9 +15,11 @@ import EditListNode from '../EditArchitectureNodes/EditListNode';
 import { useFormNode } from '../../context/FormNodeContext';
 import { useNavigate } from 'react-router-dom';
 import { useProjectNodes } from '../../hooks/useProjectNodes';
+import Toast from '../../components/common/Toast';
 
 // Importar componentes refactorizados
 import NodeTree from './components/NodeTree';
+import SortableNodeTree from './components/SortableNodeTree';
 import NodeTypeMenu from './components/NodeTypeMenu';
 
 interface ListadoDeAntecedentesProps {
@@ -84,12 +86,19 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [editingNode, setEditingNode] = useState<ProjectNode | null>(null);
+  
+  // Estado para notificaciones Toast
+  const [toast, setToast] = useState<{
+    message: string;
+    type: 'success' | 'error' | 'info';
+    show: boolean;
+  } | null>(null);
 
   const { setSelectedForm, setNodeData, setProjectId, setArchitectureProjectId } = useFormNode();
   const navigate = useNavigate();
 
   // For creating lists and antecedentes, fallback to useProjectNodes for mutations
-  const { createProject: createList, deleteProject } = useProjectNodes();
+  const { createProject: createList, deleteProject, reorderNodes } = useProjectNodes();
 
   if (isLoading) return <Typography>Cargando...</Typography>;
   if (!tree) return <Typography>No hay datos.</Typography>;
@@ -97,7 +106,12 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
   // Obtener los lists hijos del stage
   const lists = (tree.children || [])
     .filter((n: any) => n.type === 'list')
-    .sort((a: any, b: any) => a.name.localeCompare(b.name));
+    .sort((a: any, b: any) => {
+      // Ordenar por numbered_name si está disponible, sino por name
+      const aName = a.numbered_name || a.name;
+      const bName = b.numbered_name || b.name;
+      return aName.localeCompare(bName);
+    });
 
   // Manejadores de eventos
   const handleAccordionToggle = (listId: number) => {
@@ -216,6 +230,7 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
         end_date: null,
         status: 'en_estudio',
         progress_percent: 0,
+        order: 0,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         file_url: null,
@@ -244,6 +259,27 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
     }
   };
 
+  // Función para manejar el reordenamiento de nodos
+  const handleReorderNodes = async (parentId: number, nodeOrders: { id: number; order: number }[]) => {
+    try {
+      await reorderNodes(parentId, nodeOrders);
+      queryClient.invalidateQueries({ queryKey: ['projectNodeTree', stageId] });
+      setToast({
+        message: 'Orden actualizado correctamente',
+        type: 'success',
+        show: true
+      });
+    } catch (error) {
+      console.error('Error al reordenar nodos:', error);
+      setToast({
+        message: 'Error al actualizar el orden',
+        type: 'error',
+        show: true
+      });
+      throw error;
+    }
+  };
+
   return (
     <div>
       <Typography variant="h5" gutterBottom>Listado de antecedentes</Typography>
@@ -262,7 +298,7 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
               </tr>
             </thead>
             <tbody>
-              <NodeTree
+              <SortableNodeTree
                 nodes={lists}
                 openAccordions={openAccordions}
                 onToggleAccordion={handleAccordionToggle}
@@ -277,24 +313,23 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
                   setDeleteTarget(node);
                   setShowDeleteModal(true);
                 }}
+                onReorderNodes={handleReorderNodes}
               />
             </tbody>
           </table>
         </Box>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<AddIcon />}
+        <button
+          className={styles.addButton}
           onClick={(e) => {
             setAnchorEl(e.currentTarget);
             setSelectedListId(null);
             setCreatingList(true);
             setError(null);
           }}
-          className={styles.addButton}
         >
-          Agregar Listado
-        </Button>
+          <AddIcon />
+          <span>Agregar Listado</span>
+        </button>
       </div>
 
       {/* Popover para agregar listado o antecedentes */}
@@ -302,19 +337,68 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
         open={!!anchorEl && Boolean(creatingList || selectedListId)}
         anchorEl={anchorEl}
         onClose={handleMenuClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
       >
-        <NodeTypeMenu
-          isCreatingList={creatingList}
-          selectedListId={selectedListId}
-          newListName={newListName}
-          onNewListNameChange={setNewListName}
-          onCreateList={handleCreateList}
-          onCreateAntecedent={handleCreateAntecedent}
-          onStartCreatingList={() => { setCreatingList(true); setNewListName(''); }}
-          error={error}
-        />
+        <Box sx={{ p: 2, minWidth: 300 }}>
+          <Typography variant="h6" gutterBottom>
+            {creatingList ? 'Crear Nuevo Listado' : 'Agregar Antecedente'}
+          </Typography>
+          {creatingList && (
+            <>
+              <input
+                type="text"
+                placeholder="Nombre del listado"
+                value={newListName}
+                onChange={(e) => setNewListName(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  marginBottom: '16px',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px'
+                }}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    handleCreateList();
+                  }
+                }}
+              />
+              {error && (
+                <Typography color="error" variant="body2" sx={{ mb: 1 }}>
+                  {error}
+                </Typography>
+              )}
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  variant="contained"
+                  onClick={handleCreateList}
+                  disabled={!newListName.trim()}
+                >
+                  Crear Listado
+                </Button>
+                <Button
+                  variant="outlined"
+                  onClick={handleMenuClose}
+                >
+                  Cancelar
+                </Button>
+              </Box>
+            </>
+          )}
+          {!creatingList && selectedListId && (
+            <NodeTypeMenu
+              isCreatingList={creatingList}
+              selectedListId={selectedListId}
+              newListName={newListName}
+              onNewListNameChange={setNewListName}
+              onCreateList={handleCreateList}
+              onCreateAntecedent={handleCreateAntecedent}
+              onStartCreatingList={() => { setCreatingList(true); setNewListName(''); }}
+              error={error}
+            />
+          )}
+        </Box>
       </Popover>
 
       {/* Modal de confirmación para eliminar */}
@@ -357,6 +441,15 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
         node={editingConstructionSolutionNode}
         stageId={stageId}
       /> */}
+      
+      {/* Toast de notificaciones */}
+      {toast?.show && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 };

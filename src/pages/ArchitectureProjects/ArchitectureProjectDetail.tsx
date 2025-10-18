@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useProjectNodes } from '../../hooks/useProjectNodes';
-import { ProjectNode } from '../../types/project_nodes.types';
+import { ProjectNode, TypeCode } from '../../types/project_nodes.types';
 import styles from './ArchitectureProjectDetail.module.scss';
 import ListadoDeAntecedentes from './ListadoDeAntecedentes';
 import {
@@ -56,12 +56,37 @@ const ArchitectureProjectDetail: React.FC = () => {
   });
 
   // Get all stages for the selector
-  const { projects: stages } = useProjectNodes<ProjectNode>({ parent: Number(architectureId), type: 'stage' });
+  const { projects: stages, reorderNodes, createProject, updateProject } = useProjectNodes<ProjectNode>({ parent: Number(architectureId), type: 'stage' });
 
-  const { projects: architectureProjects, deleteProject, createProject } = useProjectNodes<ProjectNode>({ type: 'architecture_subproject' });
+  // Ordenar los stages por el campo order
+  const sortedStages = stages ? [...stages].sort((a, b) => a.order - b.order) : [];
+
+
+
+  const { projects: architectureProjects, deleteProject } = useProjectNodes<ProjectNode>({ type: 'architecture_subproject' });
   const architectureProject = architectureProjects?.find(p => p.id === Number(architectureId));
 
   const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
+  // Estados para crear/eliminar/editar etapas
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [creatingStage, setCreatingStage] = useState(false);
+  const [editingStage, setEditingStage] = useState<ProjectNode | null>(null);
+  const [deleteStageTarget, setDeleteStageTarget] = useState<ProjectNode | null>(null);
+  const [showDeleteStageModal, setShowDeleteStageModal] = useState(false);
+  const [deletingStage, setDeletingStage] = useState(false);
+
+  // Función para extraer el error del backend
+  const extractBackendError = (err: any): string => {
+    if (err?.response?.data && typeof err.response.data === 'object') {
+      const values = Object.values(err.response.data);
+      if (Array.isArray(values[0])) {
+        return (values as any[]).flat().join(' ');
+      }
+      return values.join(' ');
+    }
+    return err?.response?.data?.detail || err?.message || 'Error desconocido';
+  };
+
   const [isAddStageModalOpen, setIsAddStageModalOpen] = useState(false);
   const [newStageName, setNewStageName] = useState('');
   const [stageError, setStageError] = useState<string | null>(null);
@@ -311,7 +336,7 @@ const ArchitectureProjectDetail: React.FC = () => {
             </button>
             
             {/* Etapas dinámicas del backend (cuando estén disponibles) */}
-            {(stages || []).map(stage => (
+            {(stages || []).map((stage: ProjectNode) => (
               <button
                 key={stage.id}
                 className={`${styles.stageButton} ${activeStageId === stage.id ? styles.active : ''}`}

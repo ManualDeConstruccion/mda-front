@@ -133,6 +133,31 @@ export const useProjectNodes = <T extends ProjectNode = ProjectNode>(filters?: P
     },
   });
 
+  const reorderNodes = async (parentId: number, nodeOrders: Array<{ id: number; order: number }>) => {
+    try {
+      const response = await axios.post(`${API_URL}/project-nodes/reorder_with_numbering/`, {
+        parent_id: parentId,
+        node_orders: nodeOrders
+      }, axiosConfig);
+
+      if (response.status !== 200) {
+        throw new Error('Error al reordenar los nodos');
+      }
+
+      // Refrescar los datos después del reordenamiento
+      // Invalidar todas las queries relacionadas con projectNodes para asegurar que se actualicen
+      queryClient.invalidateQueries({ 
+        queryKey: ['projectNodes'],
+        exact: false 
+      });
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error al reordenar nodos:', error);
+      throw error;
+    }
+  };
+
   return {
     projects: getProjects.data,
     isLoadingProjects: getProjects.isLoading,
@@ -140,6 +165,7 @@ export const useProjectNodes = <T extends ProjectNode = ProjectNode>(filters?: P
     updateProject,
     patchProject,
     deleteProject,
+    reorderNodes
   };
 };
 

@@ -38,6 +38,7 @@ export interface ProjectNode {
   type?: TypeCode;
   node_type?: NodeType;
   type_name?: string;
+  numbered_name?: string;
   file_type: FileType | null;
   parent: number | null;
   children: ProjectNode[];
@@ -54,6 +55,7 @@ export interface ProjectNode {
   end_date: string | null;
   status: NodeStatus;
   progress_percent: number;
+  order: number;
   created_at: string;
   updated_at: string;
   file_url?: string | null;
