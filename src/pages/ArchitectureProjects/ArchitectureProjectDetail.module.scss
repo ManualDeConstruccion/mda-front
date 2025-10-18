@@ -90,9 +90,20 @@
 .antecedentesSection {
   @include card-container;
 
-  h2 {
-    margin-top: 0;
-    color: $text-primary;
+  .sectionHeader {
+    @include flex-container(row, $spacing-md);
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: $spacing-lg;
+
+    h2 {
+      margin: 0;
+      color: $text-primary;
+    }
+
+    .addStageButton {
+      @include action-button($success-color);
+    }
   }
 }
 
@@ -343,5 +354,232 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+// Estilos para la etapa fija
+.fixedStageContent {
+  padding: $spacing-lg;
+  background: $background-paper;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-md;
+  margin-top: $spacing-md;
+
+  h3 {
+    margin-top: 0;
+    margin-bottom: $spacing-md;
+    color: $text-primary;
+    font-size: $font-size-lg;
+  }
+
+  p {
+    margin: $spacing-sm 0;
+    color: $text-secondary;
+    line-height: 1.6;
+
+    strong {
+      color: $text-primary;
+    }
+  }
+
+  .placeholderContent {
+    background: rgba($primary-color, 0.05);
+    padding: $spacing-md;
+    border-radius: $border-radius-sm;
+    border-left: 4px solid $primary-color;
+    margin-top: $spacing-md;
+
+    p {
+      margin: $spacing-xs 0;
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+}
+
+// Estilos para las secciones del formulario
+.formSection {
+  margin-bottom: $spacing-lg;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-md;
+  overflow: hidden;
+
+  .sectionHeader {
+    @include flex-container(row, $spacing-md);
+    justify-content: space-between;
+    align-items: center;
+    padding: $spacing-md;
+    background: rgba($primary-color, 0.05);
+    cursor: pointer;
+    transition: all $transition-fast;
+
+    &:hover {
+      background: rgba($primary-color, 0.1);
+    }
+
+    h4 {
+      margin: 0;
+      color: $text-primary;
+      font-size: $font-size-md;
+      font-weight: 600;
+    }
+
+    .toggleButton {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: $spacing-xs;
+      border-radius: 50%;
+      transition: all $transition-fast;
+
+      svg {
+        font-size: 1.5rem;
+        color: $primary-color;
+      }
+
+      &:hover {
+        background-color: rgba($primary-color, 0.1);
+      }
+    }
+  }
+
+  .sectionContent {
+    padding: $spacing-lg;
+    background: $background-paper;
+    animation: slideDown 0.3s ease-out;
+  }
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: $spacing-md;
+}
+
+.formGroup {
+  @include form-group;
+
+  label {
+    font-weight: 500;
+    color: $text-primary;
+    margin-bottom: $spacing-xs;
+  }
+
+  input, select {
+    @include input-base;
+    width: 100%;
+  }
+
+  input[type="number"] {
+    text-align: right;
+  }
+}
+
+.formActions {
+  margin-top: $spacing-xl;
+  padding-top: $spacing-lg;
+  border-top: 1px solid $border-color;
+  text-align: center;
+
+  .saveButton {
+    @include action-button($primary-color);
+    padding: $spacing-md $spacing-xl;
+    font-size: $font-size-md;
+    font-weight: 600;
+  }
+}
+
+// Estilos para el modal de añadir etapas
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: $background-paper;
+  border-radius: $border-radius-md;
+  box-shadow: $shadow-lg;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modalHeader {
+  @include flex-container(row, $spacing-md);
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-lg;
+  border-bottom: 1px solid $border-color;
+
+  h3 {
+    margin: 0;
+    color: $text-primary;
+    font-size: $font-size-lg;
+  }
+
+  .closeButton {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: $text-secondary;
+    padding: $spacing-xs;
+    border-radius: 50%;
+    transition: all $transition-fast;
+
+    &:hover {
+      background: rgba($error-color, 0.1);
+      color: $error-color;
+    }
+  }
+}
+
+.modalContent {
+  padding: $spacing-lg;
+
+  .formGroup {
+    @include form-group;
+
+    label {
+      font-weight: 500;
+      color: $text-primary;
+      margin-bottom: $spacing-xs;
+    }
+
+    input {
+      @include input-base;
+      width: 100%;
+    }
+  }
+}
+
+.modalActions {
+  @include flex-container(row, $spacing-md);
+  justify-content: flex-end;
+  padding: $spacing-lg;
+  border-top: 1px solid $border-color;
+
+  .cancelButton {
+    @include secondary-button;
+  }
+
+  .saveButton {
+    @include action-button($primary-color);
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
   }
 }
