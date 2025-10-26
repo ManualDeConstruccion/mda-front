@@ -4,9 +4,19 @@ import styles from './ProjectTypeSelectors.module.scss';
 
 interface ProjectTypeSelectorsProps {
   onProjectTypeChange?: (projectType: any) => void;
+  onProjectTypesSummary?: (summary: any) => void;
+  relatedTypes?: any[];
+  selectedRelatedTypes?: any[];
+  onAddRelatedType?: (relatedType: any) => void;
 }
 
-const ProjectTypeSelectors: React.FC<ProjectTypeSelectorsProps> = ({ onProjectTypeChange }) => {
+const ProjectTypeSelectors: React.FC<ProjectTypeSelectorsProps> = ({ 
+  onProjectTypeChange,
+  onProjectTypesSummary,
+  relatedTypes = [],
+  selectedRelatedTypes = [],
+  onAddRelatedType
+}) => {
   const {
     groups,
     subgroups,
@@ -22,10 +32,24 @@ const ProjectTypeSelectors: React.FC<ProjectTypeSelectorsProps> = ({ onProjectTy
   } = useProjectTypeSelectors();
 
   const handleProjectTypeSelection = (projectTypeId: number | null) => {
+    // Obtener el tipo de proyecto desde el array actual de projectTypes
+    const selectedProjectType = projectTypes.find(pt => pt.id === projectTypeId) || null;
+    
+    // Actualizar el estado del hook
     handleProjectTypeChange(projectTypeId);
+    
+    // Notificar al padre sobre el cambio del tipo de proyecto
     if (onProjectTypeChange) {
-      const selectedProjectType = getSelectedProjectType();
       onProjectTypeChange(selectedProjectType);
+    }
+    
+    // Notificar resumen SOLO si hay un tipo seleccionado
+    if (onProjectTypesSummary && selectedProjectType) {
+      const summary = {
+        selected: selectedProjectType,
+        relatedTypes: selectedProjectType.related_project_types || []
+      };
+      onProjectTypesSummary(summary);
     }
   };
 
@@ -94,7 +118,6 @@ const ProjectTypeSelectors: React.FC<ProjectTypeSelectorsProps> = ({ onProjectTy
             {projectTypes.map((projectType) => (
               <option key={projectType.id} value={projectType.id}>
                 {projectType.name}
-                {projectType.parameter_count > 0 && ` (${projectType.parameter_count} parámetros)`}
               </option>
             ))}
           </select>
@@ -102,52 +125,34 @@ const ProjectTypeSelectors: React.FC<ProjectTypeSelectorsProps> = ({ onProjectTy
         </div>
       </div>
 
-      {/* Información del tipo de proyecto seleccionado */}
-      {selectedProjectType && (
-        <div className={styles.selectedInfo}>
-          {(() => {
-            const selected = getSelectedProjectType();
-            if (!selected) return null;
-            
-            return (
-              <div className={styles.projectTypeInfo}>
-                <h4 className={styles.projectTypeName}>{selected.name}</h4>
-                {selected.description && (
-                  <p className={styles.projectTypeDescription}>{selected.description}</p>
-                )}
-                <div className={styles.projectTypeDetails}>
-                  <span className={styles.detail}>
-                    <strong>Categoría:</strong> {selected.category.full_path}
-                  </span>
-                  <span className={styles.detail}>
-                    <strong>Parámetros:</strong> {selected.parameter_count}
-                  </span>
-                  {selected.regulation_articles.length > 0 && (
-                    <span className={styles.detail}>
-                      <strong>Artículos normativos:</strong> {selected.regulation_articles.join(', ')}
-                    </span>
+      {/* Tipos relacionados sugeridos */}
+      {relatedTypes && relatedTypes.length > 0 && (
+        <div className={styles.suggestionsSection}>
+          <h5 className={styles.suggestionsLabel}>También puedes necesitar:</h5>
+          <div className={styles.suggestionChips}>
+            {relatedTypes.map((related: any) => {
+              const isAdded = selectedRelatedTypes.find((t: any) => t.id === related.id);
+              return (
+                <div 
+                  key={related.id} 
+                  className={`${styles.suggestionChip} ${isAdded ? styles.suggestionChipAdded : ''}`}
+                  onClick={() => {
+                    if (!isAdded && onAddRelatedType) {
+                      onAddRelatedType(related);
+                    }
+                  }}
+                >
+                  <span className={styles.chipName}>{related.name}</span>
+                  {related.description && (
+                    <span className={styles.chipDescription}>{related.description}</span>
+                  )}
+                  {isAdded && (
+                    <span className={styles.chipAddedIcon}>✓</span>
                   )}
                 </div>
-                
-                {/* Tipos de proyecto sugeridos */}
-                {selected.related_project_types && selected.related_project_types.length > 0 && (
-                  <div className={styles.suggestionsSection}>
-                    <h5 className={styles.suggestionsTitle}>También puedes necesitar:</h5>
-                    <div className={styles.suggestionChips}>
-                      {selected.related_project_types.map((related) => (
-                        <div key={related.id} className={styles.suggestionChip}>
-                          <span className={styles.chipName}>{related.name}</span>
-                          {related.description && (
-                            <span className={styles.chipDescription}>{related.description}</span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

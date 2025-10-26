@@ -57,4 +57,145 @@
 
 .saveButton {
   @include action-button($primary-color);
+}
+
+// Resumen de tipos de proyecto
+.summarySection {
+  margin: $spacing-xl 0;
+  padding: $spacing-lg;
+  background-color: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+}
+
+.summaryTitle {
+  margin: 0 0 $spacing-md 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: $text-primary;
+}
+
+.summaryContent {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+// Chips de tipos de proyecto
+.projectTypeChip,
+.selectedTypeChip {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-sm $spacing-md;
+  background-color: $primary-color;
+  color: white;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.chipName {
+  display: block;
+  font-weight: 500;
+}
+
+.chipDescription {
+  display: block;
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 2px;
+}
+
+.chipRemoveBtn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  margin-left: $spacing-xs;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+
+  &:hover {
+    opacity: 1;
+  }
+
+  &:focus {
+    outline: 2px solid white;
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+}
+
+// Sección de sugerencias
+.suggestionsSection {
+  margin-top: $spacing-md;
+}
+
+.suggestionsLabel {
+  margin: 0 0 $spacing-sm 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #555;
+}
+
+.suggestionChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+}
+
+.suggestionChip {
+  display: flex;
+  flex-direction: column;
+  padding: $spacing-sm $spacing-md;
+  background-color: #f0f7ff;
+  border: 1px solid #b3d9ff;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 200px;
+
+  &:hover {
+    background-color: #e0f0ff;
+    border-color: #80c5ff;
+  }
+
+  &.suggestionChipAdded {
+    background-color: #d4edda;
+    border-color: #8fd19e;
+  }
+}
+
+// Sección de tipos seleccionados
+.selectedTypesSection {
+  margin-top: $spacing-md;
+}
+
+.selectedTypesLabel {
+  margin: 0 0 $spacing-sm 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #555;
+}
+
+.selectedTypesChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+}
+
+.selectedTypeChip {
+  background-color: #d1ecf1;
+  color: #0c5460;
+}
+
+.chipAddedIcon {
+  margin-left: auto;
+  font-weight: bold;
+  color: #28a745;
+  font-size: 1.2rem;
 } 
