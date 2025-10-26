@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProjectNodes } from '../../hooks/useProjectNodes';
 import CharacterCounter from '../../components/common/CharacterCounter/CharacterCounter';
+import ProjectTypeSelectors from '../../components/ProjectTypeSelectors';
 import { CHARACTER_LIMITS } from '../../utils/validation';
 import styles from './CreateProject.module.scss';
 import { TypeCode } from '../../types/project_nodes.types';
@@ -15,6 +16,8 @@ const CreateProject: React.FC = () => {
     description: '',
     type: 'project' as TypeCode,
   });
+
+  const [selectedProjectType, setSelectedProjectType] = useState<any>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -62,6 +65,10 @@ const CreateProject: React.FC = () => {
           maxLength={CHARACTER_LIMITS.PROJECT_DESCRIPTION}
           multiline={true}
           required={true}
+        />
+
+        <ProjectTypeSelectors
+          onProjectTypeChange={setSelectedProjectType}
         />
 
         <div className={styles.formActions}>
