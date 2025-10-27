@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 
 // API URL configuration
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
 
 interface Group {
   id: number;
@@ -91,7 +91,7 @@ export const useProjectTypeSelectors = () => {
   const loadGroups = async () => {
     setLoading(prev => ({ ...prev, groups: true }));
     try {
-      const response = await fetch(`${API_URL}/architecture-project-types/groups/`);
+      const response = await fetch(`${API_URL}/api/architecture/architecture-project-types/groups/`);
       if (response.ok) {
         const data = await response.json();
         setGroups(data);
@@ -108,7 +108,7 @@ export const useProjectTypeSelectors = () => {
   const loadSubgroups = async (groupId: number) => {
     setLoading(prev => ({ ...prev, subgroups: true }));
     try {
-      const response = await fetch(`${API_URL}/architecture-project-types/subgroups/?group_id=${groupId}`);
+      const response = await fetch(`${API_URL}/api/architecture/architecture-project-types/subgroups/?group_id=${groupId}`);
       if (response.ok) {
         const data = await response.json();
         setSubgroups(data);
@@ -125,7 +125,7 @@ export const useProjectTypeSelectors = () => {
   const loadProjectTypes = async (subgroupId: number) => {
     setLoading(prev => ({ ...prev, projectTypes: true }));
     try {
-      const response = await fetch(`${API_URL}/architecture-project-types/project_types/?subgroup_id=${subgroupId}`);
+      const response = await fetch(`${API_URL}/api/architecture/architecture-project-types/project_types/?subgroup_id=${subgroupId}`);
       if (response.ok) {
         const data = await response.json();
         setProjectTypes(data);

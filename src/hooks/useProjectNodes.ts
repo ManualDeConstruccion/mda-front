@@ -28,7 +28,7 @@ export const useProjectNodes = <T extends ProjectNode = ProjectNode>(filters?: P
       const params = new URLSearchParams();
       if (filters?.parent) params.append('parent', filters.parent.toString());
       if (filters?.type) params.append('type', filters.type);
-      const response = await axios.get(`${API_URL}/project-nodes/?${params.toString()}`, axiosConfig);
+      const response = await axios.get(`${API_URL}/api/projects/project-nodes/?${params.toString()}`, axiosConfig);
       return Array.isArray(response.data) ? response.data.map(mapProjectNode) as T[] : [];
     },
     enabled: !!accessToken && (!!filters?.parent || !!filters?.type),
@@ -57,7 +57,7 @@ export const useProjectNodes = <T extends ProjectNode = ProjectNode>(filters?: P
 
         console.log('FormData being sent:', Object.fromEntries(formData));
 
-        const response = await axios.post(`${API_URL}/project-nodes/`, formData, {
+        const response = await axios.post(`${API_URL}/api/projects/project-nodes/`, formData, {
           ...axiosConfig,
           headers: {
             ...axiosConfig.headers,
@@ -67,7 +67,7 @@ export const useProjectNodes = <T extends ProjectNode = ProjectNode>(filters?: P
         return response.data;
       } else {
         // If no files, send as JSON
-        const response = await axios.post(`${API_URL}/project-nodes/`, data, {
+        const response = await axios.post(`${API_URL}/api/projects/project-nodes/`, data, {
           ...axiosConfig,
           headers: {
             ...axiosConfig.headers,
@@ -97,7 +97,7 @@ export const useProjectNodes = <T extends ProjectNode = ProjectNode>(filters?: P
       if (!isFormData && config.headers['Content-Type'] === 'application/json' && typeof data === 'object') {
         body = JSON.stringify(data);
       }
-      const response = await axios.patch(`${API_URL}/project-nodes/${id}/`, body, config);
+      const response = await axios.patch(`${API_URL}/api/projects/project-nodes/${id}/`, body, config);
       return response.data;
     },
     onSuccess: (_, variables) => {
@@ -115,7 +115,7 @@ export const useProjectNodes = <T extends ProjectNode = ProjectNode>(filters?: P
 
   const patchProject = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: Partial<UpdateProjectNodeDto> }) => {
-      const response = await axios.patch(`${API_URL}/project-nodes/${id}/`, data, axiosConfig);
+      const response = await axios.patch(`${API_URL}/api/projects/project-nodes/${id}/`, data, axiosConfig);
       return response.data;
     },
     onSuccess: (_, variables) => {
@@ -126,7 +126,7 @@ export const useProjectNodes = <T extends ProjectNode = ProjectNode>(filters?: P
 
   const deleteProject = useMutation({
     mutationFn: async (id: number) => {
-      await axios.delete(`${API_URL}/project-nodes/${id}/`, axiosConfig);
+      await axios.delete(`${API_URL}/api/projects/project-nodes/${id}/`, axiosConfig);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projectNodes'] });
@@ -135,7 +135,7 @@ export const useProjectNodes = <T extends ProjectNode = ProjectNode>(filters?: P
 
   const reorderNodes = async (parentId: number, nodeOrders: Array<{ id: number; order: number }>) => {
     try {
-      const response = await axios.post(`${API_URL}/project-nodes/reorder_with_numbering/`, {
+      const response = await axios.post(`${API_URL}/api/projects/project-nodes/reorder_with_numbering/`, {
         parent_id: parentId,
         node_orders: nodeOrders
       }, axiosConfig);
@@ -178,7 +178,7 @@ export const useProjectNodeTree = (nodeId?: number | null) => {
     queryKey: ['projectNodeTree', nodeId],
     queryFn: async () => {
       if (!nodeId) return null;
-      const { data } = await axios.get(`${API_URL}/project-nodes/${nodeId}/tree/`, axiosConfig);
+      const { data } = await axios.get(`${API_URL}/api/projects/project-nodes/${nodeId}/tree/`, axiosConfig);
       return data;
     },
     enabled: !!nodeId && !!accessToken,
@@ -191,7 +191,7 @@ export const useProjectNode = <T extends ProjectNode = ProjectNode>(id?: number)
     queryKey: ['projectNode', id],
     queryFn: async () => {
       if (!id) return null;
-      const { data } = await axios.get(`${API_URL}/project-nodes/${id}/`, {
+      const { data } = await axios.get(`${API_URL}/api/projects/project-nodes/${id}/`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       return mapProjectNode(data) as T;

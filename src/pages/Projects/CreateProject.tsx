@@ -76,14 +76,14 @@ const CreateProject: React.FC = () => {
       
       for (const projectType of allProjectTypes) {
         try {
-          await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/project-nodes/create_architecture_subproject/`, {
+          const apiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+          await fetch(`${apiUrl}/api/projects/project-nodes/create_architecture_subproject/`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${accessToken}`
             },
             body: JSON.stringify({
-              name: projectType.name,
               description: projectType.description || '',
               parent_id: projectId,
               project_type_code: projectType.code
