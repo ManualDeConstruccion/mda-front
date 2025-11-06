@@ -103,9 +103,9 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
   if (isLoading) return <Typography>Cargando...</Typography>;
   if (!tree) return <Typography>No hay datos.</Typography>;
 
-  // Obtener los lists hijos del stage
+  // Obtener los nodos hijos del stage (list, document, form, certificate)
   const lists = (tree.children || [])
-    .filter((n: any) => n.type === 'list')
+    .filter((n: any) => ['list', 'document', 'form', 'certificate'].includes(n.type))
     .sort((a: any, b: any) => {
       // Ordenar por numbered_name si está disponible, sino por name
       const aName = a.numbered_name || a.name;

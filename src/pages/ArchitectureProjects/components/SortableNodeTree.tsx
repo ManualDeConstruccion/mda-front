@@ -165,7 +165,20 @@ const SortableNodeTree: React.FC<SortableNodeTreeProps> = ({
                 </SortableListNode>
               );
             }
-            return null; // Los documentos en el nivel raíz no se renderizan
+            
+            // Renderizar otros tipos de nodo (document, form, certificate, etc.) en el nivel raíz
+            return (
+              <SortableNodeRow
+                key={node.id}
+                node={node}
+                depth={depth}
+                onEdit={onEditNode}
+                onDelete={onDeleteNode}
+                indentClass={styles[`indent-${depth + 1}`]}
+                isDragging={activeId === node.id}
+                isOver={overId === node.id}
+              />
+            );
           })}
         </>
       </SortableContext>
