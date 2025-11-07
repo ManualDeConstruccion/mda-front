@@ -37,7 +37,7 @@ export const useFormCategoriesTree = (search?: string, node_type_name?: string) 
       const params = new URLSearchParams();
       if (search) params.append('search', search);
       if (node_type_name) params.append('node_type_name', node_type_name);
-      const url = `${API_URL}/categories/tree/${params.toString() ? '?' + params.toString() : ''}`;
+      const url = `${API_URL}api/architecture/categories/tree/${params.toString() ? '?' + params.toString() : ''}`;
       const response = await axios.get<NodeTypeCategoryGroup[]>(url, axiosConfig);
       return response.data;
     },
