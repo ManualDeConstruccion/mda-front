@@ -1,0 +1,177 @@
+// src/hooks/useProjectLevels.ts
+
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
+
+const API_URL = import.meta.env.VITE_API_URL?.replace(/\/$/, '') || '';
+
+export interface ProjectLevel {
+  id: number;
+  building: number;
+  building_name: string;
+  building_code: string;
+  project_node: number;
+  code: string;
+  name: string;
+  order: number;
+  level_type: 'below' | 'above' | 'roof';
+  is_active: boolean;
+  metadata: Record<string, any>;
+  surface_total: number;
+  surface_util: number;
+  surface_comun: number;
+}
+
+export interface Building {
+  id: number;
+  project_node: number;
+  code: string;
+  name: string;
+  order: number;
+  is_active: boolean;
+  metadata: Record<string, any>;
+  levels_count: number;
+}
+
+interface ProjectLevelsFilters {
+  project_node?: number;
+  building?: number;
+}
+
+export const useProjectLevels = (filters?: ProjectLevelsFilters) => {
+  const { accessToken } = useAuth();
+  const queryClient = useQueryClient();
+
+  const axiosConfig = {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  };
+
+  const getLevels = useQuery<ProjectLevel[]>({
+    queryKey: ['projectLevels', filters],
+    queryFn: async (): Promise<ProjectLevel[]> => {
+      const params = new URLSearchParams();
+      if (filters?.project_node) params.append('project_node', filters.project_node.toString());
+      if (filters?.building) params.append('building', filters.building.toString());
+      
+      const response = await axios.get(
+        `${API_URL}/api/project-engines/levels/?${params.toString()}`,
+        axiosConfig
+      );
+      return Array.isArray(response.data) ? response.data : [];
+    },
+    enabled: !!accessToken && (!!filters?.project_node || !!filters?.building),
+  });
+
+  const getLevelsByType = useQuery<{
+    below: ProjectLevel[];
+    above: ProjectLevel[];
+    roof: ProjectLevel[];
+  }>({
+    queryKey: ['projectLevelsByType', filters?.project_node],
+    queryFn: async () => {
+      if (!filters?.project_node) return { below: [], above: [], roof: [] };
+      
+      const response = await axios.get(
+        `${API_URL}/api/project-engines/levels/by_type/?project_node=${filters.project_node}`,
+        axiosConfig
+      );
+      return response.data;
+    },
+    enabled: !!accessToken && !!filters?.project_node,
+  });
+
+  const createLevel = useMutation({
+    mutationFn: async (data: Partial<ProjectLevel>) => {
+      const response = await axios.post(
+        `${API_URL}/api/project-engines/levels/`,
+        data,
+        axiosConfig
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projectLevels'] });
+      queryClient.invalidateQueries({ queryKey: ['projectLevelsByType'] });
+    },
+  });
+
+  const updateLevel = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<ProjectLevel> }) => {
+      const response = await axios.patch(
+        `${API_URL}/api/project-engines/levels/${id}/`,
+        data,
+        axiosConfig
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projectLevels'] });
+      queryClient.invalidateQueries({ queryKey: ['projectLevelsByType'] });
+    },
+  });
+
+  const deleteLevel = useMutation({
+    mutationFn: async (id: number) => {
+      await axios.delete(`${API_URL}/api/project-engines/levels/${id}/`, axiosConfig);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projectLevels'] });
+      queryClient.invalidateQueries({ queryKey: ['projectLevelsByType'] });
+    },
+  });
+
+  return {
+    levels: getLevels.data || [],
+    isLoadingLevels: getLevels.isLoading,
+    levelsByType: getLevelsByType.data || { below: [], above: [], roof: [] },
+    isLoadingLevelsByType: getLevelsByType.isLoading,
+    createLevel,
+    updateLevel,
+    deleteLevel,
+  };
+};
+
+export const useBuildings = (projectNodeId?: number) => {
+  const { accessToken } = useAuth();
+  const queryClient = useQueryClient();
+
+  const axiosConfig = {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  };
+
+  const getBuildings = useQuery<Building[]>({
+    queryKey: ['buildings', projectNodeId],
+    queryFn: async (): Promise<Building[]> => {
+      if (!projectNodeId) return [];
+      
+      const response = await axios.get(
+        `${API_URL}/api/project-engines/buildings/?project_node=${projectNodeId}`,
+        axiosConfig
+      );
+      return Array.isArray(response.data) ? response.data : [];
+    },
+    enabled: !!accessToken && !!projectNodeId,
+  });
+
+  const createBuilding = useMutation({
+    mutationFn: async (data: Partial<Building>) => {
+      const response = await axios.post(
+        `${API_URL}/api/project-engines/buildings/`,
+        data,
+        axiosConfig
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['buildings'] });
+    },
+  });
+
+  return {
+    buildings: getBuildings.data || [],
+    isLoadingBuildings: getBuildings.isLoading,
+    createBuilding,
+  };
+};
+

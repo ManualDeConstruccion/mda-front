@@ -1,0 +1,260 @@
+@use '../../styles/variables' as *;
+
+.container {
+  padding: $spacing-lg;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-lg;
+
+  h3 {
+    margin: 0;
+    font-size: $font-size-xl;
+    color: $text-primary;
+  }
+}
+
+.addButton {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-sm $spacing-md;
+  background-color: $primary-color;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: $font-size-base;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: darken($primary-color, 10%);
+  }
+}
+
+.section {
+  margin-bottom: $spacing-xl;
+}
+
+.sectionTitle {
+  font-size: $font-size-lg;
+  font-weight: 600;
+  color: $text-primary;
+  margin-bottom: $spacing-sm;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.sectionSubtitle {
+  font-size: $font-size-sm;
+  font-weight: 400;
+  color: $text-secondary;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: $spacing-md;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+  thead {
+    background-color: #f5f5f5;
+
+    th {
+      padding: $spacing-md;
+      text-align: left;
+      font-weight: 600;
+      color: $text-primary;
+      border-bottom: 2px solid #ddd;
+    }
+  }
+
+  tbody {
+    tr {
+      border-bottom: 1px solid #eee;
+
+      &:hover {
+        background-color: #f9f9f9;
+      }
+    }
+
+    td {
+      padding: $spacing-md;
+      color: $text-primary;
+    }
+  }
+}
+
+.numberCell {
+  text-align: right;
+  font-family: 'Courier New', monospace;
+}
+
+.totalRow {
+  background-color: #f0f0f0;
+  font-weight: 600;
+
+  .totalLabel {
+    font-weight: 700;
+  }
+
+  .totalCell {
+    font-weight: 700;
+    color: $primary-color;
+  }
+}
+
+.emptyMessage {
+  text-align: center;
+  color: $text-secondary;
+  font-style: italic;
+  padding: $spacing-lg !important;
+}
+
+.deleteButton {
+  background: none;
+  border: none;
+  color: #d32f2f;
+  cursor: pointer;
+  padding: $spacing-xs;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s;
+
+  &:hover {
+    color: #b71c1c;
+  }
+}
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: white;
+  border-radius: 8px;
+  padding: $spacing-lg;
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-lg;
+
+  h3 {
+    margin: 0;
+    font-size: $font-size-lg;
+  }
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: $font-size-xl;
+  cursor: pointer;
+  color: $text-secondary;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    color: $text-primary;
+  }
+}
+
+.modalContent {
+  margin-bottom: $spacing-lg;
+}
+
+.formGroup {
+  margin-bottom: $spacing-md;
+
+  label {
+    display: block;
+    margin-bottom: $spacing-xs;
+    font-weight: 500;
+    color: $text-primary;
+  }
+
+  input,
+  select {
+    width: 100%;
+    padding: $spacing-sm;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: $font-size-base;
+
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+    }
+  }
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: $spacing-md;
+}
+
+.cancelButton {
+  padding: $spacing-sm $spacing-md;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: $font-size-base;
+
+  &:hover {
+    background: #e0e0e0;
+  }
+}
+
+.saveButton {
+  padding: $spacing-sm $spacing-md;
+  background-color: $primary-color;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: $font-size-base;
+  transition: background-color 0.2s;
+
+  &:hover:not(:disabled) {
+    background-color: darken($primary-color, 10%);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.loading {
+  text-align: center;
+  padding: $spacing-xl;
+  color: $text-secondary;
+}
+

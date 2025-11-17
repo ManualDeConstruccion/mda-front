@@ -20,9 +20,10 @@ import CIPTab from '../../components/ProjectTabs/CIPTab';
 import OwnerTab from '../../components/ProjectTabs/OwnerTab';
 import ArchitectTab from '../../components/ProjectTabs/ArchitectTab';
 import ProfessionalsTab from '../../components/ProjectTabs/ProfessionalsTab';
+import SurfacesTab from '../../components/SurfacesTab/SurfacesTab';
 import { PropertyData, CIPData, OwnerData, ArchitectData, ProfessionalsData } from '../../types/property.types';
 
-type TabType = 'propiedad' | 'cip' | 'propietario' | 'arquitecto' | 'profesionales';
+type TabType = 'propiedad' | 'cip' | 'propietario' | 'arquitecto' | 'profesionales' | 'superficies';
 
 const ArchitectureProjectDetail: React.FC = () => {
   const { projectId, architectureId } = useParams<{ projectId: string; architectureId: string }>();
@@ -252,6 +253,12 @@ const ArchitectureProjectDetail: React.FC = () => {
                     >
                       Profesionales
                     </button>
+                    <button
+                      className={`${styles.tab} ${activeTab === 'superficies' ? styles.active : ''}`}
+                      onClick={() => setActiveTab('superficies')}
+                    >
+                      Superficies
+                    </button>
                   </div>
 
                   <div className={styles.tabContent}>
@@ -303,6 +310,11 @@ const ArchitectureProjectDetail: React.FC = () => {
                           isEditing={isProfessionalsEditing}
                           onEditChange={setIsProfessionalsEditing}
                         />
+                      </div>
+                    )}
+                    {activeTab === 'superficies' && (
+                      <div className={styles.tabPane}>
+                        <SurfacesTab projectNodeId={Number(architectureId)} />
                       </div>
                     )}
                   </div>
