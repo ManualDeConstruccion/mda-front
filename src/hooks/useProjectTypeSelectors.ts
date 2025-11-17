@@ -47,10 +47,12 @@ interface ProjectType {
 }
 
 export const useProjectTypeSelectors = () => {
-  const [groups, setGroups] = useState<Group[]>([]);
+  // groups contiene los subgrupos de "formularios_minvu" (mostrados en el selector de Grupo)
+  const [groups, setGroups] = useState<Subgroup[]>([]);
   const [subgroups, setSubgroups] = useState<Subgroup[]>([]);
   const [projectTypes, setProjectTypes] = useState<ProjectType[]>([]);
   
+  // selectedGroup es realmente un subgrupo de formularios_minvu
   const [selectedGroup, setSelectedGroup] = useState<number | null>(null);
   const [selectedSubgroup, setSelectedSubgroup] = useState<number | null>(null);
   const [selectedProjectType, setSelectedProjectType] = useState<number | null>(null);
@@ -61,14 +63,15 @@ export const useProjectTypeSelectors = () => {
     projectTypes: false,
   });
 
-  // Cargar grupos al montar el componente
+  // Cargar subgrupos de "formularios_minvu" al montar y mostrarlos como "groups"
   useEffect(() => {
-    loadGroups();
+    loadFormulariosMinvuSubgroups();
   }, []);
 
-  // Cargar subgrupos cuando se selecciona un grupo
+  // Cargar subgrupos cuando se selecciona un grupo (que es un subgrupo de formularios_minvu)
   useEffect(() => {
     if (selectedGroup) {
+      // Cargar los subgrupos del grupo seleccionado (ej: subgrupos de "Permisos de Obra Menor")
       loadSubgroups(selectedGroup);
     } else {
       setSubgroups([]);
@@ -88,18 +91,41 @@ export const useProjectTypeSelectors = () => {
     }
   }, [selectedSubgroup]);
 
-  const loadGroups = async () => {
+  // Cargar directamente los subgrupos de "formularios_minvu" y mostrarlos como "groups"
+  const loadFormulariosMinvuSubgroups = async () => {
     setLoading(prev => ({ ...prev, groups: true }));
     try {
-      const response = await fetch(`${API_URL}/api/architecture/architecture-project-types/groups/`);
-      if (response.ok) {
-        const data = await response.json();
-        setGroups(data);
-      } else {
-        console.error('Error loading groups:', response.statusText);
+      // Primero obtener todos los grupos para encontrar "formularios_minvu"
+      const groupsResponse = await fetch(`${API_URL}/api/architecture/architecture-project-types/groups/`);
+      
+      if (!groupsResponse.ok) {
+        console.error('Error loading groups:', groupsResponse.statusText);
+        return;
       }
+      
+      const groupsData = await groupsResponse.json();
+      const formulariosMinvuGroup = groupsData.find((g: Group) => g.code === 'formularios_minvu');
+      
+      if (!formulariosMinvuGroup) {
+        console.error('Formularios MINVU group not found');
+        return;
+      }
+      
+      // Cargar los subgrupos de "formularios_minvu"
+      const subgroupsResponse = await fetch(`${API_URL}/api/architecture/architecture-project-types/subgroups/?group_id=${formulariosMinvuGroup.id}`);
+      
+      if (!subgroupsResponse.ok) {
+        console.error('Error loading subgroups:', subgroupsResponse.statusText);
+        return;
+      }
+      
+      const subgroupsData = await subgroupsResponse.json();
+      
+      // Los subgrupos se muestran como "groups" en el selector de Grupo
+      setGroups(subgroupsData);
+      setSubgroups(subgroupsData);
     } catch (error) {
-      console.error('Error loading groups:', error);
+      console.error('Error loading formularios minvu subgroups:', error);
     } finally {
       setLoading(prev => ({ ...prev, groups: false }));
     }
@@ -108,6 +134,7 @@ export const useProjectTypeSelectors = () => {
   const loadSubgroups = async (groupId: number) => {
     setLoading(prev => ({ ...prev, subgroups: true }));
     try {
+      // Cargar los subgrupos del grupo seleccionado (ej: subgrupos de "Permisos de Obra Menor")
       const response = await fetch(`${API_URL}/api/architecture/architecture-project-types/subgroups/?group_id=${groupId}`);
       if (response.ok) {
         const data = await response.json();
@@ -140,8 +167,9 @@ export const useProjectTypeSelectors = () => {
   };
 
   const handleGroupChange = (groupId: number | null) => {
+    // groupId es un subgrupo de formularios_minvu (ej: "Permisos de Obra Menor")
     setSelectedGroup(groupId);
-    setSelectedSubgroup(null);
+    setSelectedSubgroup(null); // Limpiar subgrupo seleccionado
     setSelectedProjectType(null);
   };
 
@@ -163,8 +191,11 @@ export const useProjectTypeSelectors = () => {
     setSelectedGroup(null);
     setSelectedSubgroup(null);
     setSelectedProjectType(null);
+    setGroups([]);
     setSubgroups([]);
     setProjectTypes([]);
+    // Recargar los subgrupos de formularios_minvu
+    loadFormulariosMinvuSubgroups();
   };
 
   return {
