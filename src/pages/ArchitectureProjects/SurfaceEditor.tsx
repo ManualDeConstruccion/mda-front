@@ -11,6 +11,7 @@ import {
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
 } from '@mui/icons-material';
+import LevelsTab from '../../components/SurfaceEditor/LevelsTab';
 
 type SurfaceTabType = 'niveles' | 'poligonos' | 'copropiedad';
 
@@ -93,9 +94,7 @@ const SurfaceEditor: React.FC = () => {
                   <div className={styles.tabContent}>
                     {activeTab === 'niveles' && (
                       <div className={styles.tabPane}>
-                        <h3>Gestión de Edificios y Niveles</h3>
-                        <p>Aquí podrás crear edificios y sus correspondientes niveles.</p>
-                        {/* TODO: Implementar componente de gestión de niveles */}
+                        <LevelsTab projectNodeId={Number(architectureId)} />
                       </div>
                     )}
 

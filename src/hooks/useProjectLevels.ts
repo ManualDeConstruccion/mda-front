@@ -192,6 +192,31 @@ export const useBuildings = (projectNodeId?: number) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['buildings'] });
+      queryClient.invalidateQueries({ queryKey: ['projectLevels'] });
+    },
+  });
+
+  const updateBuilding = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<Building> }) => {
+      const response = await axios.patch(
+        `${API_URL}/api/project-engines/buildings/${id}/`,
+        data,
+        axiosConfig
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['buildings'] });
+    },
+  });
+
+  const deleteBuilding = useMutation({
+    mutationFn: async (id: number) => {
+      await axios.delete(`${API_URL}/api/project-engines/buildings/${id}/`, axiosConfig);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['buildings'] });
+      queryClient.invalidateQueries({ queryKey: ['projectLevels'] });
     },
   });
 
@@ -199,6 +224,8 @@ export const useBuildings = (projectNodeId?: number) => {
     buildings: getBuildings.data || [],
     isLoadingBuildings: getBuildings.isLoading,
     createBuilding,
+    updateBuilding,
+    deleteBuilding,
   };
 };
 
