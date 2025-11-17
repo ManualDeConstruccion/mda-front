@@ -186,13 +186,16 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
             className={styles.editInput}
           />
         ) : (
-          <span 
-            onClick={() => handleEditLevel(level)} 
-            className={styles.editableText}
-            title="Click para editar"
-          >
-            {level.name}
-          </span>
+          <div className={styles.levelNameContainer}>
+            <span>{level.name}</span>
+            <button
+              className={styles.editIconButton}
+              onClick={() => handleEditLevel(level)}
+              title="Editar nombre del nivel"
+            >
+              <EditIcon fontSize="small" />
+            </button>
+          </div>
         )}
       </td>
       <td className={styles.numberCell}>{formatNumber(level.surface_util || 0)}</td>
@@ -278,13 +281,16 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
                     className={styles.buildingNameInput}
                   />
                 ) : (
-                  <h4 
-                    onClick={() => handleEditBuilding(building)} 
-                    className={styles.editableBuildingName}
-                    title="Click para editar"
-                  >
-                    {building.name}
-                  </h4>
+                  <div className={styles.buildingNameContainer}>
+                    <h4>{building.name}</h4>
+                    <button
+                      className={styles.editIconButton}
+                      onClick={() => handleEditBuilding(building)}
+                      title="Editar nombre del edificio"
+                    >
+                      <EditIcon fontSize="small" />
+                    </button>
+                  </div>
                 )}
               </div>
 

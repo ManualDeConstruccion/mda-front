@@ -12,6 +12,7 @@ import {
   ExpandLess as ExpandLessIcon,
 } from '@mui/icons-material';
 import LevelsTab from '../../components/SurfaceEditor/LevelsTab';
+import PolygonsTab from '../../components/SurfaceEditor/PolygonsTab';
 
 type SurfaceTabType = 'niveles' | 'poligonos' | 'copropiedad';
 
@@ -100,9 +101,7 @@ const SurfaceEditor: React.FC = () => {
 
                     {activeTab === 'poligonos' && (
                       <div className={styles.tabPane}>
-                        <h3>Polígonos de Superficies</h3>
-                        <p>Aquí podrás gestionar los polígonos de superficies por nivel.</p>
-                        {/* TODO: Implementar componente de gestión de polígonos */}
+                        <PolygonsTab projectNodeId={Number(architectureId)} />
                       </div>
                     )}
 

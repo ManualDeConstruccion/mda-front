@@ -1,4 +1,4 @@
-// src/components/SurfaceEditor/LevelsTab.module.scss
+// src/components/SurfaceEditor/PolygonsTab.module.scss
 
 @use '../../styles/variables' as *;
 
@@ -7,52 +7,12 @@
 }
 
 .header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   margin-bottom: $spacing-xl;
 
   h3 {
     margin: 0;
     font-size: $font-size-xl;
     color: $text-primary;
-  }
-
-  .headerActions {
-    display: flex;
-    gap: $spacing-md;
-
-    .addBuildingButton,
-    .saveButton {
-      display: flex;
-      align-items: center;
-      gap: $spacing-xs;
-      padding: $spacing-sm $spacing-md;
-      background-color: $primary-color;
-      color: white;
-      border: none;
-      border-radius: $border-radius-md;
-      cursor: pointer;
-      font-size: $font-size-base;
-      transition: background-color 0.2s;
-
-      &:hover:not(:disabled) {
-        background-color: darken($primary-color, 10%);
-      }
-
-      &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-    }
-
-    .saveButton {
-      background-color: $success-color;
-      
-      &:hover:not(:disabled) {
-        background-color: darken($success-color, 10%);
-      }
-    }
   }
 }
 
@@ -83,35 +43,13 @@
     font-size: $font-size-lg;
     color: $primary-color;
   }
-
-  .buildingNameContainer {
-    display: flex;
-    align-items: center;
-    gap: $spacing-sm;
-  }
-
-  .buildingNameInput {
-    width: 100%;
-    padding: $spacing-sm;
-    border: 2px solid $primary-color;
-    border-radius: $border-radius-sm;
-    font-size: $font-size-lg;
-    font-weight: 600;
-  }
 }
 
 .levelTypeSection {
   margin-bottom: $spacing-lg;
-}
-
-.levelTypeHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: $spacing-md;
 
   h5 {
-    margin: 0;
+    margin: 0 0 $spacing-md 0;
     font-size: $font-size-base;
     font-weight: 600;
     color: $text-primary;
@@ -125,8 +63,63 @@
     font-weight: 400;
     color: $text-secondary;
   }
+}
 
-  .addLevelButton {
+.levelAccordion {
+  margin-bottom: $spacing-md;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-sm;
+  background: $background-light;
+}
+
+.levelAccordionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-md;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: darken($background-light, 2%);
+  }
+
+  .levelAccordionTitle {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    flex: 1;
+
+    .expandButton {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: $text-secondary;
+      padding: $spacing-xs;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s;
+
+      &:hover {
+        color: $text-primary;
+      }
+    }
+
+    .levelName {
+      font-weight: 600;
+      color: $text-primary;
+    }
+
+    .levelTotals {
+      margin-left: $spacing-md;
+      font-size: $font-size-sm;
+      color: $text-secondary;
+      font-weight: 400;
+    }
+  }
+
+  .addPolygonButton {
     display: flex;
     align-items: center;
     gap: $spacing-xs;
@@ -145,27 +138,39 @@
   }
 }
 
+.levelAccordionContent {
+  padding: $spacing-md;
+  background: white;
+  border-top: 1px solid $border-color;
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: $spacing-md;
   background: white;
 
   thead {
     background-color: #f5f5f5;
 
     th {
-      padding: $spacing-md;
+      padding: $spacing-sm $spacing-md;
       text-align: left;
       font-weight: 600;
       color: $text-primary;
       border-bottom: 2px solid #ddd;
+      font-size: $font-size-sm;
 
       // Alinear columnas numéricas a la derecha
       &:nth-child(2),
       &:nth-child(3),
-      &:nth-child(4) {
+      &:nth-child(5),
+      &:nth-child(6) {
         text-align: right;
+      }
+
+      // Centrar checkbox
+      &:nth-child(4) {
+        text-align: center;
       }
     }
   }
@@ -180,8 +185,9 @@
     }
 
     td {
-      padding: $spacing-md;
+      padding: $spacing-sm $spacing-md;
       color: $text-primary;
+      font-size: $font-size-sm;
     }
   }
 }
@@ -191,52 +197,51 @@
   font-family: 'Courier New', monospace;
 }
 
+.centerCell {
+  text-align: center;
+}
+
 .totalRow {
   background-color: #f0f0f0;
   font-weight: 600;
+  border-top: 2px solid $primary-color;
 
-  .totalLabel {
-    font-weight: 700;
-  }
-
-  .totalCell {
-    font-weight: 700;
-    color: $primary-color;
+  &:hover {
+    background-color: #e8e8e8;
   }
 }
 
-.levelNameContainer {
+.totalLabel {
+  text-align: left;
+  padding: $spacing-sm $spacing-md;
+  color: $text-primary;
+}
+
+.totalCell {
+  font-weight: 700;
+  color: $primary-color;
+  font-size: $font-size-base;
+}
+
+.actionButtons {
   display: flex;
   align-items: center;
   gap: $spacing-xs;
 }
 
-.editIconButton {
+.editButton {
   background: none;
   border: none;
-  color: $text-secondary;
+  color: $primary-color;
   cursor: pointer;
   padding: $spacing-xs;
   display: flex;
   align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-  border-radius: $border-radius-sm;
-  opacity: 0.6;
+  transition: color 0.2s;
 
   &:hover {
-    color: $primary-color;
-    opacity: 1;
-    background-color: $background-light;
+    color: darken($primary-color, 10%);
   }
-}
-
-.editInput {
-  width: 100%;
-  padding: $spacing-xs;
-  border: 2px solid $primary-color;
-  border-radius: $border-radius-sm;
-  font-size: $font-size-base;
 }
 
 .deleteButton {
@@ -261,20 +266,6 @@
   padding: $spacing-lg;
   background: $background-light;
   border-radius: $border-radius-sm;
-  margin-top: $spacing-md;
-}
-
-.buildingTotals {
-  margin-top: $spacing-lg;
-  padding-top: $spacing-lg;
-  border-top: 2px solid $primary-color;
-
-  h5 {
-    margin: 0 0 $spacing-md 0;
-    font-size: $font-size-base;
-    font-weight: 600;
-    color: $primary-color;
-  }
 }
 
 .loading {
@@ -301,7 +292,7 @@
   background: white;
   border-radius: $border-radius-md;
   padding: $spacing-lg;
-  max-width: 500px;
+  max-width: 600px;
   width: 90%;
   max-height: 90vh;
   overflow-y: auto;
@@ -354,7 +345,8 @@
     color: $text-primary;
   }
 
-  input {
+  input[type="text"],
+  input[type="number"] {
     width: 100%;
     padding: $spacing-sm;
     border: 1px solid #ddd;
@@ -365,7 +357,30 @@
       outline: none;
       border-color: $primary-color;
     }
+
+    &:disabled {
+      background-color: #f5f5f5;
+      cursor: not-allowed;
+    }
   }
+
+  input[type="checkbox"] {
+    margin-right: $spacing-xs;
+  }
+
+  .helpText {
+    display: block;
+    margin-top: $spacing-xs;
+    font-size: $font-size-xs;
+    color: $text-secondary;
+    font-style: italic;
+  }
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $spacing-md;
 }
 
 .modalActions {
