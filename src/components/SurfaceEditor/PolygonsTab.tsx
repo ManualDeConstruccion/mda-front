@@ -53,7 +53,13 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
   // Calcular totales en tiempo real por nivel (suma de polígonos)
   const calculateLevelTotal = (levelId: number): number => {
     const levelPolygons = polygonsByLevel[levelId] || [];
-    return levelPolygons.reduce((sum, polygon) => sum + (polygon.total || 0), 0);
+    return levelPolygons.reduce((sum, polygon) => {
+      const polygonTotal = polygon.total;
+      if (polygonTotal === null || polygonTotal === undefined || isNaN(Number(polygonTotal))) {
+        return sum;
+      }
+      return sum + Number(polygonTotal);
+    }, 0);
   };
 
   // Agrupar niveles por edificio
@@ -81,7 +87,10 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
 
   const formatNumber = (num: number | null | undefined): string => {
     if (num === null || num === undefined || isNaN(Number(num))) return '-';
-    return Number(num).toFixed(2);
+    const numValue = Number(num);
+    // Mostrar 0.00 en lugar de "-" cuando el valor es 0
+    if (numValue === 0) return '0.00';
+    return numValue.toFixed(2);
   };
 
   const recalculateLevelFromPolygons = async (levelId: number) => {
