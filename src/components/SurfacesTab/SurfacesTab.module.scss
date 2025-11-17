@@ -15,6 +15,24 @@
     font-size: $font-size-xl;
     color: $text-primary;
   }
+
+  .editButton {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+    padding: $spacing-sm $spacing-md;
+    background-color: $primary-color;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: $font-size-base;
+    transition: background-color 0.2s;
+
+    &:hover {
+      background-color: darken($primary-color, 10%);
+    }
+  }
 }
 
 .addButton {
@@ -71,6 +89,13 @@
       font-weight: 600;
       color: $text-primary;
       border-bottom: 2px solid #ddd;
+
+      // Alinear columnas numéricas a la derecha
+      &:nth-child(2),
+      &:nth-child(3),
+      &:nth-child(4) {
+        text-align: right;
+      }
     }
   }
 

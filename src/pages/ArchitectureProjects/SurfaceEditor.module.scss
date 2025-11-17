@@ -1,0 +1,175 @@
+// src/pages/ArchitectureProjects/SurfaceEditor.module.scss
+
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+@use '../../styles/buttons' as *;
+
+.container {
+  padding: $spacing-sm;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.header {
+  @include page-header;
+
+  .headerContent {
+    h1 {
+      margin: 0;
+      font-size: $font-size-xl * 1.25;
+      color: $text-primary;
+    }
+  }
+
+  .headerActions {
+    @include flex-container(row, $spacing-md);
+
+    .backButton {
+      @include secondary-button;
+      display: flex;
+      align-items: center;
+      gap: $spacing-xs;
+    }
+  }
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-bottom: $spacing-xl;
+}
+
+.mainInfo {
+  width: 100%;
+}
+
+.collapsibleSection {
+  @include card-container;
+  margin-bottom: $spacing-lg;
+}
+
+.collapsibleHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: $spacing-lg;
+  cursor: pointer;
+  background-color: $background-light;
+  border-bottom: 1px solid $border-color;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: darken($background-light, 2%);
+  }
+
+  h2 {
+    margin: 0 0 $spacing-xs 0;
+    font-size: $font-size-xl;
+    color: $text-primary;
+  }
+
+  p {
+    margin: 0;
+    color: $text-secondary;
+    font-size: $font-size-base;
+
+    strong {
+      color: $text-primary;
+    }
+  }
+
+  .toggleButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: $text-secondary;
+    padding: $spacing-xs;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+    margin-left: $spacing-md;
+
+    &:hover {
+      color: $text-primary;
+    }
+  }
+}
+
+.collapsibleContent {
+  padding: $spacing-lg;
+}
+
+.tabsContainer {
+  width: 100%;
+}
+
+.tabs {
+  display: flex;
+  gap: $spacing-xs;
+  border-bottom: 2px solid $border-color;
+  margin-bottom: $spacing-lg;
+
+  .tab {
+    padding: $spacing-sm $spacing-md;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    font-size: $font-size-base;
+    color: $text-secondary;
+    transition: all 0.2s;
+    font-weight: 500;
+
+    &:hover {
+      color: $text-primary;
+      background-color: $background-light;
+    }
+
+    &.active {
+      color: $primary-color;
+      border-bottom-color: $primary-color;
+      font-weight: 600;
+    }
+  }
+}
+
+.tabContent {
+  min-height: 400px;
+}
+
+.tabPane {
+  h3 {
+    margin-top: 0;
+    margin-bottom: $spacing-md;
+    color: $text-primary;
+    font-size: $font-size-lg;
+  }
+
+  p {
+    color: $text-secondary;
+    margin-bottom: $spacing-lg;
+  }
+}
+
+.error {
+  padding: $spacing-xl;
+  text-align: center;
+
+  h2 {
+    color: $error-color;
+    margin-bottom: $spacing-md;
+  }
+
+  button {
+    margin-top: $spacing-md;
+    padding: $spacing-sm $spacing-md;
+    background-color: $primary-color;
+    color: white;
+    border: none;
+    border-radius: $border-radius-md;
+    cursor: pointer;
+  }
+}
+

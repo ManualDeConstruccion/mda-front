@@ -24,6 +24,7 @@ import ProjectDetail from "./pages/Projects/ProjectDetail";
 import CreateArchitectureProject from "./pages/ArchitectureProjects/CreateArchitectureProject";
 import ArchitectureProjectDetail from "./pages/ArchitectureProjects/ArchitectureProjectDetail";
 import EditArchitectureProject from "./pages/ArchitectureProjects/EditArchitectureProject";
+import SurfaceEditor from "./pages/ArchitectureProjects/SurfaceEditor";
 import { FormNodeProvider } from './context/FormNodeContext';
 import SelectorFormPage from './pages/Forms/Step1SelectorFormPage';
 import Step2NodeFormCreatePage from './pages/Forms/Step2NodeFormCreatePage';
@@ -117,6 +118,9 @@ const App: React.FC = () => {
 
                         {/* /proyectos/:projectId/arquitectura/:architectureId/editar */}
                         <Route path=":architectureId/editar" element={<EditArchitectureProject />} />
+
+                        {/* /proyectos/:projectId/arquitectura/:architectureId/superficies */}
+                        <Route path=":architectureId/superficies" element={<SurfaceEditor />} />
                       </Route>
                     </Route>
 

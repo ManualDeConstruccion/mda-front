@@ -63,14 +63,32 @@ export const useProjectLevels = (filters?: ProjectLevelsFilters) => {
     enabled: !!accessToken && (!!filters?.project_node || !!filters?.building),
   });
 
+  interface Totals {
+    subterraneo: { util: number; comun: number; total: number };
+    sobre_terreno: { util: number; comun: number; total: number };
+    general: { util: number; comun: number; total: number };
+  }
+
   const getLevelsByType = useQuery<{
     below: ProjectLevel[];
     above: ProjectLevel[];
     roof: ProjectLevel[];
+    totals: Totals;
   }>({
     queryKey: ['projectLevelsByType', filters?.project_node],
     queryFn: async () => {
-      if (!filters?.project_node) return { below: [], above: [], roof: [] };
+      if (!filters?.project_node) {
+        return {
+          below: [],
+          above: [],
+          roof: [],
+          totals: {
+            subterraneo: { util: 0, comun: 0, total: 0 },
+            sobre_terreno: { util: 0, comun: 0, total: 0 },
+            general: { util: 0, comun: 0, total: 0 },
+          },
+        };
+      }
       
       const response = await axios.get(
         `${API_URL}/api/project-engines/levels/by_type/?project_node=${filters.project_node}`,
@@ -124,7 +142,16 @@ export const useProjectLevels = (filters?: ProjectLevelsFilters) => {
   return {
     levels: getLevels.data || [],
     isLoadingLevels: getLevels.isLoading,
-    levelsByType: getLevelsByType.data || { below: [], above: [], roof: [] },
+    levelsByType: getLevelsByType.data || {
+      below: [],
+      above: [],
+      roof: [],
+      totals: {
+        subterraneo: { util: 0, comun: 0, total: 0 },
+        sobre_terreno: { util: 0, comun: 0, total: 0 },
+        general: { util: 0, comun: 0, total: 0 },
+      },
+    },
     isLoadingLevelsByType: getLevelsByType.isLoading,
     createLevel,
     updateLevel,
