@@ -16,6 +16,7 @@ export interface ProjectLevel {
   name: string;
   order: number;
   level_type: 'below' | 'above' | 'roof';
+  altura?: number | null;
   is_active: boolean;
   metadata: Record<string, any>;
   surface_total: number;
@@ -131,13 +132,35 @@ export const useProjectLevels = (filters?: ProjectLevelsFilters) => {
 
   const deleteLevel = useMutation({
     mutationFn: async (id: number) => {
-      await axios.delete(`${API_URL}/api/project-engines/levels/${id}/`, axiosConfig);
+      try {
+        await axios.delete(`${API_URL}/api/project-engines/levels/${id}/`, axiosConfig);
+      } catch (error: any) {
+        // Extraer mensaje de error del backend
+        const errorMessage = error?.response?.data?.error || 
+                           error?.response?.data?.detail || 
+                           error?.response?.data?.message ||
+                           'No se pudo eliminar el nivel';
+        throw new Error(errorMessage);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projectLevels'] });
       queryClient.invalidateQueries({ queryKey: ['projectLevelsByType'] });
     },
   });
+
+  const suggestLevelCode = async (buildingId: number, levelType: 'below' | 'above' | 'roof'): Promise<string> => {
+    try {
+      const response = await axios.get(
+        `${API_URL}/api/project-engines/levels/suggest_code/?building=${buildingId}&level_type=${levelType}`,
+        axiosConfig
+      );
+      return response.data.suggested_code || '';
+    } catch (error) {
+      console.error('Error al obtener sugerencia de código:', error);
+      return '';
+    }
+  };
 
   return {
     levels: getLevels.data || [],
@@ -156,6 +179,7 @@ export const useProjectLevels = (filters?: ProjectLevelsFilters) => {
     createLevel,
     updateLevel,
     deleteLevel,
+    suggestLevelCode,
   };
 };
 

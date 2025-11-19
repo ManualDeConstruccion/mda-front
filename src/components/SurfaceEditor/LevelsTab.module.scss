@@ -74,6 +74,9 @@
 }
 
 .buildingHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: $spacing-lg;
   padding-bottom: $spacing-md;
   border-bottom: 2px solid $primary-color;
@@ -125,23 +128,23 @@
     font-weight: 400;
     color: $text-secondary;
   }
+}
 
-  .addLevelButton {
-    display: flex;
-    align-items: center;
-    gap: $spacing-xs;
-    padding: $spacing-xs $spacing-sm;
-    background-color: $primary-color;
-    color: white;
-    border: none;
-    border-radius: $border-radius-sm;
-    cursor: pointer;
-    font-size: $font-size-sm;
-    transition: background-color 0.2s;
+.addLevelButton {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-sm;
+  background-color: $primary-color;
+  color: white;
+  border: none;
+  border-radius: $border-radius-sm;
+  cursor: pointer;
+  font-size: $font-size-sm;
+  transition: background-color 0.2s;
 
-    &:hover {
-      background-color: darken($primary-color, 10%);
-    }
+  &:hover {
+    background-color: darken($primary-color, 10%);
   }
 }
 

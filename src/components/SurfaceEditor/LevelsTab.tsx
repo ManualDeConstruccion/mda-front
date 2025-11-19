@@ -6,7 +6,8 @@ import {
   Add as AddIcon, 
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Save as SaveIcon 
+  Save as SaveIcon,
+  Height as HeightIcon
 } from '@mui/icons-material';
 import styles from './LevelsTab.module.scss';
 
@@ -22,7 +23,7 @@ interface BuildingTotals {
 
 const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
   const { buildings, isLoadingBuildings, createBuilding, updateBuilding } = useBuildings(projectNodeId);
-  const { levels, isLoadingLevels, createLevel, updateLevel, deleteLevel } = useProjectLevels({
+  const { levels, isLoadingLevels, createLevel, updateLevel, deleteLevel, suggestLevelCode } = useProjectLevels({
     project_node: projectNodeId,
   });
 
@@ -36,6 +37,8 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
   const [showAddLevelModal, setShowAddLevelModal] = useState<{ buildingId: number; levelType: 'below' | 'above' } | null>(null);
   const [newLevelName, setNewLevelName] = useState('');
   const [newLevelCode, setNewLevelCode] = useState('');
+  const [showEditHeightsModal, setShowEditHeightsModal] = useState<number | null>(null);
+  const [editingHeights, setEditingHeights] = useState<Record<number, number | null>>({});
 
   // Agrupar niveles por edificio
   const levelsByBuilding = buildings.reduce((acc, building) => {
@@ -159,63 +162,153 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
       setNewLevelName('');
       setNewLevelCode('');
       setShowAddLevelModal(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al crear nivel:', error);
-      alert('Error al crear nivel');
+      const errorMessage = error?.response?.data?.error || 
+                          error?.response?.data?.detail || 
+                          error?.response?.data?.message ||
+                          'Error al crear nivel';
+      alert(errorMessage);
     }
   };
 
-  const renderLevelRow = (level: ProjectLevel, buildingId: number) => (
-    <tr key={level.id}>
-      <td>
-        {editingLevel === level.id ? (
-          <input
-            type="text"
-            value={editingLevelName}
-            onChange={(e) => setEditingLevelName(e.target.value)}
-            onBlur={() => handleSaveLevel(level.id)}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter') {
-                handleSaveLevel(level.id);
-              } else if (e.key === 'Escape') {
-                setEditingLevel(null);
-                setEditingLevelName('');
-              }
-            }}
-            autoFocus
-            className={styles.editInput}
-          />
-        ) : (
-          <div className={styles.levelNameContainer}>
-            <span>{level.name}</span>
+  const handleOpenAddLevelModal = async (buildingId: number, levelType: 'below' | 'above') => {
+    setShowAddLevelModal({ buildingId, levelType });
+    setNewLevelName('');
+    setNewLevelCode('');
+    
+    // Obtener sugerencia de código
+    try {
+      const suggestedCode = await suggestLevelCode(buildingId, levelType);
+      if (suggestedCode) {
+        setNewLevelCode(suggestedCode);
+      }
+    } catch (error) {
+      console.error('Error al obtener sugerencia de código:', error);
+      // Continuar sin sugerencia si hay error
+    }
+  };
+
+  const handleDeleteLevel = async (level: ProjectLevel) => {
+    if (!confirm(`¿Está seguro de eliminar el nivel "${level.name}"?`)) {
+      return;
+    }
+    
+    try {
+      await deleteLevel.mutateAsync(level.id);
+    } catch (error: any) {
+      console.error('Error al eliminar nivel:', error);
+      const errorMessage = error?.message || 
+                          error?.response?.data?.error || 
+                          error?.response?.data?.detail || 
+                          error?.response?.data?.message ||
+                          'No se pudo eliminar el nivel';
+      alert(errorMessage);
+    }
+  };
+
+  // Verificar si hay más de un nivel en total (de cualquier tipo) para un edificio
+  const canDeleteLevel = (buildingId: number): boolean => {
+    const buildingLevels = levelsByBuilding[buildingId] || { below: [], above: [], roof: [] };
+    const totalLevels = buildingLevels.below.length + buildingLevels.above.length + buildingLevels.roof.length;
+    return totalLevels > 1;
+  };
+
+  const handleEditHeights = (buildingId: number) => {
+    const buildingLevels = levelsByBuilding[buildingId] || { below: [], above: [], roof: [] };
+    // Obtener todos los niveles del edificio (subterráneos, sobre terreno y cubierta)
+    const allLevels = [...buildingLevels.below, ...buildingLevels.above, ...buildingLevels.roof];
+    
+    // Inicializar el estado de edición con las alturas actuales
+    const initialHeights: Record<number, number | null> = {};
+    allLevels.forEach(level => {
+      // Asegurarse de obtener el valor correcto de altura
+      const alturaValue = level.altura !== undefined && level.altura !== null ? Number(level.altura) : null;
+      initialHeights[level.id] = alturaValue;
+    });
+    setEditingHeights(initialHeights);
+    setShowEditHeightsModal(buildingId);
+  };
+
+  const handleSaveHeights = async () => {
+    if (!showEditHeightsModal) return;
+    
+    try {
+      // Actualizar cada nivel con su nueva altura
+      const updatePromises = Object.entries(editingHeights).map(([levelId, altura]) => {
+        const alturaValue = altura === null || altura === undefined ? null : parseFloat(altura.toString());
+        return updateLevel.mutateAsync({
+          id: parseInt(levelId),
+          data: { altura: alturaValue }
+        });
+      });
+      
+      await Promise.all(updatePromises);
+      setShowEditHeightsModal(null);
+      setEditingHeights({});
+    } catch (error: any) {
+      console.error('Error al guardar alturas:', error);
+      const errorMessage = error?.response?.data?.error || 
+                          error?.response?.data?.detail || 
+                          error?.response?.data?.message ||
+                          'Error al guardar alturas';
+      alert(errorMessage);
+    }
+  };
+
+  const renderLevelRow = (level: ProjectLevel, buildingId: number) => {
+    const canDelete = canDeleteLevel(buildingId);
+    
+    return (
+      <tr key={level.id}>
+        <td>
+          {editingLevel === level.id ? (
+            <input
+              type="text"
+              value={editingLevelName}
+              onChange={(e) => setEditingLevelName(e.target.value)}
+              onBlur={() => handleSaveLevel(level.id)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  handleSaveLevel(level.id);
+                } else if (e.key === 'Escape') {
+                  setEditingLevel(null);
+                  setEditingLevelName('');
+                }
+              }}
+              autoFocus
+              className={styles.editInput}
+            />
+          ) : (
+            <div className={styles.levelNameContainer}>
+              <span>{level.name}</span>
+              <button
+                className={styles.editIconButton}
+                onClick={() => handleEditLevel(level)}
+                title="Editar nombre del nivel"
+              >
+                <EditIcon fontSize="small" />
+              </button>
+            </div>
+          )}
+        </td>
+        <td className={styles.numberCell}>{formatNumber(level.surface_util || 0)}</td>
+        <td className={styles.numberCell}>{formatNumber(level.surface_comun || 0)}</td>
+        <td className={styles.numberCell}>{formatNumber(level.surface_total || 0)}</td>
+        <td>
+          {canDelete && (
             <button
-              className={styles.editIconButton}
-              onClick={() => handleEditLevel(level)}
-              title="Editar nombre del nivel"
+              className={styles.deleteButton}
+              onClick={() => handleDeleteLevel(level)}
+              title="Eliminar nivel"
             >
-              <EditIcon fontSize="small" />
+              <DeleteIcon fontSize="small" />
             </button>
-          </div>
-        )}
-      </td>
-      <td className={styles.numberCell}>{formatNumber(level.surface_util || 0)}</td>
-      <td className={styles.numberCell}>{formatNumber(level.surface_comun || 0)}</td>
-      <td className={styles.numberCell}>{formatNumber(level.surface_total || 0)}</td>
-      <td>
-        <button
-          className={styles.deleteButton}
-          onClick={() => {
-            if (confirm(`¿Está seguro de eliminar el nivel "${level.name}"?`)) {
-              deleteLevel.mutate(level.id);
-            }
-          }}
-          title="Eliminar nivel"
-        >
-          <DeleteIcon fontSize="small" />
-        </button>
-      </td>
-    </tr>
-  );
+          )}
+        </td>
+      </tr>
+    );
+  };
 
   const renderTotalRow = (totals: { util: number; comun: number; total: number }, label: string) => (
     <tr className={styles.totalRow}>
@@ -281,16 +374,25 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
                     className={styles.buildingNameInput}
                   />
                 ) : (
-                  <div className={styles.buildingNameContainer}>
-                    <h4>{building.name}</h4>
+                  <>
+                    <div className={styles.buildingNameContainer}>
+                      <h4>{building.name}</h4>
+                      <button
+                        className={styles.editIconButton}
+                        onClick={() => handleEditBuilding(building)}
+                        title="Editar nombre del edificio"
+                      >
+                        <EditIcon fontSize="small" />
+                      </button>
+                    </div>
                     <button
-                      className={styles.editIconButton}
-                      onClick={() => handleEditBuilding(building)}
-                      title="Editar nombre del edificio"
+                      className={styles.addLevelButton}
+                      onClick={() => handleEditHeights(building.id)}
+                      title="Editar alturas"
                     >
-                      <EditIcon fontSize="small" />
+                      <HeightIcon fontSize="small" /> Editar alturas
                     </button>
-                  </div>
+                  </>
                 )}
               </div>
 
@@ -303,7 +405,7 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
                   </h5>
                   <button
                     className={styles.addLevelButton}
-                    onClick={() => setShowAddLevelModal({ buildingId: building.id, levelType: 'below' })}
+                    onClick={() => handleOpenAddLevelModal(building.id, 'below')}
                   >
                     <AddIcon /> Agregar Nivel
                   </button>
@@ -340,7 +442,7 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
                   </h5>
                   <button
                     className={styles.addLevelButton}
-                    onClick={() => setShowAddLevelModal({ buildingId: building.id, levelType: 'above' })}
+                    onClick={() => handleOpenAddLevelModal(building.id, 'above')}
                   >
                     <AddIcon /> Agregar Nivel
                   </button>
@@ -496,6 +598,109 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
           </div>
         </div>
       )}
+
+      {/* Modal para editar alturas */}
+      {showEditHeightsModal && (() => {
+        const building = buildings.find(b => b.id === showEditHeightsModal);
+        const buildingLevels = levelsByBuilding[showEditHeightsModal] || { below: [], above: [], roof: [] };
+        const allLevels = [...buildingLevels.below, ...buildingLevels.above, ...buildingLevels.roof];
+        
+        return (
+          <div className={styles.modalOverlay} onClick={() => setShowEditHeightsModal(null)}>
+            <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.modalHeader}>
+                <h3>
+                  Editar Alturas - {building?.name || 'Edificio'}
+                </h3>
+                <button 
+                  className={styles.closeButton}
+                  onClick={() => {
+                    setShowEditHeightsModal(null);
+                    setEditingHeights({});
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+              <div className={styles.modalContent}>
+                <p className={styles.helpText}>
+                  Ingrese la altura de cada nivel en metros. Los niveles subterráneos deben tener valores negativos.
+                </p>
+                {allLevels.length === 0 ? (
+                  <p className={styles.emptyMessage}>No hay niveles asociados a este edificio.</p>
+                ) : (
+                  <table className={styles.heightsTable}>
+                    <thead>
+                      <tr>
+                        <th>Tipo</th>
+                        <th>Nivel</th>
+                        <th>Código</th>
+                        <th>Altura (m)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {allLevels.map((level) => {
+                        const levelTypeLabel = 
+                          level.level_type === 'below' ? 'Subterráneo' :
+                          level.level_type === 'above' ? 'Sobre Terreno' :
+                          'Cubierta';
+                        
+                        return (
+                          <tr key={level.id}>
+                            <td>{levelTypeLabel}</td>
+                            <td>{level.name}</td>
+                            <td>{level.code}</td>
+                            <td>
+                              <input
+                                type="number"
+                                step="0.001"
+                                value={
+                                  editingHeights[level.id] !== undefined && editingHeights[level.id] !== null
+                                    ? editingHeights[level.id]!
+                                    : level.altura !== undefined && level.altura !== null
+                                    ? level.altura
+                                    : ''
+                                }
+                                onChange={(e) => {
+                                  const value = e.target.value === '' ? null : parseFloat(e.target.value);
+                                  setEditingHeights(prev => ({
+                                    ...prev,
+                                    [level.id]: value
+                                  }));
+                                }}
+                                placeholder="0.000"
+                                className={styles.heightInput}
+                              />
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+              <div className={styles.modalActions}>
+                <button 
+                  className={styles.cancelButton}
+                  onClick={() => {
+                    setShowEditHeightsModal(null);
+                    setEditingHeights({});
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  className={styles.saveButton}
+                  onClick={handleSaveHeights}
+                  disabled={updateLevel.isPending || allLevels.length === 0}
+                >
+                  {updateLevel.isPending ? 'Guardando...' : 'Guardar Alturas'}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };
