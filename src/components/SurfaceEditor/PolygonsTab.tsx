@@ -13,6 +13,7 @@ import {
   ExpandLess as ExpandLessIcon,
 } from '@mui/icons-material';
 import HelpTooltip from '../common/HelpTooltip/HelpTooltip';
+import { validatePolygonData } from '../../validation/polygonSchemas';
 import styles from './PolygonsTab.module.scss';
 
 interface PolygonsTabProps {
@@ -41,6 +42,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
   const [newPolygonTrianguloRectangulo, setNewPolygonTrianguloRectangulo] = useState(false);
   const [newPolygonCountAsHalf, setNewPolygonCountAsHalf] = useState(false);
   const [newPolygonManualTotal, setNewPolygonManualTotal] = useState('');
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   // Agrupar polígonos por nivel
   const polygonsByLevel = polygons.reduce((acc, polygon) => {
@@ -95,6 +97,50 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
     return numValue.toFixed(2);
   };
 
+  // Calcular total en vivo según la lógica del backend
+  const calculateLiveTotal = (): number | null => {
+    let area: number | null = null;
+
+    // Si hay total manual, empezar con ese valor
+    if (newPolygonManualTotal) {
+      const manual = parseFloat(newPolygonManualTotal);
+      if (!isNaN(manual) && manual > 0) {
+        area = manual;
+      }
+    } else {
+      // Si no hay ancho y largo, no se puede calcular
+      if (!newPolygonWidth || !newPolygonLength) {
+        return null;
+      }
+
+      const width = parseFloat(newPolygonWidth);
+      const length = parseFloat(newPolygonLength);
+
+      if (isNaN(width) || isNaN(length) || width <= 0 || length <= 0) {
+        return null;
+      }
+
+      area = width * length;
+
+      // Aplicar división por 2 si es triángulo rectángulo
+      if (newPolygonTrianguloRectangulo) {
+        area = area / 2;
+      }
+    }
+
+    if (area === null) {
+      return null;
+    }
+
+    // Media superficie aplica factor adicional de 0.5 (compatible con manual_total y triangulo_rectangulo)
+    if (newPolygonCountAsHalf) {
+      area = area / 2;
+    }
+
+    // Redondear a 2 decimales
+    return Math.round(area * 100) / 100;
+  };
+
   const recalculateLevelFromPolygons = async (levelId: number) => {
     try {
       await axios.post(
@@ -129,30 +175,43 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [polygons.length]);
 
+  // Limpiar errores de validación cuando cambian los campos
+  const clearFieldError = (fieldName: string) => {
+    if (validationErrors[fieldName]) {
+      const newErrors = { ...validationErrors };
+      delete newErrors[fieldName];
+      setValidationErrors(newErrors);
+    }
+  };
+
   const handleAddPolygon = async () => {
     if (!showAddPolygonModal) return;
-    if (!newPolygonName.trim()) {
-      alert('Debe ingresar un nombre para el polígono');
+
+    // Validar con Yup
+    const validation = await validatePolygonData(
+      {
+        name: newPolygonName,
+        width: newPolygonWidth,
+        length: newPolygonLength,
+        manual_total: newPolygonManualTotal,
+        triangulo_rectangulo: newPolygonTrianguloRectangulo,
+        count_as_half: newPolygonCountAsHalf,
+      },
+      polygons,
+      showAddPolygonModal.levelId
+    );
+
+    if (!validation.isValid) {
+      setValidationErrors(validation.errors);
       return;
     }
 
-    // Validar que tenga manual_total o (width y length)
-    if (!newPolygonManualTotal && (!newPolygonWidth || !newPolygonLength)) {
-      alert('Debe ingresar ancho y largo, o un total manual');
-      return;
-    }
-
-    // Validar que triangulo_rectangulo requiera width y length
-    if (newPolygonTrianguloRectangulo && (!newPolygonWidth || !newPolygonLength)) {
-      alert('Para calcular un triángulo rectángulo debe ingresar ancho y largo');
-      return;
-    }
-
+    setValidationErrors({});
     try {
       await createPolygon.mutateAsync({
         project_node: projectNodeId,
         level: showAddPolygonModal.levelId,
-        name: newPolygonName,
+        name: newPolygonName.trim(),
         width: newPolygonWidth ? parseFloat(newPolygonWidth) : null,
         length: newPolygonLength ? parseFloat(newPolygonLength) : null,
         triangulo_rectangulo: newPolygonTrianguloRectangulo,
@@ -165,15 +224,28 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
       setNewPolygonTrianguloRectangulo(false);
       setNewPolygonCountAsHalf(false);
       setNewPolygonManualTotal('');
+      setValidationErrors({});
       setShowAddPolygonModal(null);
       
       // Recalcular superficies del nivel automáticamente
       if (showAddPolygonModal) {
         await recalculateLevelFromPolygons(showAddPolygonModal.levelId);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al crear polígono:', error);
-      alert('Error al crear polígono');
+      console.error('Error response data:', error?.response?.data);
+      // Manejar error de validación del backend
+      const errorData = error?.response?.data;
+      const backendErrors: Record<string, string> = {};
+      if (errorData) {
+        Object.keys(errorData).forEach((key) => {
+          const errorValue = errorData[key];
+          backendErrors[key] = Array.isArray(errorValue) ? errorValue[0] : errorValue;
+        });
+        setValidationErrors(backendErrors);
+      } else {
+        setValidationErrors({ general: 'Error al crear polígono. Verifique que el nombre no esté duplicado.' });
+      }
     }
   };
 
@@ -185,33 +257,39 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
     setNewPolygonTrianguloRectangulo(polygon.triangulo_rectangulo || false);
     setNewPolygonCountAsHalf(polygon.count_as_half || false);
     setNewPolygonManualTotal(polygon.manual_total?.toString() || '');
+    setValidationErrors({}); // Limpiar errores al editar
   };
 
   const handleUpdatePolygon = async () => {
     if (!editingPolygon) return;
-    if (!newPolygonName.trim()) {
-      alert('Debe ingresar un nombre para el polígono');
+
+    // Validar con Yup
+    const validation = await validatePolygonData(
+      {
+        name: newPolygonName,
+        width: newPolygonWidth,
+        length: newPolygonLength,
+        manual_total: newPolygonManualTotal,
+        triangulo_rectangulo: newPolygonTrianguloRectangulo,
+        count_as_half: newPolygonCountAsHalf,
+      },
+      polygons,
+      editingPolygon.level,
+      editingPolygon.id
+    );
+
+    if (!validation.isValid) {
+      setValidationErrors(validation.errors);
       return;
     }
 
-    // Validar que tenga manual_total o (width y length)
-    if (!newPolygonManualTotal && (!newPolygonWidth || !newPolygonLength)) {
-      alert('Debe ingresar ancho y largo, o un total manual');
-      return;
-    }
-
-    // Validar que triangulo_rectangulo requiera width y length
-    if (newPolygonTrianguloRectangulo && (!newPolygonWidth || !newPolygonLength)) {
-      alert('Para calcular un triángulo rectángulo debe ingresar ancho y largo');
-      return;
-    }
-
+    setValidationErrors({});
     try {
       const levelId = editingPolygon.level;
       await updatePolygon.mutateAsync({
         id: editingPolygon.id,
         data: {
-          name: newPolygonName,
+          name: newPolygonName.trim(),
           width: newPolygonWidth ? parseFloat(newPolygonWidth) : null,
           length: newPolygonLength ? parseFloat(newPolygonLength) : null,
           triangulo_rectangulo: newPolygonTrianguloRectangulo,
@@ -225,15 +303,28 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
       setNewPolygonTrianguloRectangulo(false);
       setNewPolygonCountAsHalf(false);
       setNewPolygonManualTotal('');
+      setValidationErrors({});
       setEditingPolygon(null);
       
       // Recalcular superficies del nivel automáticamente
       if (levelId) {
         await recalculateLevelFromPolygons(levelId);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al actualizar polígono:', error);
-      alert('Error al actualizar polígono');
+      console.error('Error response data:', error?.response?.data);
+      // Manejar error de validación del backend
+      const errorData = error?.response?.data;
+      const backendErrors: Record<string, string> = {};
+      if (errorData) {
+        Object.keys(errorData).forEach((key) => {
+          const errorValue = errorData[key];
+          backendErrors[key] = Array.isArray(errorValue) ? errorValue[0] : errorValue;
+        });
+        setValidationErrors(backendErrors);
+      } else {
+        setValidationErrors({ general: 'Error al actualizar polígono. Verifique que el nombre no esté duplicado.' });
+      }
     }
   };
 
@@ -426,6 +517,11 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
               </button>
             </div>
             <div className={styles.modalContent}>
+              {validationErrors.general && (
+                <div className={styles.errorText} style={{ marginBottom: '1rem', padding: '0.5rem', backgroundColor: '#ffebee', borderRadius: '4px' }}>
+                  {validationErrors.general}
+                </div>
+              )}
               <div className={styles.formGroup}>
                 <label>
                   Nombre del Polígono *
@@ -440,9 +536,16 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                 <input
                   type="text"
                   value={newPolygonName}
-                  onChange={(e) => setNewPolygonName(e.target.value)}
+                  onChange={(e) => {
+                    setNewPolygonName(e.target.value);
+                    clearFieldError('name');
+                  }}
                   placeholder="ej: Sala principal"
+                  className={validationErrors.name ? styles.inputError : ''}
                 />
+                {validationErrors.name && (
+                  <small className={styles.errorText}>{validationErrors.name}</small>
+                )}
               </div>
               <div className={styles.formGroup}>
                 <label>
@@ -461,13 +564,18 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                   value={newPolygonManualTotal}
                   onChange={(e) => {
                     setNewPolygonManualTotal(e.target.value);
+                    clearFieldError('manual_total');
                     if (e.target.value) {
                       setNewPolygonTrianguloRectangulo(false); // Deshabilitar triángulo si hay manual
-                      setNewPolygonCountAsHalf(false); // Deshabilitar media superficie si hay manual
+                      // Media superficie es compatible con total manual, no se deshabilita
                     }
                   }}
                   placeholder="Si se ingresa, se ignora ancho y largo"
+                  className={validationErrors.manual_total ? styles.inputError : ''}
                 />
+                {validationErrors.manual_total && (
+                  <small className={styles.errorText}>{validationErrors.manual_total}</small>
+                )}
                 <small className={styles.helpText}>
                   Si ingresa un total manual, se ignorarán ancho y largo
                 </small>
@@ -488,10 +596,17 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                     type="number"
                     step="0.01"
                     value={newPolygonWidth}
-                    onChange={(e) => setNewPolygonWidth(e.target.value)}
-                    placeholder="Ancho"
-                    disabled={!!newPolygonManualTotal}
-                  />
+                  onChange={(e) => {
+                    setNewPolygonWidth(e.target.value);
+                    clearFieldError('width');
+                  }}
+                  placeholder="Ancho"
+                  disabled={!!newPolygonManualTotal}
+                  className={validationErrors.width ? styles.inputError : ''}
+                />
+                {validationErrors.width && (
+                  <small className={styles.errorText}>{validationErrors.width}</small>
+                )}
                 </div>
                 <div className={styles.formGroup}>
                   <label>
@@ -508,10 +623,17 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                     type="number"
                     step="0.01"
                     value={newPolygonLength}
-                    onChange={(e) => setNewPolygonLength(e.target.value)}
-                    placeholder="Largo"
-                    disabled={!!newPolygonManualTotal}
-                  />
+                  onChange={(e) => {
+                    setNewPolygonLength(e.target.value);
+                    clearFieldError('length');
+                  }}
+                  placeholder="Largo"
+                  disabled={!!newPolygonManualTotal}
+                  className={validationErrors.length ? styles.inputError : ''}
+                />
+                {validationErrors.length && (
+                  <small className={styles.errorText}>{validationErrors.length}</small>
+                )}
                 </div>
               </div>
               <div className={styles.formGroup}>
@@ -523,7 +645,6 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                       setNewPolygonTrianguloRectangulo(e.target.checked);
                       if (e.target.checked) {
                         setNewPolygonManualTotal(''); // Deshabilitar manual_total si se selecciona triángulo
-                        setNewPolygonCountAsHalf(false); // No pueden estar ambos activos
                       }
                     }}
                     disabled={!!newPolygonManualTotal}
@@ -545,11 +666,10 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                     checked={newPolygonCountAsHalf}
                     onChange={(e) => {
                       setNewPolygonCountAsHalf(e.target.checked);
-                      if (e.target.checked) {
-                        setNewPolygonTrianguloRectangulo(false); // No pueden estar ambos activos
-                      }
                     }}
-                    disabled={!!newPolygonManualTotal || newPolygonTrianguloRectangulo}
+                    // Media superficie es compatible con total manual y triángulo rectángulo
+                    // Solo deshabilitar si no hay datos para calcular
+                    disabled={!newPolygonManualTotal && (!newPolygonWidth || !newPolygonLength)}
                   />
                   Media Superficie, según Art. 5.1.11. de la O.G.U.C.
                   <HelpTooltip
@@ -560,6 +680,18 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                     position="right"
                   />
                 </label>
+              </div>
+              <div className={styles.formGroup}>
+                <label>
+                  <strong>Total Calculado (m²)</strong>
+                </label>
+                <div className={styles.totalDisplay}>
+                  {calculateLiveTotal() !== null ? (
+                    <span className={styles.totalValue}>{formatNumber(calculateLiveTotal())}</span>
+                  ) : (
+                    <span className={styles.totalPlaceholder}>Ingrese los datos para calcular</span>
+                  )}
+                </div>
               </div>
             </div>
             <div className={styles.modalActions}>
@@ -573,6 +705,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                   setNewPolygonTrianguloRectangulo(false);
                   setNewPolygonCountAsHalf(false);
                   setNewPolygonManualTotal('');
+                  setValidationErrors({});
                 }}
               >
                 Cancelar
@@ -580,7 +713,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
               <button 
                 className={styles.saveButton}
                 onClick={handleAddPolygon}
-                disabled={!newPolygonName.trim() || (!newPolygonManualTotal && (!newPolygonWidth || !newPolygonLength))}
+                disabled={!newPolygonName.trim() || Object.keys(validationErrors).filter(key => key !== 'general').length > 0}
               >
                 Crear Polígono
               </button>
@@ -603,9 +736,14 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
               </button>
             </div>
             <div className={styles.modalContent}>
+              {validationErrors.general && (
+                <div className={styles.errorText} style={{ marginBottom: '1rem', padding: '0.5rem', backgroundColor: '#ffebee', borderRadius: '4px' }}>
+                  {validationErrors.general}
+                </div>
+              )}
               <div className={styles.formGroup}>
                 <label>
-                  Nombre del Polígono
+                  Nombre del Polígono *
                   <HelpTooltip
                     modelName="SurfacePolygon"
                     fieldName="name"
@@ -617,9 +755,16 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                 <input
                   type="text"
                   value={newPolygonName}
-                  onChange={(e) => setNewPolygonName(e.target.value)}
+                  onChange={(e) => {
+                    setNewPolygonName(e.target.value);
+                    clearFieldError('name');
+                  }}
                   placeholder="ej: Sala principal"
+                  className={validationErrors.name ? styles.inputError : ''}
                 />
+                {validationErrors.name && (
+                  <small className={styles.errorText}>{validationErrors.name}</small>
+                )}
               </div>
               <div className={styles.formGroup}>
                 <label>
@@ -638,13 +783,18 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                   value={newPolygonManualTotal}
                   onChange={(e) => {
                     setNewPolygonManualTotal(e.target.value);
+                    clearFieldError('manual_total');
                     if (e.target.value) {
                       setNewPolygonTrianguloRectangulo(false); // Deshabilitar triángulo si hay manual
-                      setNewPolygonCountAsHalf(false); // Deshabilitar media superficie si hay manual
+                      // Media superficie es compatible con total manual, no se deshabilita
                     }
                   }}
                   placeholder="Si se ingresa, se ignora ancho y largo"
+                  className={validationErrors.manual_total ? styles.inputError : ''}
                 />
+                {validationErrors.manual_total && (
+                  <small className={styles.errorText}>{validationErrors.manual_total}</small>
+                )}
                 <small className={styles.helpText}>
                   Si ingresa un total manual, se ignorarán ancho y largo
                 </small>
@@ -665,10 +815,17 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                     type="number"
                     step="0.01"
                     value={newPolygonWidth}
-                    onChange={(e) => setNewPolygonWidth(e.target.value)}
-                    placeholder="Ancho"
-                    disabled={!!newPolygonManualTotal}
-                  />
+                  onChange={(e) => {
+                    setNewPolygonWidth(e.target.value);
+                    clearFieldError('width');
+                  }}
+                  placeholder="Ancho"
+                  disabled={!!newPolygonManualTotal}
+                  className={validationErrors.width ? styles.inputError : ''}
+                />
+                {validationErrors.width && (
+                  <small className={styles.errorText}>{validationErrors.width}</small>
+                )}
                 </div>
                 <div className={styles.formGroup}>
                   <label>
@@ -685,10 +842,17 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                     type="number"
                     step="0.01"
                     value={newPolygonLength}
-                    onChange={(e) => setNewPolygonLength(e.target.value)}
-                    placeholder="Largo"
-                    disabled={!!newPolygonManualTotal}
-                  />
+                  onChange={(e) => {
+                    setNewPolygonLength(e.target.value);
+                    clearFieldError('length');
+                  }}
+                  placeholder="Largo"
+                  disabled={!!newPolygonManualTotal}
+                  className={validationErrors.length ? styles.inputError : ''}
+                />
+                {validationErrors.length && (
+                  <small className={styles.errorText}>{validationErrors.length}</small>
+                )}
                 </div>
               </div>
               <div className={styles.formGroup}>
@@ -700,7 +864,6 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                       setNewPolygonTrianguloRectangulo(e.target.checked);
                       if (e.target.checked) {
                         setNewPolygonManualTotal(''); // Deshabilitar manual_total si se selecciona triángulo
-                        setNewPolygonCountAsHalf(false); // No pueden estar ambos activos
                       }
                     }}
                     disabled={!!newPolygonManualTotal}
@@ -722,11 +885,10 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                     checked={newPolygonCountAsHalf}
                     onChange={(e) => {
                       setNewPolygonCountAsHalf(e.target.checked);
-                      if (e.target.checked) {
-                        setNewPolygonTrianguloRectangulo(false); // No pueden estar ambos activos
-                      }
                     }}
-                    disabled={!!newPolygonManualTotal || newPolygonTrianguloRectangulo}
+                    // Media superficie es compatible con total manual y triángulo rectángulo
+                    // Solo deshabilitar si no hay datos para calcular
+                    disabled={!newPolygonManualTotal && (!newPolygonWidth || !newPolygonLength)}
                   />
                   Media Superficie (dividir por 2)
                   <HelpTooltip
@@ -737,6 +899,18 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                     position="right"
                   />
                 </label>
+              </div>
+              <div className={styles.formGroup}>
+                <label>
+                  <strong>Total Calculado (m²)</strong>
+                </label>
+                <div className={styles.totalDisplay}>
+                  {calculateLiveTotal() !== null ? (
+                    <span className={styles.totalValue}>{formatNumber(calculateLiveTotal())}</span>
+                  ) : (
+                    <span className={styles.totalPlaceholder}>Ingrese los datos para calcular</span>
+                  )}
+                </div>
               </div>
             </div>
             <div className={styles.modalActions}>
@@ -750,6 +924,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                   setNewPolygonTrianguloRectangulo(false);
                   setNewPolygonCountAsHalf(false);
                   setNewPolygonManualTotal('');
+                  setValidationErrors({});
                 }}
               >
                 Cancelar
@@ -757,7 +932,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
               <button 
                 className={styles.saveButton}
                 onClick={handleUpdatePolygon}
-                disabled={!newPolygonName.trim() || (!newPolygonManualTotal && (!newPolygonWidth || !newPolygonLength))}
+                disabled={!newPolygonName.trim() || Object.keys(validationErrors).filter(key => key !== 'general').length > 0}
               >
                 Guardar Cambios
               </button>

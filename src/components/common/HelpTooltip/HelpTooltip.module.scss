@@ -7,6 +7,9 @@
   display: inline-flex;
   align-items: center;
   margin-left: $spacing-xs;
+  padding: 6px; // Aumentar área de captación para evitar que el puntero salga
+  margin: -6px; // Compensar el padding para mantener el espaciado visual
+  margin-left: calc($spacing-xs - 6px);
   cursor: help;
 }
 
@@ -22,23 +25,35 @@
 
 .tooltip {
   position: absolute;
-  z-index: 1000;
+  z-index: 10000; // Mayor que el modal (z-index: 1000) para aparecer por encima
   background: white;
   border: 1px solid #ddd;
   border-radius: $border-radius-sm;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25); // Sombra más pronunciada para destacar sobre el modal
   padding: $spacing-sm;
   min-width: 200px;
   max-width: 300px;
-  pointer-events: none;
+  pointer-events: auto; // Permitir eventos para mantener el hover cuando el mouse está sobre el tooltip
   transition: all 0.3s ease;
   opacity: 0;
   animation: fadeIn 0.2s ease forwards;
+  // Aumentar área de captación con padding invisible
+  &::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    right: -10px;
+    bottom: -10px;
+  }
 
   &.extended {
+    position: fixed; // Cambiar a fixed cuando está extendido para escapar del contexto del modal
     min-width: 400px;
     max-width: 600px;
     padding: $spacing-md;
+    max-height: 80vh; // Limitar altura máxima para evitar que se salga de la pantalla
+    overflow-y: auto; // Permitir scroll si el contenido es muy largo
   }
 
   &.top {
