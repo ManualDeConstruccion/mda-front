@@ -587,8 +587,10 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
                 <label>
                   Código del Edificio
                   <HelpTooltip
-                    briefText="Identificador único del edificio"
-                    extendedText="El código debe ser único dentro del proyecto. Se recomienda usar letras minúsculas, números y guiones. Ejemplos: edificio-a, torre-1, casa-1. Caracteres recomendados: a-z, 0-9, guión (-)."
+                    modelName="Building"
+                    fieldName="code"
+                    defaultBriefText="Identificador único del edificio"
+                    defaultExtendedText="El código debe ser único dentro del proyecto. Se recomienda usar letras minúsculas, números y guiones. Ejemplos: edificio-a, torre-1, casa-1. Caracteres recomendados: a-z, 0-9, guión (-)."
                     position="right"
                   />
                 </label>
@@ -603,8 +605,10 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
                 <label>
                   Nombre del Edificio
                   <HelpTooltip
-                    briefText="Nombre descriptivo del edificio"
-                    extendedText="Nombre legible que se mostrará en la interfaz. Puede incluir espacios y caracteres especiales. Ejemplos: Edificio A, Torre 1, Casa Principal."
+                    modelName="Building"
+                    fieldName="name"
+                    defaultBriefText="Nombre descriptivo del edificio"
+                    defaultExtendedText="Nombre legible que se mostrará en la interfaz. Puede incluir espacios y caracteres especiales. Ejemplos: Edificio A, Torre 1, Casa Principal."
                     position="right"
                   />
                 </label>
@@ -655,8 +659,10 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
                 <label>
                   Código del Nivel
                   <HelpTooltip
-                    briefText="Código único del nivel"
-                    extendedText="Código corto que identifica el nivel. Se recomienda usar patrones como P01, P02 para pisos sobre terreno, SS1, SS2 para subterráneos, AZ para azotea. Caracteres recomendados: letras mayúsculas y números."
+                    modelName="ProjectLevel"
+                    fieldName="code"
+                    defaultBriefText="Código único del nivel"
+                    defaultExtendedText="Código corto que identifica el nivel. Se recomienda usar patrones como P01, P02 para pisos sobre terreno, SS1, SS2 para subterráneos, AZ para azotea. Caracteres recomendados: letras mayúsculas y números."
                     position="right"
                   />
                 </label>
@@ -671,8 +677,10 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
                 <label>
                   Nombre del Nivel
                   <HelpTooltip
-                    briefText="Nombre descriptivo del nivel"
-                    extendedText="Nombre legible que se mostrará en la interfaz. Puede incluir espacios y caracteres especiales. Ejemplos: Subterráneo 1, Piso 1, Azotea, Mezzanine."
+                    modelName="ProjectLevel"
+                    fieldName="name"
+                    defaultBriefText="Nombre descriptivo del nivel"
+                    defaultExtendedText="Nombre legible que se mostrará en la interfaz. Puede incluir espacios y caracteres especiales. Ejemplos: Subterráneo 1, Piso 1, Azotea, Mezzanine."
                     position="right"
                   />
                 </label>

@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { HelpOutline } from '@mui/icons-material';
+import { useFieldHelpText } from '../../../hooks/useFieldHelpText';
 import styles from './HelpTooltip.module.scss';
 
 interface HelpMedia {
@@ -11,18 +12,34 @@ interface HelpMedia {
 }
 
 interface HelpTooltipProps {
-  briefText: string;
-  extendedText?: string;
-  media?: HelpMedia;
+  modelName: string;  // ej: "Building", "ProjectLevel"
+  fieldName: string;  // ej: "code", "name"
   position?: 'top' | 'bottom' | 'left' | 'right';
+  // Valores por defecto opcionales si no hay datos en BD
+  defaultBriefText?: string;
+  defaultExtendedText?: string;
+  defaultMedia?: HelpMedia;
 }
 
 const HelpTooltip: React.FC<HelpTooltipProps> = ({
-  briefText,
-  extendedText,
-  media,
+  modelName,
+  fieldName,
   position = 'top',
+  defaultBriefText = '',
+  defaultExtendedText,
+  defaultMedia,
 }) => {
+  const { data: helpText } = useFieldHelpText(modelName, fieldName);
+  
+  // Usar datos de BD si existen, sino usar valores por defecto
+  const briefText = helpText?.brief_text || defaultBriefText;
+  const extendedText = helpText?.extended_text || defaultExtendedText;
+  const media = helpText?.media || defaultMedia;
+  
+  // Si no hay briefText ni defaultBriefText, no mostrar tooltip
+  if (!briefText) {
+    return null;
+  }
   const [showBrief, setShowBrief] = useState(false);
   const [showExtended, setShowExtended] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
