@@ -13,23 +13,31 @@ export const createPolygonSchema = (
       .string()
       .required('Debe ingresar un nombre para el polígono')
       .trim()
-      .test(
-        'unique-name-per-level',
-        (value) => `Ya existe un polígono con el nombre "${value}" en este nivel`,
-        function (value) {
+      .test({
+        name: 'unique-name-per-level',
+        message: 'Ya existe un polígono con este nombre en este nivel',
+        test: function (value) {
           if (!value || !currentLevelId) return true;
-          const trimmedValue = value.trim().toLowerCase();
-          return !existingPolygons.some(
+          const trimmedValue = typeof value === 'string' ? value.trim().toLowerCase() : String(value).trim().toLowerCase();
+          const isDuplicate = existingPolygons.some(
             (p) =>
               p.name.toLowerCase() === trimmedValue &&
               p.level === currentLevelId &&
               (!excludeId || p.id !== excludeId)
           );
-        }
-      ),
+          if (isDuplicate) {
+            // Crear un mensaje personalizado con el nombre del polígono
+            return this.createError({
+              message: `Ya existe un polígono con el nombre "${value}" en este nivel`,
+            });
+          }
+          return true;
+        },
+      }),
     width: yup
       .number()
       .nullable()
+      .typeError('El ancho debe ser un número válido')
       .transform((value, originalValue) => {
         if (originalValue === '' || originalValue === null || originalValue === undefined) {
           return null;
@@ -37,18 +45,29 @@ export const createPolygonSchema = (
         const num = typeof originalValue === 'string' ? parseFloat(originalValue) : originalValue;
         return isNaN(num) ? null : num;
       })
-      .when(['manual_total', 'triangulo_rectangulo'], {
-        is: (manualTotal: number | null, trianguloRectangulo: boolean) => 
-          !manualTotal && trianguloRectangulo,
-        then: (schema) => schema.required('El ancho es requerido para calcular un triángulo rectángulo').positive('El ancho debe ser mayor a 0'),
-        otherwise: (schema) => schema.when('manual_total', {
-          is: (manualTotal: number | null) => !manualTotal,
-          then: (schema) => schema.required('Debe ingresar ancho y largo, o un total manual').min(0.01, 'El ancho debe ser mayor a 0'),
-        }),
-      }),
+      .test(
+        'width-positive',
+        'El ancho debe ser mayor a 0',
+        function (value) {
+          // Si hay manual_total, width no es requerido
+          if (this.parent.manual_total) return true;
+          // Si no hay valor, la validación de requerido se hace en el nivel del objeto
+          if (value === null || value === undefined) return true;
+          return value > 0;
+        }
+      )
+      .test(
+        'width-not-negative',
+        'El ancho no puede ser negativo',
+        function (value) {
+          if (value === null || value === undefined) return true;
+          return value >= 0;
+        }
+      ),
     length: yup
       .number()
       .nullable()
+      .typeError('El largo debe ser un número válido')
       .transform((value, originalValue) => {
         if (originalValue === '' || originalValue === null || originalValue === undefined) {
           return null;
@@ -56,18 +75,29 @@ export const createPolygonSchema = (
         const num = typeof originalValue === 'string' ? parseFloat(originalValue) : originalValue;
         return isNaN(num) ? null : num;
       })
-      .when(['manual_total', 'triangulo_rectangulo'], {
-        is: (manualTotal: number | null, trianguloRectangulo: boolean) => 
-          !manualTotal && trianguloRectangulo,
-        then: (schema) => schema.required('El largo es requerido para calcular un triángulo rectángulo').positive('El largo debe ser mayor a 0'),
-        otherwise: (schema) => schema.when('manual_total', {
-          is: (manualTotal: number | null) => !manualTotal,
-          then: (schema) => schema.required('Debe ingresar ancho y largo, o un total manual').min(0.01, 'El largo debe ser mayor a 0'),
-        }),
-      }),
+      .test(
+        'length-positive',
+        'El largo debe ser mayor a 0',
+        function (value) {
+          // Si hay manual_total, length no es requerido
+          if (this.parent.manual_total) return true;
+          // Si no hay valor, la validación de requerido se hace en el nivel del objeto
+          if (value === null || value === undefined) return true;
+          return value > 0;
+        }
+      )
+      .test(
+        'length-not-negative',
+        'El largo no puede ser negativo',
+        function (value) {
+          if (value === null || value === undefined) return true;
+          return value >= 0;
+        }
+      ),
     manual_total: yup
       .number()
       .nullable()
+      .typeError('El total manual debe ser un número válido')
       .transform((value, originalValue) => {
         if (originalValue === '' || originalValue === null || originalValue === undefined) {
           return null;
@@ -75,11 +105,28 @@ export const createPolygonSchema = (
         const num = typeof originalValue === 'string' ? parseFloat(originalValue) : originalValue;
         return isNaN(num) ? null : num;
       })
-      .when(['width', 'length'], {
-        is: (width: number | null, length: number | null) => !width || !length,
-        then: (schema) => schema.required('Debe ingresar ancho y largo, o un total manual').positive('El total manual debe ser mayor a 0'),
-        otherwise: (schema) => schema.positive('El total manual debe ser mayor a 0'),
-      })
+      .test(
+        'manual-total-positive',
+        'El total manual debe ser mayor a 0',
+        function (value) {
+          // Si hay width y length, manual_total no es requerido
+          if (this.parent.width && this.parent.length) {
+            if (value === null || value === undefined) return true;
+            return value > 0;
+          }
+          // Si no hay width o length, manual_total es requerido
+          if (value === null || value === undefined) return false;
+          return value > 0;
+        }
+      )
+      .test(
+        'manual-total-not-negative',
+        'El total manual no puede ser negativo',
+        function (value) {
+          if (value === null || value === undefined) return true;
+          return value >= 0;
+        }
+      )
       .test(
         'not-with-triangulo-rectangulo',
         'No puedes usar triangulo_rectangulo con total manual. Usa ancho y largo para calcular el triángulo rectángulo.',
@@ -90,7 +137,22 @@ export const createPolygonSchema = (
       ),
     triangulo_rectangulo: yup.boolean(),
     count_as_half: yup.boolean(),
-  });
+  }).test(
+    'require-width-length-or-manual',
+    'Debe ingresar ancho y largo, o un total manual',
+    function (value) {
+      const hasWidthAndLength = value.width && value.length;
+      const hasManualTotal = value.manual_total;
+      return hasWidthAndLength || hasManualTotal;
+    }
+  ).test(
+    'require-width-length-for-triangulo',
+    'Para calcular un triángulo rectángulo debe ingresar ancho y largo',
+    function (value) {
+      if (!value.triangulo_rectangulo) return true;
+      return !!(value.width && value.length);
+    }
+  );
 };
 
 /**
