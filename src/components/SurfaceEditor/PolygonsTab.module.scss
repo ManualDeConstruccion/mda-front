@@ -339,7 +339,8 @@
   margin-bottom: $spacing-md;
 
   label {
-    display: block;
+    display: flex;
+    align-items: center;
     margin-bottom: $spacing-xs;
     font-weight: 500;
     color: $text-primary;

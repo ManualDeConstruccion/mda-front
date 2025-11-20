@@ -13,6 +13,7 @@ export interface SurfacePolygon {
   name: string;
   width: number | null;
   length: number | null;
+  triangulo_rectangulo: boolean;
   count_as_half: boolean;
   manual_total: number | null;
   total: number;
