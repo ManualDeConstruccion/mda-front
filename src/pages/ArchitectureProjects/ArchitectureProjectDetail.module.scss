@@ -159,13 +159,13 @@
       }
 
       &:hover:not(.dragging):not(.active) {
-        background: lighten($background-paper, 2%);
+        background: color.scale($background-paper, $lightness: 2%);
         transform: translateY(-1px);
         box-shadow: $shadow-sm;
       }
 
       &:hover.active {
-        background: darken($primary-color, 5%);
+        background: color.scale($primary-color, $lightness: -5%);
         transform: translateY(-1px);
         box-shadow: $shadow-sm;
       }
@@ -301,7 +301,7 @@
     font-weight: 500;
 
     &:hover {
-      background: darken($primary-color, 10%);
+      background: color.scale($primary-color, $lightness: -10%);
       transform: translateY(-2px);
       box-shadow: $shadow-md;
     }

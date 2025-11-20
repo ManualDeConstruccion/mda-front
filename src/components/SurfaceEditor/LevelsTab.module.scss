@@ -1,5 +1,6 @@
 // src/components/SurfaceEditor/LevelsTab.module.scss
 
+@use 'sass:color';
 @use '../../styles/variables' as *;
 
 .container {
@@ -37,7 +38,7 @@
       transition: background-color 0.2s;
 
       &:hover:not(:disabled) {
-        background-color: darken($primary-color, 10%);
+        background-color: color.scale($primary-color, $lightness: -10%);
       }
 
       &:disabled {
@@ -50,7 +51,7 @@
       background-color: $success-color;
       
       &:hover:not(:disabled) {
-        background-color: darken($success-color, 10%);
+        background-color: color.scale($success-color, $lightness: -10%);
       }
     }
   }
@@ -144,7 +145,7 @@
   transition: background-color 0.2s;
 
   &:hover {
-    background-color: darken($primary-color, 10%);
+    background-color: color.scale($primary-color, $lightness: -10%);
   }
 }
 
@@ -253,7 +254,7 @@
   transition: color 0.2s;
 
   &:hover {
-    color: darken($error-color, 10%);
+    color: color.scale($error-color, $lightness: -10%);
   }
 }
 
@@ -460,7 +461,7 @@
   transition: background-color 0.2s;
 
   &:hover:not(:disabled) {
-    background-color: darken($primary-color, 10%);
+    background-color: color.scale($primary-color, $lightness: -10%);
   }
 
   &:disabled {

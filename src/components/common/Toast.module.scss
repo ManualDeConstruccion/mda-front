@@ -1,3 +1,4 @@
+@use 'sass:color';
 @use '../../styles/variables' as *;
 @use '../../styles/mixins' as *;
 
@@ -28,19 +29,19 @@
   &.success {
     background: $success-color;
     color: $white;
-    border-left: 4px solid darken($success-color, 10%);
+    border-left: 4px solid color.scale($success-color, $lightness: -10%);
   }
   
   &.error {
     background: $error-color;
     color: $white;
-    border-left: 4px solid darken($error-color, 10%);
+    border-left: 4px solid color.scale($error-color, $lightness: -10%);
   }
   
   &.info {
     background: $primary-color;
     color: $white;
-    border-left: 4px solid darken($primary-color, 10%);
+    border-left: 4px solid color.scale($primary-color, $lightness: -10%);
   }
   
   .icon {

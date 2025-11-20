@@ -1,3 +1,4 @@
+@use 'sass:color';
 @use '../../styles/variables' as *;
 
 .container {
@@ -30,7 +31,7 @@
     transition: background-color 0.2s;
 
     &:hover {
-      background-color: darken($primary-color, 10%);
+      background-color: color.scale($primary-color, $lightness: -10%);
     }
   }
 }
@@ -49,7 +50,7 @@
   transition: background-color 0.2s;
 
   &:hover {
-    background-color: darken($primary-color, 10%);
+    background-color: color.scale($primary-color, $lightness: -10%);
   }
 }
 
@@ -268,7 +269,7 @@
   transition: background-color 0.2s;
 
   &:hover:not(:disabled) {
-    background-color: darken($primary-color, 10%);
+    background-color: color.scale($primary-color, $lightness: -10%);
   }
 
   &:disabled {

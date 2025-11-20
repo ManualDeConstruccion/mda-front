@@ -99,7 +99,7 @@
   font-weight: 500;
 
   &:hover {
-    background: darken($primary-color, 10%);
+    background: color.scale($primary-color, $lightness: -10%);
     transform: translateY(-2px);
     box-shadow: $shadow-md;
   }
@@ -185,7 +185,7 @@
   }
 
   &:hover:not(.dragging) {
-    background: lighten($background-color, 2%);
+    background: color.scale($background-color, $lightness: 2%);
     transform: translateY(-1px);
     box-shadow: $shadow-sm;
   }
