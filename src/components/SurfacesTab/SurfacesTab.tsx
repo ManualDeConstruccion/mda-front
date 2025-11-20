@@ -133,7 +133,7 @@ const SurfacesTab: React.FC<SurfacesTabProps> = ({ projectNodeId }) => {
         <table className={styles.table}>
           <thead>
             <tr>
-              <th>Concepto</th>
+              <th></th>
               <th>ÚTIL (m²)</th>
               <th>COMÚN (m²)</th>
               <th>TOTAL (m²)</th>

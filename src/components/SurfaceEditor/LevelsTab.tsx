@@ -503,7 +503,7 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
                     </thead>
                     <tbody>
                       {buildingLevels.below.map(level => renderLevelRow(level, building.id))}
-                      {renderTotalRow(totals.subterraneo, 'TOTAL SUBTERRÁNEO')}
+                      {renderTotalRow(totals.subterraneo, `TOTAL SUBTERRÁNEO ${building.name}`)}
                     </tbody>
                   </table>
                 )}
@@ -540,7 +540,7 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
                     </thead>
                     <tbody>
                       {buildingLevels.above.map(level => renderLevelRow(level, building.id))}
-                      {renderTotalRow(totals.sobre_terreno, 'TOTAL SOBRE TERRENO')}
+                      {renderTotalRow(totals.sobre_terreno, `TOTAL SOBRE TERRENO ${building.name}`)}
                     </tbody>
                   </table>
                 )}
@@ -552,7 +552,7 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
                 <table className={styles.table}>
                   <thead>
                     <tr>
-                      <th>Concepto</th>
+                      <th></th>
                       <th>ÚTIL (m²)</th>
                       <th>COMÚN (m²)</th>
                       <th>TOTAL (m²)</th>
@@ -560,7 +560,7 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {renderTotalRow(totals.total, 'TOTAL EDIFICIO')}
+                    {renderTotalRow(totals.total, `TOTAL ${building.name}`)}
                   </tbody>
                 </table>
               </div>

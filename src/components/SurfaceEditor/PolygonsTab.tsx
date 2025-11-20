@@ -326,7 +326,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                     {levelPolygons.map(renderPolygonRow)}
                     <tr className={styles.totalRow}>
                       <td className={styles.totalLabel} colSpan={5}>
-                        <strong>TOTAL DEL NIVEL</strong>
+                        <strong>TOTAL DEL NIVEL {level.building_name}</strong>
                       </td>
                       <td className={`${styles.numberCell} ${styles.totalCell}`}>
                         {formatNumber(calculatedTotal)}
