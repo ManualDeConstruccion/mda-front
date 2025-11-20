@@ -411,9 +411,21 @@
     font-weight: 500;
   }
 
-    &:focus {
-      outline: none;
-      border-color: $primary-color;
+  .errorMessage {
+    display: block;
+    margin-bottom: $spacing-md;
+    padding: $spacing-sm;
+    background-color: #ffebee;
+    border: 1px solid #ef5350;
+    border-radius: $border-radius-sm;
+    color: #c62828;
+    font-size: $font-size-sm;
+    
+    strong {
+      display: block;
+      margin-bottom: $spacing-xs;
+      color: #d32f2f;
+      font-weight: 600;
     }
   }
 }

@@ -135,8 +135,8 @@ const HelpTooltip: React.FC<HelpTooltipProps> = ({
             position: 'fixed',
             top: `${tooltipPosition.top}px`,
             left: `${tooltipPosition.left}px`,
-            transform: 'none',
             margin: 0,
+            transformOrigin: 'center center',
           } : undefined}
           onMouseEnter={handleMouseEnter} // Mantener el tooltip visible cuando el mouse está sobre él
           onMouseLeave={handleMouseLeave}

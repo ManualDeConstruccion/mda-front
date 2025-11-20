@@ -247,15 +247,43 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
       // Manejar error de validación del backend
       const errorData = error?.response?.data;
       const backendErrors: Record<string, string> = {};
+      
       if (errorData) {
-        Object.keys(errorData).forEach((key) => {
-          const errorValue = errorData[key];
-          backendErrors[key] = Array.isArray(errorValue) ? errorValue[0] : errorValue;
-        });
-        setBuildingValidationErrors(backendErrors);
-      } else {
-        setBuildingValidationErrors({ general: 'Error al crear edificio. Verifique que los campos no estén duplicados.' });
+        // Manejar diferentes formatos de error del backend
+        if (typeof errorData === 'string') {
+          backendErrors.general = errorData;
+        } else if (Array.isArray(errorData)) {
+          backendErrors.general = errorData.join(', ');
+        } else if (typeof errorData === 'object') {
+          Object.keys(errorData).forEach((key) => {
+            const errorValue = errorData[key];
+            if (Array.isArray(errorValue)) {
+              backendErrors[key] = errorValue[0] || errorValue.join(', ');
+            } else if (typeof errorValue === 'string') {
+              backendErrors[key] = errorValue;
+            } else if (typeof errorValue === 'object' && errorValue !== null) {
+              // Si es un objeto, intentar extraer el mensaje
+              backendErrors[key] = errorValue.message || JSON.stringify(errorValue);
+            }
+          });
+        }
+        
+        // Si no hay errores específicos pero hay un mensaje general
+        if (Object.keys(backendErrors).length === 0 && errorData.detail) {
+          backendErrors.general = errorData.detail;
+        } else if (Object.keys(backendErrors).length === 0 && errorData.message) {
+          backendErrors.general = errorData.message;
+        } else if (Object.keys(backendErrors).length === 0 && errorData.error) {
+          backendErrors.general = errorData.error;
+        }
       }
+      
+      // Si aún no hay errores, mostrar mensaje genérico
+      if (Object.keys(backendErrors).length === 0) {
+        backendErrors.general = 'Error al crear edificio. Verifique que los campos no estén duplicados.';
+      }
+      
+      setBuildingValidationErrors(backendErrors);
     }
   };
 
@@ -313,15 +341,43 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
       // Manejar error de validación del backend
       const errorData = error?.response?.data;
       const backendErrors: Record<string, string> = {};
+      
       if (errorData) {
-        Object.keys(errorData).forEach((key) => {
-          const errorValue = errorData[key];
-          backendErrors[key] = Array.isArray(errorValue) ? errorValue[0] : errorValue;
-        });
-        setLevelValidationErrors(backendErrors);
-      } else {
-        setLevelValidationErrors({ general: 'Error al crear nivel. Verifique que los campos no estén duplicados.' });
+        // Manejar diferentes formatos de error del backend
+        if (typeof errorData === 'string') {
+          backendErrors.general = errorData;
+        } else if (Array.isArray(errorData)) {
+          backendErrors.general = errorData.join(', ');
+        } else if (typeof errorData === 'object') {
+          Object.keys(errorData).forEach((key) => {
+            const errorValue = errorData[key];
+            if (Array.isArray(errorValue)) {
+              backendErrors[key] = errorValue[0] || errorValue.join(', ');
+            } else if (typeof errorValue === 'string') {
+              backendErrors[key] = errorValue;
+            } else if (typeof errorValue === 'object' && errorValue !== null) {
+              // Si es un objeto, intentar extraer el mensaje
+              backendErrors[key] = errorValue.message || JSON.stringify(errorValue);
+            }
+          });
+        }
+        
+        // Si no hay errores específicos pero hay un mensaje general
+        if (Object.keys(backendErrors).length === 0 && errorData.detail) {
+          backendErrors.general = errorData.detail;
+        } else if (Object.keys(backendErrors).length === 0 && errorData.message) {
+          backendErrors.general = errorData.message;
+        } else if (Object.keys(backendErrors).length === 0 && errorData.error) {
+          backendErrors.general = errorData.error;
+        }
       }
+      
+      // Si aún no hay errores, mostrar mensaje genérico
+      if (Object.keys(backendErrors).length === 0) {
+        backendErrors.general = 'Error al crear nivel. Verifique que los campos no estén duplicados.';
+      }
+      
+      setLevelValidationErrors(backendErrors);
     }
   };
 
@@ -774,15 +830,21 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
               <h3>Agregar Edificio</h3>
               <button 
                 className={styles.closeButton}
-                onClick={() => setShowAddBuildingModal(false)}
+                onClick={() => {
+                  setShowAddBuildingModal(false);
+                  setNewBuildingName('');
+                  setNewBuildingCode('');
+                  setBuildingValidationErrors({});
+                }}
               >
                 ×
               </button>
             </div>
             <div className={styles.modalContent}>
               {buildingValidationErrors.general && (
-                <div className={styles.errorText} style={{ marginBottom: '1rem', padding: '0.5rem', backgroundColor: '#ffebee', borderRadius: '4px' }}>
-                  {buildingValidationErrors.general}
+                <div className={styles.errorMessage} style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: '#ffebee', borderRadius: '4px', border: '1px solid #ef5350' }}>
+                  <strong style={{ color: '#d32f2f', display: 'block', marginBottom: '0.25rem' }}>Error:</strong>
+                  <span style={{ color: '#c62828' }}>{buildingValidationErrors.general}</span>
                 </div>
               )}
               <div className={styles.formGroup}>
@@ -889,8 +951,9 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
             </div>
             <div className={styles.modalContent}>
               {levelValidationErrors.general && (
-                <div className={styles.errorText} style={{ marginBottom: '1rem', padding: '0.5rem', backgroundColor: '#ffebee', borderRadius: '4px' }}>
-                  {levelValidationErrors.general}
+                <div className={styles.errorMessage} style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: '#ffebee', borderRadius: '4px', border: '1px solid #ef5350' }}>
+                  <strong style={{ color: '#d32f2f', display: 'block', marginBottom: '0.25rem' }}>Error:</strong>
+                  <span style={{ color: '#c62828' }}>{levelValidationErrors.general}</span>
                 </div>
               )}
               <div className={styles.formGroup}>

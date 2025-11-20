@@ -34,9 +34,14 @@
   min-width: 200px;
   max-width: 300px;
   pointer-events: auto; // Permitir eventos para mantener el hover cuando el mouse está sobre el tooltip
-  transition: all 0.3s ease;
   opacity: 0;
   animation: fadeIn 0.2s ease forwards;
+  // Transiciones suaves para el crecimiento
+  transition: 
+    min-width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    max-width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    padding 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   // Aumentar área de captación con padding invisible
   &::before {
     content: '';
@@ -54,6 +59,17 @@
     padding: $spacing-md;
     max-height: 80vh; // Limitar altura máxima para evitar que se salga de la pantalla
     overflow-y: auto; // Permitir scroll si el contenido es muy largo
+    overflow-x: hidden; // Ocultar scroll horizontal
+    // Ocultar barras de desplazamiento pero mantener funcionalidad de scroll
+    scrollbar-width: none; // Firefox
+    -ms-overflow-style: none; // IE y Edge
+    &::-webkit-scrollbar {
+      display: none; // Chrome, Safari y Opera
+    }
+    // Animación de crecimiento suave - usar transform-origin para que crezca desde el centro
+    transform-origin: center center;
+    // Combinar fadeIn con crecimiento suave
+    animation: fadeInGrow 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   }
 
   &.top {
@@ -91,12 +107,15 @@
     font-size: $font-size-sm;
     color: $text-primary;
     line-height: 1.4;
+    transition: opacity 0.3s ease;
   }
 
   .extendedContent {
     margin-top: $spacing-sm;
     padding-top: $spacing-sm;
     border-top: 1px solid #eee;
+    // Animación de aparición del contenido extendido
+    animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1) 0.1s both;
   }
 
   .extendedText {
@@ -138,6 +157,34 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes fadeInGrow {
+  0% {
+    opacity: 0;
+    transform: scale(0.9) translateY(-5px);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(0.98) translateY(-2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 1000px; // Valor suficientemente grande para el contenido
   }
 }
 
