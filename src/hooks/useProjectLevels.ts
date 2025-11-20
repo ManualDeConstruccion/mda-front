@@ -19,6 +19,12 @@ export interface ProjectLevel {
   altura?: number | null;
   is_active: boolean;
   metadata: Record<string, any>;
+  code_help_text?: string;
+  code_help_text_extended?: string;
+  code_help_media?: { images?: string[]; videos?: string[]; animations?: string[] };
+  name_help_text?: string;
+  name_help_text_extended?: string;
+  name_help_media?: { images?: string[]; videos?: string[]; animations?: string[] };
   surface_total: number;
   surface_util: number;
   surface_comun: number;
@@ -32,6 +38,12 @@ export interface Building {
   order: number;
   is_active: boolean;
   metadata: Record<string, any>;
+  code_help_text?: string;
+  code_help_text_extended?: string;
+  code_help_media?: { images?: string[]; videos?: string[]; animations?: string[] };
+  name_help_text?: string;
+  name_help_text_extended?: string;
+  name_help_media?: { images?: string[]; videos?: string[]; animations?: string[] };
   levels_count: number;
 }
 

@@ -1,0 +1,128 @@
+// src/components/common/HelpTooltip/HelpTooltip.module.scss
+
+@use '../../../styles/variables' as *;
+
+.helpTooltipContainer {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin-left: $spacing-xs;
+  cursor: help;
+}
+
+.helpIcon {
+  color: $primary-color;
+  font-size: 16px !important;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 0.8;
+  }
+}
+
+.tooltip {
+  position: absolute;
+  z-index: 1000;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: $border-radius-sm;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  padding: $spacing-sm;
+  min-width: 200px;
+  max-width: 300px;
+  pointer-events: none;
+  transition: all 0.3s ease;
+  opacity: 0;
+  animation: fadeIn 0.2s ease forwards;
+
+  &.extended {
+    min-width: 400px;
+    max-width: 600px;
+    padding: $spacing-md;
+  }
+
+  &.top {
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: $spacing-xs;
+  }
+
+  &.bottom {
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: $spacing-xs;
+  }
+
+  &.left {
+    right: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-right: $spacing-xs;
+  }
+
+  &.right {
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-left: $spacing-xs;
+  }
+}
+
+.tooltipContent {
+  .briefText {
+    margin: 0;
+    font-size: $font-size-sm;
+    color: $text-primary;
+    line-height: 1.4;
+  }
+
+  .extendedContent {
+    margin-top: $spacing-sm;
+    padding-top: $spacing-sm;
+    border-top: 1px solid #eee;
+  }
+
+  .extendedText {
+    margin: 0 0 $spacing-sm 0;
+    font-size: $font-size-sm;
+    color: $text-secondary;
+    line-height: 1.6;
+  }
+
+  .mediaSection {
+    margin-top: $spacing-sm;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+
+    .mediaImage,
+    .mediaVideo,
+    .mediaAnimation {
+      max-width: 100%;
+      border-radius: $border-radius-sm;
+      border: 1px solid #eee;
+    }
+
+    .mediaVideo {
+      max-height: 300px;
+    }
+
+    .mediaAnimation {
+      max-height: 200px;
+    }
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+

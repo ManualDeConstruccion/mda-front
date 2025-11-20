@@ -304,7 +304,7 @@
   background: white;
   border-radius: $border-radius-md;
   padding: $spacing-lg;
-  max-width: 500px;
+  max-width: 700px;
   width: 90%;
   max-height: 90vh;
   overflow-y: auto;
@@ -351,10 +351,12 @@
   margin-bottom: $spacing-md;
 
   label {
-    display: block;
+    display: flex;
+    align-items: center;
     margin-bottom: $spacing-xs;
     font-weight: 500;
     color: $text-primary;
+    gap: $spacing-xs;
   }
 
   input {
@@ -408,5 +410,96 @@
     opacity: 0.5;
     cursor: not-allowed;
   }
+}
+
+// Estilos para la tabla de alturas (similar a la tabla de superficies)
+.heightsTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: $spacing-md;
+  background: white;
+
+  thead {
+    background-color: #f5f5f5;
+
+    th {
+      padding: $spacing-md;
+      text-align: left;
+      font-weight: 600;
+      color: $text-primary;
+      border-bottom: 2px solid #ddd;
+
+      // Alinear columna de altura a la derecha
+      &:nth-child(4) {
+        text-align: right;
+      }
+    }
+  }
+
+  tbody {
+    tr {
+      border-bottom: 1px solid #eee;
+
+      &:hover {
+        background-color: #f9f9f9;
+      }
+    }
+
+    td {
+      padding: $spacing-md;
+      color: $text-primary;
+
+      // Alinear columna de altura a la derecha
+      &:nth-child(4) {
+        text-align: right;
+      }
+    }
+  }
+}
+
+.heightInput {
+  width: 100px;
+  padding: $spacing-xs $spacing-sm;
+  border: 1px solid #ddd;
+  border-radius: $border-radius-sm;
+  font-size: $font-size-base;
+  font-family: 'Courier New', monospace;
+  text-align: right;
+
+  &:focus {
+    outline: none;
+    border-color: $primary-color;
+  }
+}
+
+.helpText {
+  margin-bottom: $spacing-md;
+  color: $text-secondary;
+  font-size: $font-size-sm;
+}
+
+.groundLevelRow {
+  background-color: #f0f7ff;
+  border-top: 2px solid $primary-color;
+  border-bottom: 2px solid $primary-color;
+  font-weight: 600;
+
+  &:hover {
+    background-color: #e0efff;
+  }
+}
+
+.groundLevelLabel {
+  padding: $spacing-md;
+  color: $primary-color;
+  font-style: italic;
+}
+
+.groundLevelValue {
+  padding: $spacing-md;
+  text-align: right;
+  color: $primary-color;
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
 }
 

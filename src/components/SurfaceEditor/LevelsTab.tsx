@@ -9,6 +9,7 @@ import {
   Save as SaveIcon,
   Height as HeightIcon
 } from '@mui/icons-material';
+import HelpTooltip from '../common/HelpTooltip/HelpTooltip';
 import styles from './LevelsTab.module.scss';
 
 interface LevelsTabProps {
@@ -39,6 +40,7 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
   const [newLevelCode, setNewLevelCode] = useState('');
   const [showEditHeightsModal, setShowEditHeightsModal] = useState<number | null>(null);
   const [editingHeights, setEditingHeights] = useState<Record<number, number | null>>({});
+  const [inputValues, setInputValues] = useState<Record<number, string>>({});
 
   // Agrupar niveles por edificio
   const levelsByBuilding = buildings.reduce((acc, building) => {
@@ -207,11 +209,72 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
     }
   };
 
-  // Verificar si hay más de un nivel en total (de cualquier tipo) para un edificio
-  const canDeleteLevel = (buildingId: number): boolean => {
+  // Verificar si un nivel específico puede ser eliminado (debe ser extremo y no ser el único)
+  const canDeleteLevel = (level: ProjectLevel, buildingId: number): boolean => {
     const buildingLevels = levelsByBuilding[buildingId] || { below: [], above: [], roof: [] };
-    const totalLevels = buildingLevels.below.length + buildingLevels.above.length + buildingLevels.roof.length;
-    return totalLevels > 1;
+    const allLevels = [...buildingLevels.below, ...buildingLevels.above, ...buildingLevels.roof];
+    
+    // Verificar que no sea el único nivel del edificio
+    if (allLevels.length <= 1) {
+      return false;
+    }
+    
+    // Verificar si es extremo según su tipo
+    return isExtremeLevel(level, allLevels);
+  };
+
+  // Verificar si un nivel es extremo (el más profundo en subterráneos o el más alto en sobre terreno)
+  const isExtremeLevel = (level: ProjectLevel, allLevels: ProjectLevel[]): boolean => {
+    // Obtener todos los niveles del mismo tipo y edificio
+    const sameTypeLevels = allLevels.filter(
+      l => l.level_type === level.level_type && l.building === level.building
+    );
+    
+    // Si es el único nivel de este tipo, es extremo (pero ya verificamos que no es el único del edificio)
+    if (sameTypeLevels.length <= 1) {
+      return true;
+    }
+    
+    if (level.level_type === 'below') {
+      // Para subterráneos: extremo es el más profundo (menor altura o mayor order)
+      if (sameTypeLevels.every(l => l.altura === null || l.altura === undefined)) {
+        // Si no hay alturas definidas, usar order descendente (mayor order = más profundo)
+        const sortedByOrder = [...sameTypeLevels].sort((a, b) => b.order - a.order);
+        return sortedByOrder[0].id === level.id;
+      }
+      
+      // Ordenar por altura ascendente (menor primero) y verificar si este es el primero
+      const sortedByHeight = [...sameTypeLevels].sort((a, b) => {
+        const alturaA = a.altura !== null && a.altura !== undefined ? a.altura : Infinity;
+        const alturaB = b.altura !== null && b.altura !== undefined ? b.altura : Infinity;
+        if (alturaA !== alturaB) {
+          return alturaA - alturaB;
+        }
+        return b.order - a.order; // Si alturas iguales, mayor order primero
+      });
+      return sortedByHeight[0].id === level.id;
+    } else if (level.level_type === 'above') {
+      // Para sobre terreno: extremo es el más alto (mayor altura o mayor order)
+      if (sameTypeLevels.every(l => l.altura === null || l.altura === undefined)) {
+        // Si no hay alturas definidas, usar order descendente (mayor order = más alto)
+        const sortedByOrder = [...sameTypeLevels].sort((a, b) => b.order - a.order);
+        return sortedByOrder[0].id === level.id;
+      }
+      
+      // Ordenar por altura descendente (mayor primero) y verificar si este es el primero
+      const sortedByHeight = [...sameTypeLevels].sort((a, b) => {
+        const alturaA = a.altura !== null && a.altura !== undefined ? a.altura : -Infinity;
+        const alturaB = b.altura !== null && b.altura !== undefined ? b.altura : -Infinity;
+        if (alturaA !== alturaB) {
+          return alturaB - alturaA; // Descendente
+        }
+        return b.order - a.order; // Si alturas iguales, mayor order primero
+      });
+      return sortedByHeight[0].id === level.id;
+    } else {
+      // Las cubiertas siempre son extremos (están en la parte superior)
+      return true;
+    }
   };
 
   const handleEditHeights = (buildingId: number) => {
@@ -221,12 +284,16 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
     
     // Inicializar el estado de edición con las alturas actuales
     const initialHeights: Record<number, number | null> = {};
+    const initialInputValues: Record<number, string> = {};
     allLevels.forEach(level => {
       // Asegurarse de obtener el valor correcto de altura
       const alturaValue = level.altura !== undefined && level.altura !== null ? Number(level.altura) : null;
       initialHeights[level.id] = alturaValue;
+      // Inicializar el valor del input como string formateado
+      initialInputValues[level.id] = alturaValue !== null ? alturaValue.toFixed(2) : '';
     });
     setEditingHeights(initialHeights);
+    setInputValues(initialInputValues);
     setShowEditHeightsModal(buildingId);
   };
 
@@ -257,7 +324,7 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
   };
 
   const renderLevelRow = (level: ProjectLevel, buildingId: number) => {
-    const canDelete = canDeleteLevel(buildingId);
+    const canDelete = canDeleteLevel(level, buildingId);
     
     return (
       <tr key={level.id}>
@@ -296,11 +363,20 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
         <td className={styles.numberCell}>{formatNumber(level.surface_comun || 0)}</td>
         <td className={styles.numberCell}>{formatNumber(level.surface_total || 0)}</td>
         <td>
-          {canDelete && (
+          {canDelete ? (
             <button
               className={styles.deleteButton}
               onClick={() => handleDeleteLevel(level)}
               title="Eliminar nivel"
+            >
+              <DeleteIcon fontSize="small" />
+            </button>
+          ) : (
+            <button
+              className={styles.deleteButton}
+              disabled
+              title="Solo se pueden eliminar los niveles extremos"
+              style={{ opacity: 0.3, cursor: 'not-allowed' }}
             >
               <DeleteIcon fontSize="small" />
             </button>
@@ -508,7 +584,14 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
             </div>
             <div className={styles.modalContent}>
               <div className={styles.formGroup}>
-                <label>Código del Edificio</label>
+                <label>
+                  Código del Edificio
+                  <HelpTooltip
+                    briefText="Identificador único del edificio"
+                    extendedText="El código debe ser único dentro del proyecto. Se recomienda usar letras minúsculas, números y guiones. Ejemplos: edificio-a, torre-1, casa-1. Caracteres recomendados: a-z, 0-9, guión (-)."
+                    position="right"
+                  />
+                </label>
                 <input
                   type="text"
                   value={newBuildingCode}
@@ -517,7 +600,14 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
                 />
               </div>
               <div className={styles.formGroup}>
-                <label>Nombre del Edificio</label>
+                <label>
+                  Nombre del Edificio
+                  <HelpTooltip
+                    briefText="Nombre descriptivo del edificio"
+                    extendedText="Nombre legible que se mostrará en la interfaz. Puede incluir espacios y caracteres especiales. Ejemplos: Edificio A, Torre 1, Casa Principal."
+                    position="right"
+                  />
+                </label>
                 <input
                   type="text"
                   value={newBuildingName}
@@ -562,7 +652,14 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
             </div>
             <div className={styles.modalContent}>
               <div className={styles.formGroup}>
-                <label>Código del Nivel</label>
+                <label>
+                  Código del Nivel
+                  <HelpTooltip
+                    briefText="Código único del nivel"
+                    extendedText="Código corto que identifica el nivel. Se recomienda usar patrones como P01, P02 para pisos sobre terreno, SS1, SS2 para subterráneos, AZ para azotea. Caracteres recomendados: letras mayúsculas y números."
+                    position="right"
+                  />
+                </label>
                 <input
                   type="text"
                   value={newLevelCode}
@@ -571,7 +668,14 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
                 />
               </div>
               <div className={styles.formGroup}>
-                <label>Nombre del Nivel</label>
+                <label>
+                  Nombre del Nivel
+                  <HelpTooltip
+                    briefText="Nombre descriptivo del nivel"
+                    extendedText="Nombre legible que se mostrará en la interfaz. Puede incluir espacios y caracteres especiales. Ejemplos: Subterráneo 1, Piso 1, Azotea, Mezzanine."
+                    position="right"
+                  />
+                </label>
                 <input
                   type="text"
                   value={newLevelName}
@@ -617,6 +721,7 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
                   onClick={() => {
                     setShowEditHeightsModal(null);
                     setEditingHeights({});
+                    setInputValues({});
                   }}
                 >
                   ×
@@ -639,42 +744,122 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
                       </tr>
                     </thead>
                     <tbody>
-                      {allLevels.map((level) => {
-                        const levelTypeLabel = 
-                          level.level_type === 'below' ? 'Subterráneo' :
-                          level.level_type === 'above' ? 'Sobre Terreno' :
-                          'Cubierta';
+                      {/* Ordenar todos los niveles de menor a mayor altura */}
+                      {(() => {
+                        // Ordenar todos los niveles por altura de menor a mayor
+                        const sortedLevels = [...allLevels].sort((a, b) => {
+                          const alturaA = a.altura !== null && a.altura !== undefined ? a.altura : (a.level_type === 'below' ? -Infinity : Infinity);
+                          const alturaB = b.altura !== null && b.altura !== undefined ? b.altura : (b.level_type === 'below' ? -Infinity : Infinity);
+                          // Ordenar de menor a mayor
+                          return alturaA - alturaB;
+                        });
                         
-                        return (
-                          <tr key={level.id}>
-                            <td>{levelTypeLabel}</td>
-                            <td>{level.name}</td>
-                            <td>{level.code}</td>
-                            <td>
-                              <input
-                                type="number"
-                                step="0.001"
-                                value={
-                                  editingHeights[level.id] !== undefined && editingHeights[level.id] !== null
-                                    ? editingHeights[level.id]!
-                                    : level.altura !== undefined && level.altura !== null
-                                    ? level.altura
-                                    : ''
-                                }
-                                onChange={(e) => {
-                                  const value = e.target.value === '' ? null : parseFloat(e.target.value);
-                                  setEditingHeights(prev => ({
-                                    ...prev,
-                                    [level.id]: value
-                                  }));
-                                }}
-                                placeholder="0.000"
-                                className={styles.heightInput}
-                              />
-                            </td>
-                          </tr>
-                        );
-                      })}
+                        const result: JSX.Element[] = [];
+                        let groundLevelInserted = false;
+                        
+                        // Agregar niveles ordenados de menor a mayor
+                        sortedLevels.forEach((level) => {
+                          // Insertar línea de suelo natural después del último nivel negativo o antes del primer positivo
+                          if (!groundLevelInserted) {
+                            const altura = level.altura !== null && level.altura !== undefined ? level.altura : (level.level_type === 'below' ? -Infinity : Infinity);
+                            if (altura >= 0) {
+                              // Insertar antes del primer nivel positivo o cero
+                              result.push(
+                                <tr key="ground-level" className={styles.groundLevelRow}>
+                                  <td colSpan={3} className={styles.groundLevelLabel}>
+                                    Nivel de suelo natural
+                                  </td>
+                                  <td className={styles.groundLevelValue}>
+                                    ±0.00
+                                  </td>
+                                </tr>
+                              );
+                              groundLevelInserted = true;
+                            }
+                          }
+                          
+                          const levelTypeLabel = 
+                            level.level_type === 'below' ? 'Subterráneo' :
+                            level.level_type === 'above' ? 'Sobre Terreno' :
+                            'Cubierta';
+                          
+                          result.push(
+                            <tr key={level.id}>
+                              <td>{levelTypeLabel}</td>
+                              <td>{level.name}</td>
+                              <td>{level.code}</td>
+                              <td>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min={level.level_type === 'below' ? '-999.99' : '0'}
+                                  value={
+                                    inputValues[level.id] !== undefined
+                                      ? inputValues[level.id]
+                                      : level.altura !== undefined && level.altura !== null
+                                      ? Number(level.altura).toFixed(2)
+                                      : ''
+                                  }
+                                  onChange={(e) => {
+                                    const inputValue = e.target.value;
+                                    // Guardar el valor del input como string para permitir escritura parcial
+                                    setInputValues(prev => ({
+                                      ...prev,
+                                      [level.id]: inputValue
+                                    }));
+                                    // Convertir a número solo si es válido
+                                    const numValue = inputValue === '' || inputValue === '-' ? null : parseFloat(inputValue);
+                                    if (numValue !== null && !isNaN(numValue)) {
+                                      setEditingHeights(prev => ({
+                                        ...prev,
+                                        [level.id]: numValue
+                                      }));
+                                    } else {
+                                      setEditingHeights(prev => ({
+                                        ...prev,
+                                        [level.id]: null
+                                      }));
+                                    }
+                                  }}
+                                  onBlur={(e) => {
+                                    // Al perder el foco, formatear el valor a 2 decimales
+                                    const numValue = e.target.value === '' || e.target.value === '-' ? null : parseFloat(e.target.value);
+                                    if (numValue !== null && !isNaN(numValue)) {
+                                      setInputValues(prev => ({
+                                        ...prev,
+                                        [level.id]: numValue.toFixed(2)
+                                      }));
+                                    } else {
+                                      setInputValues(prev => ({
+                                        ...prev,
+                                        [level.id]: ''
+                                      }));
+                                    }
+                                  }}
+                                  placeholder="0.00"
+                                  className={styles.heightInput}
+                                />
+                              </td>
+                            </tr>
+                          );
+                        });
+                        
+                        // Si todos los niveles son negativos, insertar la línea de suelo natural al final
+                        if (!groundLevelInserted && sortedLevels.length > 0) {
+                          result.push(
+                            <tr key="ground-level" className={styles.groundLevelRow}>
+                              <td colSpan={3} className={styles.groundLevelLabel}>
+                                Nivel de suelo natural
+                              </td>
+                              <td className={styles.groundLevelValue}>
+                                ±0.00
+                              </td>
+                            </tr>
+                          );
+                        }
+                        
+                        return result;
+                      })()}
                     </tbody>
                   </table>
                 )}
@@ -685,6 +870,7 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
                   onClick={() => {
                     setShowEditHeightsModal(null);
                     setEditingHeights({});
+                    setInputValues({});
                   }}
                 >
                   Cancelar
