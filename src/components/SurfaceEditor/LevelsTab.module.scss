@@ -280,6 +280,22 @@
   }
 }
 
+.projectTotals {
+  margin-top: $spacing-xl;
+  padding-top: $spacing-xl;
+  border-top: 3px solid $secondary-color;
+  background-color: #f8f9fa;
+  padding: $spacing-xl;
+  border-radius: $border-radius-md;
+
+  h5 {
+    margin: 0 0 $spacing-md 0;
+    font-size: $font-size-lg;
+    font-weight: 700;
+    color: $secondary-color;
+  }
+}
+
 .loading {
   text-align: center;
   padding: $spacing-xl;
