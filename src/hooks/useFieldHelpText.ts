@@ -20,7 +20,11 @@ export interface FieldHelpTextData {
   is_active?: boolean;
 }
 
-export const useFieldHelpText = (modelName: string, fieldName: string) => {
+export const useFieldHelpText = (
+  modelName: string, 
+  fieldName: string,
+  options?: { enabled?: boolean }
+) => {
   const { accessToken } = useAuth();
   
   return useQuery<FieldHelpTextData>({
@@ -35,7 +39,7 @@ export const useFieldHelpText = (modelName: string, fieldName: string) => {
       );
       return response.data;
     },
-    enabled: !!accessToken && !!modelName && !!fieldName,
+    enabled: (options?.enabled !== false) && !!accessToken && !!modelName && !!fieldName,
     staleTime: 1000 * 60 * 60, // Cache por 1 hora (las ayudas no cambian frecuentemente)
   });
 };

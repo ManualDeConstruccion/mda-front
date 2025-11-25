@@ -10,6 +10,7 @@ import {
   Height as HeightIcon
 } from '@mui/icons-material';
 import HelpTooltip from '../common/HelpTooltip/HelpTooltip';
+import { useModalHelpTexts } from '../../hooks/useModalHelpTexts';
 import { validateLevelData } from '../../validation/levelSchemas';
 import { validateBuildingData } from '../../validation/buildingSchemas';
 import styles from './LevelsTab.module.scss';
@@ -29,6 +30,16 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
   const { levels, isLoadingLevels, createLevel, updateLevel, deleteLevel, suggestLevelCode } = useProjectLevels({
     project_node: projectNodeId,
   });
+
+  // Cargar todos los textos de ayuda necesarios para los modales en una sola llamada
+  const modalHelpTextFields = [
+    { model: 'Building', field: 'code' },
+    { model: 'Building', field: 'name' },
+    { model: 'ProjectLevel', field: 'code' },
+    { model: 'ProjectLevel', field: 'name' },
+    { model: 'ProjectLevel', field: 'altura' },
+  ];
+  const { getHelpText } = useModalHelpTexts(modalHelpTextFields);
 
   const [editingBuilding, setEditingBuilding] = useState<number | null>(null);
   const [editingBuildingName, setEditingBuildingName] = useState('');
@@ -853,6 +864,7 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
                   <HelpTooltip
                     modelName="Building"
                     fieldName="code"
+                    helpTextData={getHelpText('Building', 'code')}
                     defaultBriefText="Identificador único del edificio"
                     defaultExtendedText="El código debe ser único dentro del proyecto. Se recomienda usar letras minúsculas, números y guiones. Ejemplos: edificio-a, torre-1, casa-1. Caracteres recomendados: a-z, 0-9, guión (-)."
                     position="right"
@@ -878,6 +890,7 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
                   <HelpTooltip
                     modelName="Building"
                     fieldName="name"
+                    helpTextData={getHelpText('Building', 'name')}
                     defaultBriefText="Nombre descriptivo del edificio"
                     defaultExtendedText="Nombre legible que se mostrará en la interfaz. Puede incluir espacios y caracteres especiales. Ejemplos: Edificio A, Torre 1, Casa Principal."
                     position="right"
@@ -962,6 +975,7 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
                   <HelpTooltip
                     modelName="ProjectLevel"
                     fieldName="code"
+                    helpTextData={getHelpText('ProjectLevel', 'code')}
                     defaultBriefText="Código único del nivel"
                     defaultExtendedText="Código corto que identifica el nivel. Se recomienda usar patrones como P01, P02 para pisos sobre terreno, SS1, SS2 para subterráneos, AZ para azotea. Caracteres recomendados: letras mayúsculas y números."
                     position="right"
@@ -987,6 +1001,7 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
                   <HelpTooltip
                     modelName="ProjectLevel"
                     fieldName="name"
+                    helpTextData={getHelpText('ProjectLevel', 'name')}
                     defaultBriefText="Nombre descriptivo del nivel"
                     defaultExtendedText="Nombre legible que se mostrará en la interfaz. Puede incluir espacios y caracteres especiales. Ejemplos: Subterráneo 1, Piso 1, Azotea, Mezzanine."
                     position="right"
@@ -1012,6 +1027,7 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
                   <HelpTooltip
                     modelName="ProjectLevel"
                     fieldName="altura"
+                    helpTextData={getHelpText('ProjectLevel', 'altura')}
                     defaultBriefText="Altura del nivel desde el nivel del terreno"
                     defaultExtendedText="Altura del nivel desde el nivel del terreno en metros. Negativo para subterráneos. Se calcula automáticamente desde order si no se especifica."
                     position="right"

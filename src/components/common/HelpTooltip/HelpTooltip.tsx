@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { HelpOutline } from '@mui/icons-material';
-import { useFieldHelpText } from '../../../hooks/useFieldHelpText';
+import { useFieldHelpText, FieldHelpTextData } from '../../../hooks/useFieldHelpText';
 import styles from './HelpTooltip.module.scss';
 
 interface HelpMedia {
@@ -19,6 +19,8 @@ interface HelpTooltipProps {
   defaultBriefText?: string;
   defaultExtendedText?: string;
   defaultMedia?: HelpMedia;
+  // Opcional: datos precargados desde batch (evita llamada individual)
+  helpTextData?: FieldHelpTextData;
 }
 
 const HelpTooltip: React.FC<HelpTooltipProps> = ({
@@ -28,8 +30,18 @@ const HelpTooltip: React.FC<HelpTooltipProps> = ({
   defaultBriefText = '',
   defaultExtendedText,
   defaultMedia,
+  helpTextData,
 }) => {
-  const { data: helpText } = useFieldHelpText(modelName, fieldName);
+  // Si se proporcionan datos precargados, usarlos directamente
+  // Si no, cargar individualmente (fallback para compatibilidad)
+  const { data: helpTextFromQuery } = useFieldHelpText(
+    modelName, 
+    fieldName,
+    { enabled: !helpTextData } // Solo cargar si no hay datos precargados
+  );
+  
+  // Usar datos precargados si están disponibles, sino usar query individual
+  const helpText = helpTextData || helpTextFromQuery;
   
   // Usar datos de BD si existen, sino usar valores por defecto
   const briefText = helpText?.brief_text || defaultBriefText;
