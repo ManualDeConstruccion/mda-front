@@ -33,30 +33,49 @@ const HelpTooltip: React.FC<HelpTooltipProps> = ({
   defaultMedia,
   helpTextData,
 }) => {
-  // Si se proporcionan datos precargados, usarlos directamente
+  // PRIORIDAD: 1) Datos de BD (desde batch o query individual), 2) Valores por defecto
+  
+  // Si se proporcionan datos precargados (batch), usarlos directamente
   // Si no, cargar individualmente (fallback para compatibilidad)
-  // Solo hacer query individual si helpTextData es explícitamente undefined
-  // Si helpTextData es un objeto vacío {}, significa que ya se consultó pero no existe en BD
-  // Si helpTextData es null, también significa que no existe
   const shouldUseIndividualQuery = helpTextData === undefined;
   
-  const { data: helpTextFromQuery } = useFieldHelpText(
+  const { data: helpTextFromQuery, isLoading: isLoadingQuery } = useFieldHelpText(
     modelName, 
     fieldName,
     { enabled: shouldUseIndividualQuery }
   );
   
-  // Usar datos precargados si están disponibles (incluyendo objeto vacío {} que indica "no existe")
-  // Solo usar query individual si helpTextData es undefined (no se ha consultado aún)
+  // Determinar qué datos usar:
+  // 1. Si hay datos precargados (batch), usarlos
+  // 2. Si no hay datos precargados, usar datos de query individual
   const helpText = helpTextData !== undefined ? helpTextData : helpTextFromQuery;
   
-  // Verificar si helpText es un FieldHelpTextData válido (no un objeto vacío {})
-  const isValidHelpText = helpText && typeof helpText === 'object' && 'brief_text' in helpText;
+  // Verificar si helpText es un FieldHelpTextData válido
+  // Un objeto vacío {} significa que se consultó pero no existe en BD
+  // Un objeto con 'brief_text' significa que existe en BD
+  const hasBriefText = helpText && 
+                       typeof helpText === 'object' && 
+                       'brief_text' in helpText &&
+                       typeof (helpText as any).brief_text === 'string' &&
+                       (helpText as any).brief_text.trim().length > 0;
   
-  // Usar datos de BD si existen, sino usar valores por defecto
-  const briefText = isValidHelpText ? (helpText as FieldHelpTextData).brief_text : defaultBriefText;
-  const extendedText = isValidHelpText ? (helpText as FieldHelpTextData).extended_text : defaultExtendedText;
-  const media = isValidHelpText ? (helpText as FieldHelpTextData).media : defaultMedia;
+  // Verificar si es un objeto vacío (se consultó pero no existe)
+  const isEmptyObject = helpText && 
+                        typeof helpText === 'object' && 
+                        Object.keys(helpText).length === 0;
+  
+  // PRIORIDAD: 1) Datos de BD si existen y tienen brief_text, 2) Valores por defecto
+  // Si es un objeto vacío {}, significa que se consultó pero no existe, usar valores por defecto
+  // Si tiene brief_text, usar datos de BD
+  const briefText = hasBriefText 
+    ? (helpText as FieldHelpTextData).brief_text 
+    : defaultBriefText;
+  const extendedText = hasBriefText 
+    ? (helpText as FieldHelpTextData).extended_text 
+    : defaultExtendedText;
+  const media = hasBriefText 
+    ? (helpText as FieldHelpTextData).media 
+    : defaultMedia;
   
   // Si no hay briefText ni defaultBriefText, no mostrar tooltip
   if (!briefText) {
