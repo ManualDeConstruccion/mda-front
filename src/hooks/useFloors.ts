@@ -146,7 +146,11 @@ export const useFloors = (filters?: FloorsFilters) => {
   };
 
   const createMultipleFloors = useMutation({
-    mutationFn: async (data: { project_node: number; floor_type: 'below' | 'above'; count: number }) => {
+    mutationFn: async (data: { 
+      project_node: number; 
+      floor_type: 'below' | 'above'; 
+      count: number;
+    }) => {
       const response = await axios.post(
         `${API_URL}/api/project-engines/floors/create_multiple/`,
         data,

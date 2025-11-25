@@ -27,7 +27,7 @@ interface BuildingTotals {
 
 const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
   const { buildings, isLoadingBuildings, createBuilding, updateBuilding } = useBuildings(projectNodeId);
-  const { levels, isLoadingLevels, createLevel, updateLevel, deleteLevel, suggestLevelCode } = useProjectLevels({
+  const { levels, isLoadingLevels, createLevel, updateLevel, deleteLevel, suggestLevelCode, createMultipleLevels } = useProjectLevels({
     project_node: projectNodeId,
   });
 
@@ -57,6 +57,11 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
   const [showEditHeightsModal, setShowEditHeightsModal] = useState<number | null>(null);
   const [editingHeights, setEditingHeights] = useState<Record<number, number | null>>({});
   const [inputValues, setInputValues] = useState<Record<number, string>>({});
+  const [showAddMultipleLevelsModal, setShowAddMultipleLevelsModal] = useState<{ buildingId: number; levelType: 'below' | 'above' | 'roof' } | null>(null);
+  const [multipleLevelsCount, setMultipleLevelsCount] = useState<string>('1');
+  const [groupMode, setGroupMode] = useState<'none' | 'new' | 'existing'>('none');
+  const [selectedTemplateLevelId, setSelectedTemplateLevelId] = useState<number | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<Set<number>>(new Set());
 
   // Agrupar niveles por edificio
   const levelsByBuilding = buildings.reduce((acc, building) => {
@@ -135,17 +140,24 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
     if (!level) return;
 
     // Validar con Yup solo el nombre (ya que solo se puede editar el nombre aquí)
+    const levelsForValidation = levels.map(l => ({
+      code: l.code,
+      name: l.name,
+      altura: l.altura ?? null,
+      building: l.building,
+      id: l.id,
+    }));
     const validation = await validateLevelData(
       {
         code: level.code,
         name: editingLevelName,
-        altura: level.altura,
+        altura: level.altura ?? null,
         level_type: level.level_type,
         building: level.building,
         order: level.order,
         is_active: level.is_active,
       },
-      levels,
+      levelsForValidation,
       level.building,
       levelId
     );
@@ -280,17 +292,24 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
     if (!showAddLevelModal) return;
 
     // Validar con Yup
+    const levelsForValidation = levels.map(l => ({
+      code: l.code,
+      name: l.name,
+      altura: l.altura ?? null,
+      building: l.building,
+      id: l.id,
+    }));
     const validation = await validateLevelData(
       {
         code: newLevelCode,
         name: newLevelName,
-        altura: newLevelAltura,
+        altura: newLevelAltura ? parseFloat(newLevelAltura) : null,
         level_type: showAddLevelModal.levelType,
         building: showAddLevelModal.buildingId,
         order: 0,
         is_active: true,
       },
-      levels,
+      levelsForValidation,
       showAddLevelModal.buildingId
     );
 
@@ -594,6 +613,213 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
     </tr>
   );
 
+  // Funciones para agrupación de niveles
+  const groupLevelsByTemplate = (levelList: ProjectLevel[]): Array<ProjectLevel | { template: ProjectLevel; levels: ProjectLevel[] }> => {
+    const templateMap = new Map<number, ProjectLevel[]>();
+    const individualLevels: ProjectLevel[] = [];
+    const processedTemplateIds = new Set<number>();
+
+    levelList.forEach(level => {
+      // Si este nivel tiene un template_level, agregarlo al grupo correspondiente
+      if (level.template_level) {
+        const templateId = level.template_level;
+        if (!templateMap.has(templateId)) {
+          templateMap.set(templateId, []);
+        }
+        templateMap.get(templateId)!.push(level);
+        processedTemplateIds.add(level.id);
+      }
+    });
+
+    // Ahora identificar los templates y agregar niveles individuales
+    levelList.forEach(level => {
+      if (!processedTemplateIds.has(level.id)) {
+        // Verificar si este nivel es template de otros
+        const isTemplate = templateMap.has(level.id);
+        if (!isTemplate) {
+          individualLevels.push(level);
+        }
+      }
+    });
+
+    const result: Array<ProjectLevel | { template: ProjectLevel; levels: ProjectLevel[] }> = [];
+    
+    // Agregar niveles individuales
+    individualLevels.forEach(level => result.push(level));
+    
+    // Agregar grupos
+    templateMap.forEach((groupLevels, templateId) => {
+      const template = levelList.find(l => l.id === templateId);
+      if (template) {
+        // Incluir el template en el grupo
+        const allGroupLevels = [template, ...groupLevels].sort((a, b) => a.order - b.order);
+        result.push({ template, levels: allGroupLevels });
+      }
+    });
+
+    // Ordenar por order del primer elemento (template o nivel individual)
+    return result.sort((a, b) => {
+      const orderA = typeof a === 'object' && 'template' in a ? a.template.order : a.order;
+      const orderB = typeof b === 'object' && 'template' in b ? b.template.order : b.order;
+      return orderA - orderB;
+    });
+  };
+
+  const getGroupMinOrder = (group: { template: ProjectLevel; levels: ProjectLevel[] }): number => {
+    return Math.min(...group.levels.map(l => l.order));
+  };
+
+  const organizeLevelsByType = (buildingId: number, levelType: 'below' | 'above' | 'roof') => {
+    const buildingLevels = levelsByBuilding[buildingId] || { below: [], above: [], roof: [] };
+    const levelList = buildingLevels[levelType] || [];
+    
+    const grouped = groupLevelsByTemplate(levelList);
+    const individual: ProjectLevel[] = [];
+    const groups: Array<{ template: ProjectLevel; levels: ProjectLevel[] }> = [];
+
+    grouped.forEach(item => {
+      if (typeof item === 'object' && 'template' in item) {
+        groups.push(item);
+      } else {
+        individual.push(item as ProjectLevel);
+      }
+    });
+
+    // Combinar y ordenar: individuales primero, luego grupos
+    const combined: Array<ProjectLevel | { template: ProjectLevel; levels: ProjectLevel[] }> = [];
+    
+    // Agregar niveles individuales
+    individual.forEach(level => combined.push(level));
+    
+    // Agregar grupos ordenados por order mínimo
+    groups.sort((a, b) => getGroupMinOrder(a) - getGroupMinOrder(b));
+    groups.forEach(group => combined.push(group));
+
+    // Ordenar todo por order
+    return combined.sort((a, b) => {
+      const orderA = typeof a === 'object' && 'template' in a ? getGroupMinOrder(a) : a.order;
+      const orderB = typeof b === 'object' && 'template' in b ? getGroupMinOrder(b) : b.order;
+      return orderA - orderB;
+    });
+  };
+
+  const toggleGroupExpanded = (templateId: number) => {
+    const newExpanded = new Set(expandedGroups);
+    if (newExpanded.has(templateId)) {
+      newExpanded.delete(templateId);
+    } else {
+      newExpanded.add(templateId);
+    }
+    setExpandedGroups(newExpanded);
+  };
+
+  const renderLevelGroup = (group: { template: ProjectLevel; levels: ProjectLevel[] }, buildingId: number) => {
+    const isExpanded = expandedGroups.has(group.template.id);
+    const sortedLevels = [...group.levels].sort((a, b) => a.order - b.order);
+    const minLevel = sortedLevels[0];
+    const maxLevel = sortedLevels[sortedLevels.length - 1];
+    const groupTitle = `Grupo: ${minLevel.name} a ${maxLevel.name} (${group.levels.length} niveles)`;
+
+    return (
+      <React.Fragment key={`group-${group.template.id}`}>
+        <tr className={styles.groupHeaderRow}>
+          <td>
+            <div className={styles.levelNameContainer}>
+              <button
+                className={styles.expandButton}
+                onClick={() => toggleGroupExpanded(group.template.id)}
+                title={isExpanded ? "Contraer grupo" : "Expandir grupo"}
+              >
+                {isExpanded ? '▼' : '▶'}
+              </button>
+              <span className={styles.groupName}>{groupTitle}</span>
+            </div>
+          </td>
+          <td className={styles.numberCell}>{formatNumber(group.template.surface_util || 0)}</td>
+          <td className={styles.numberCell}>{formatNumber(group.template.surface_comun || 0)}</td>
+          <td className={styles.numberCell}>{formatNumber(group.template.surface_total || 0)}</td>
+          <td></td>
+        </tr>
+        {isExpanded && (
+          <>
+            {sortedLevels.map(level => (
+              <tr key={level.id} className={styles.groupDetailsRow}>
+                <td className={styles.groupDetailsCell}>
+                  <div className={styles.levelDetailItem}>
+                    <span className={styles.levelDetailName}>{level.name}</span>
+                    <span className={styles.levelDetailCode}>({level.code})</span>
+                  </div>
+                </td>
+                <td className={styles.numberCell}>{formatNumber(level.surface_util || 0)}</td>
+                <td className={styles.numberCell}>{formatNumber(level.surface_comun || 0)}</td>
+                <td className={styles.numberCell}>{formatNumber(level.surface_total || 0)}</td>
+                <td>
+                  {canDeleteLevel(level, buildingId) ? (
+                    <button
+                      className={styles.deleteButton}
+                      onClick={() => handleDeleteLevel(level)}
+                      title="Eliminar nivel"
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </button>
+                  ) : (
+                    <button
+                      className={styles.deleteButton}
+                      disabled
+                      title="Solo se pueden eliminar los niveles extremos"
+                      style={{ opacity: 0.3, cursor: 'not-allowed' }}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </>
+        )}
+      </React.Fragment>
+    );
+  };
+
+  const handleAddMultipleLevels = async () => {
+    if (!showAddMultipleLevelsModal) return;
+
+    const count = parseInt(multipleLevelsCount);
+    if (isNaN(count) || count < 1 || count > 50) {
+      alert('El número de niveles debe estar entre 1 y 50');
+      return;
+    }
+
+    try {
+      await createMultipleLevels.mutateAsync({
+        building: showAddMultipleLevelsModal.buildingId,
+        level_type: showAddMultipleLevelsModal.levelType,
+        count,
+        group_mode: groupMode,
+        template_level_id: groupMode === 'existing' ? selectedTemplateLevelId || undefined : undefined,
+      });
+      
+      setMultipleLevelsCount('1');
+      setGroupMode('none');
+      setSelectedTemplateLevelId(null);
+      setShowAddMultipleLevelsModal(null);
+    } catch (error: any) {
+      console.error('Error al crear múltiples niveles:', error);
+      const errorMessage = error?.response?.data?.error || 
+                          error?.response?.data?.detail || 
+                          error?.response?.data?.message ||
+                          'Error al crear múltiples niveles';
+      alert(errorMessage);
+    }
+  };
+
+  const handleOpenAddMultipleLevelsModal = (buildingId: number, levelType: 'below' | 'above' | 'roof') => {
+    setShowAddMultipleLevelsModal({ buildingId, levelType });
+    setMultipleLevelsCount('1');
+    setGroupMode('none');
+    setSelectedTemplateLevelId(null);
+  };
+
   if (isLoadingBuildings || isLoadingLevels) {
     return <div className={styles.loading}>Cargando edificios y niveles...</div>;
   }
@@ -677,12 +903,21 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
                     S. EDIFICADA SUBTERRÁNEO (S)
                     <span className={styles.subtitle}>S. Edificada por nivel o piso</span>
                   </h5>
-                  <button
-                    className={styles.addLevelButton}
-                    onClick={() => handleOpenAddLevelModal(building.id, 'below')}
-                  >
-                    <AddIcon /> Agregar Nivel
-                  </button>
+                  <div className={styles.levelTypeActions}>
+                    <button
+                      className={styles.addLevelButton}
+                      onClick={() => handleOpenAddLevelModal(building.id, 'below')}
+                    >
+                      <AddIcon /> Agregar Nivel
+                    </button>
+                    <button
+                      className={styles.addMultipleButton}
+                      onClick={() => handleOpenAddMultipleLevelsModal(building.id, 'below')}
+                      disabled={createMultipleLevels.isPending}
+                    >
+                      <AddIcon /> Agregar Múltiples Niveles
+                    </button>
+                  </div>
                 </div>
                 {buildingLevels.below.length === 0 ? (
                   <div className={styles.emptyMessage}>
@@ -700,7 +935,13 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
                       </tr>
                     </thead>
                     <tbody>
-                      {buildingLevels.below.map(level => renderLevelRow(level, building.id))}
+                      {organizeLevelsByType(building.id, 'below').map(item => {
+                        if (typeof item === 'object' && 'template' in item) {
+                          return renderLevelGroup(item, building.id);
+                        } else {
+                          return renderLevelRow(item as ProjectLevel, building.id);
+                        }
+                      })}
                       {renderTotalRow(totals.subterraneo, `TOTAL SUBTERRÁNEO ${building.name}`)}
                     </tbody>
                   </table>
@@ -714,12 +955,21 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
                     S. EDIFICADA SOBRE TERRENO
                     <span className={styles.subtitle}>S. Edificada por nivel o piso</span>
                   </h5>
-                  <button
-                    className={styles.addLevelButton}
-                    onClick={() => handleOpenAddLevelModal(building.id, 'above')}
-                  >
-                    <AddIcon /> Agregar Nivel
-                  </button>
+                  <div className={styles.levelTypeActions}>
+                    <button
+                      className={styles.addLevelButton}
+                      onClick={() => handleOpenAddLevelModal(building.id, 'above')}
+                    >
+                      <AddIcon /> Agregar Nivel
+                    </button>
+                    <button
+                      className={styles.addMultipleButton}
+                      onClick={() => handleOpenAddMultipleLevelsModal(building.id, 'above')}
+                      disabled={createMultipleLevels.isPending}
+                    >
+                      <AddIcon /> Agregar Múltiples Niveles
+                    </button>
+                  </div>
                 </div>
                 {buildingLevels.above.length === 0 ? (
                   <div className={styles.emptyMessage}>
@@ -737,7 +987,13 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
                       </tr>
                     </thead>
                     <tbody>
-                      {buildingLevels.above.map(level => renderLevelRow(level, building.id))}
+                      {organizeLevelsByType(building.id, 'above').map(item => {
+                        if (typeof item === 'object' && 'template' in item) {
+                          return renderLevelGroup(item, building.id);
+                        } else {
+                          return renderLevelRow(item as ProjectLevel, building.id);
+                        }
+                      })}
                       {renderTotalRow(totals.sobre_terreno, `TOTAL SOBRE TERRENO ${building.name}`)}
                     </tbody>
                   </table>
@@ -1012,6 +1268,160 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
           </div>
         </div>
       )}
+
+      {/* Modal para agregar múltiples niveles */}
+      {showAddMultipleLevelsModal && (() => {
+        const building = buildings.find(b => b.id === showAddMultipleLevelsModal.buildingId);
+        const buildingLevels = levelsByBuilding[showAddMultipleLevelsModal.buildingId] || { below: [], above: [], roof: [] };
+        const availableLevels = buildingLevels[showAddMultipleLevelsModal.levelType] || [];
+        
+        return (
+          <div className={styles.modalOverlay} onClick={() => {
+            setShowAddMultipleLevelsModal(null);
+            setMultipleLevelsCount('1');
+            setGroupMode('none');
+            setSelectedTemplateLevelId(null);
+          }}>
+            <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.modalHeader}>
+                <h3>
+                  Agregar Múltiples Niveles {showAddMultipleLevelsModal.levelType === 'below' ? 'Subterráneos' : showAddMultipleLevelsModal.levelType === 'above' ? 'Sobre Terreno' : 'Cubierta'}
+                </h3>
+                <button
+                  className={styles.closeButton}
+                  onClick={() => {
+                    setShowAddMultipleLevelsModal(null);
+                    setMultipleLevelsCount('1');
+                    setGroupMode('none');
+                    setSelectedTemplateLevelId(null);
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+              <div className={styles.modalContent}>
+                <div className={styles.formGroup}>
+                  <label htmlFor="levelsCount">Número de Niveles</label>
+                  <input
+                    id="levelsCount"
+                    type="text"
+                    value={multipleLevelsCount}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === '' || /^\d+$/.test(value)) {
+                        setMultipleLevelsCount(value);
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const value = e.target.value.trim();
+                      if (value === '') {
+                        setMultipleLevelsCount('1');
+                      } else {
+                        const num = parseInt(value, 10);
+                        if (isNaN(num) || num < 1) {
+                          setMultipleLevelsCount('1');
+                        } else if (num > 50) {
+                          setMultipleLevelsCount('50');
+                        } else {
+                          setMultipleLevelsCount(num.toString());
+                        }
+                      }
+                    }}
+                    className={styles.formInput}
+                    placeholder="1-50"
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label>Opciones de agrupación</label>
+                  <div className={styles.radioGroup}>
+                    <label className={styles.radioLabel}>
+                      <input
+                        type="radio"
+                        name="groupMode"
+                        value="none"
+                        checked={groupMode === 'none'}
+                        onChange={(e) => {
+                          setGroupMode('none');
+                          setSelectedTemplateLevelId(null);
+                        }}
+                      />
+                      <span>Sin agrupar</span>
+                    </label>
+                    <label className={styles.radioLabel}>
+                      <input
+                        type="radio"
+                        name="groupMode"
+                        value="new"
+                        checked={groupMode === 'new'}
+                        onChange={(e) => {
+                          setGroupMode('new');
+                          setSelectedTemplateLevelId(null);
+                        }}
+                      />
+                      <span>Agrupar los nuevos niveles juntos</span>
+                    </label>
+                    {availableLevels.length > 0 && (
+                      <label className={styles.radioLabel}>
+                        <input
+                          type="radio"
+                          name="groupMode"
+                          value="existing"
+                          checked={groupMode === 'existing'}
+                          onChange={(e) => {
+                            setGroupMode('existing');
+                          }}
+                        />
+                        <span>Agrupar con nivel existente</span>
+                      </label>
+                    )}
+                  </div>
+                </div>
+
+                {groupMode === 'existing' && availableLevels.length > 0 && (
+                  <div className={styles.formGroup}>
+                    <label htmlFor="templateLevel">Nivel Plantilla</label>
+                    <select
+                      id="templateLevel"
+                      value={selectedTemplateLevelId || ''}
+                      onChange={(e) => setSelectedTemplateLevelId(parseInt(e.target.value) || null)}
+                      className={styles.formInput}
+                    >
+                      <option value="">Seleccione un nivel...</option>
+                      {availableLevels.map(level => (
+                        <option key={level.id} value={level.id}>
+                          {level.name} ({level.code})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div className={styles.modalActions}>
+                  <button
+                    className={styles.cancelButton}
+                    onClick={() => {
+                      setShowAddMultipleLevelsModal(null);
+                      setMultipleLevelsCount('1');
+                      setGroupMode('none');
+                      setSelectedTemplateLevelId(null);
+                    }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    className={styles.saveButton}
+                    onClick={handleAddMultipleLevels}
+                    disabled={createMultipleLevels.isPending || !multipleLevelsCount || parseInt(multipleLevelsCount) < 1 || (groupMode === 'existing' && !selectedTemplateLevelId)}
+                  >
+                    {createMultipleLevels.isPending ? 'Creando...' : 'Crear Niveles'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Modal para editar alturas */}
       {showEditHeightsModal && (() => {

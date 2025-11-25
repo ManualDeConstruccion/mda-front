@@ -6,6 +6,8 @@ import {
   Add as AddIcon, 
   Delete as DeleteIcon,
   Refresh as RefreshIcon,
+  ExpandMore as ExpandMoreIcon,
+  ChevronRight as ChevronRightIcon,
 } from '@mui/icons-material';
 import styles from './FloorsTab.module.scss';
 
@@ -22,6 +24,7 @@ const FloorsTab: React.FC<FloorsTabProps> = ({ projectNodeId }) => {
   const [showAddMultipleModal, setShowAddMultipleModal] = useState<{ floorType: 'below' | 'above' } | null>(null);
   const [multipleFloorsCount, setMultipleFloorsCount] = useState<string>('1');
   const [floorValidationErrors, setFloorValidationErrors] = useState<Record<string, string>>({});
+  const [expandedFloors, setExpandedFloors] = useState<Set<number>>(new Set());
 
   const formatNumber = (num: number): string => {
     return num.toFixed(2);
@@ -159,46 +162,103 @@ const FloorsTab: React.FC<FloorsTabProps> = ({ projectNodeId }) => {
     total: subterraneoTotals.total + sobreTerrenoTotals.total,
   };
 
+  const toggleFloorExpanded = (floorId: number) => {
+    const newExpanded = new Set(expandedFloors);
+    if (newExpanded.has(floorId)) {
+      newExpanded.delete(floorId);
+    } else {
+      newExpanded.add(floorId);
+    }
+    setExpandedFloors(newExpanded);
+  };
+
+  const isLastFloor = (floor: Floor, floorList: Floor[], floorType: 'below' | 'above') => {
+    const sorted = floorType === 'below'
+      ? [...floorList].sort((a, b) => b.order - a.order)
+      : [...floorList].sort((a, b) => a.order - b.order);
+    
+    const lastFloor = floorType === 'below' ? sorted[0] : sorted[sorted.length - 1];
+    return floor.id === lastFloor?.id;
+  };
+
+  const renderFloorDetails = (floor: Floor) => {
+    if (!expandedFloors.has(floor.id) || !floor.levels_detail || floor.levels_detail.length === 0) {
+      return null;
+    }
+
+    return (
+      <tr className={styles.detailRow}>
+        <td colSpan={5} className={styles.detailCell}>
+          <div className={styles.detailContent}>
+            <div className={styles.detailHeader}>Niveles asociados:</div>
+            <div className={styles.levelsList}>
+              {floor.levels_detail.map(level => (
+                <div key={level.id} className={styles.levelItem}>
+                  <span className={styles.levelBuilding}>{level.building_name}</span>
+                  <span className={styles.levelSeparator}> - </span>
+                  <span className={styles.levelName}>{level.name}</span>
+                  <span className={styles.levelCode}>({level.code})</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </td>
+      </tr>
+    );
+  };
+
   const renderFloorRow = (floor: Floor, floorList: Floor[], index: number, floorType: 'below' | 'above') => {
-    // Solo se puede eliminar el último piso
-    // Para subterráneos: el primero en la lista (índice 0) que tiene el mayor order (más profundo)
-    // Para sobre terreno: el último en la lista (último índice) que tiene el mayor order
+    const isExpanded = expandedFloors.has(floor.id);
     const isLastFloor = floorType === 'below' 
       ? index === 0  // Subterráneos: el primero (mayor order, más profundo)
       : index === floorList.length - 1;  // Sobre terreno: el último (mayor order)
     
     return (
-      <tr key={floor.id}>
-        <td>{floor.name}</td>
-        <td className={styles.numberCell}>{formatNumber(floor.surface_util || 0)}</td>
-        <td className={styles.numberCell}>{formatNumber(floor.surface_comun || 0)}</td>
-        <td className={styles.numberCell}>{formatNumber(floor.surface_total || 0)}</td>
-        <td>
-          <div className={styles.rowActions}>
-            <button
-              className={styles.refreshButton}
-              onClick={() => handleUpdateConsolidatedValues(floor.id)}
-              title="Actualizar valores consolidados"
-              disabled={updateConsolidatedValues.isPending}
-            >
-              <RefreshIcon fontSize="small" />
-            </button>
-            <button
-              className={styles.deleteButton}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleDeleteFloor(floor.id);
-              }}
-              title={isLastFloor ? "Eliminar piso" : "Solo se puede eliminar el último piso"}
-              disabled={deleteFloor.isPending || !isLastFloor}
-              style={{ opacity: isLastFloor ? 1 : 0.5, cursor: isLastFloor ? 'pointer' : 'not-allowed' }}
-            >
-              <DeleteIcon fontSize="small" />
-            </button>
-          </div>
-        </td>
-      </tr>
+      <React.Fragment key={floor.id}>
+        <tr>
+          <td>
+            <div className={styles.floorNameCell}>
+              <button
+                className={styles.expandButton}
+                onClick={() => toggleFloorExpanded(floor.id)}
+                title={isExpanded ? "Contraer detalles" : "Expandir detalles"}
+              >
+                {isExpanded ? <ExpandMoreIcon fontSize="small" /> : <ChevronRightIcon fontSize="small" />}
+              </button>
+              <span>{floor.name}</span>
+            </div>
+          </td>
+          <td className={styles.numberCell}>{formatNumber(floor.surface_util || 0)}</td>
+          <td className={styles.numberCell}>{formatNumber(floor.surface_comun || 0)}</td>
+          <td className={styles.numberCell}>{formatNumber(floor.surface_total || 0)}</td>
+          <td>
+            <div className={styles.rowActions}>
+              <button
+                className={styles.refreshButton}
+                onClick={() => handleUpdateConsolidatedValues(floor.id)}
+                title="Actualizar valores consolidados"
+                disabled={updateConsolidatedValues.isPending}
+              >
+                <RefreshIcon fontSize="small" />
+              </button>
+              <button
+                className={styles.deleteButton}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleDeleteFloor(floor.id);
+                }}
+                title={isLastFloor ? "Eliminar piso" : "Solo se puede eliminar el último piso"}
+                disabled={deleteFloor.isPending || !isLastFloor}
+                style={{ opacity: isLastFloor ? 1 : 0.5, cursor: isLastFloor ? 'pointer' : 'not-allowed' }}
+              >
+                <DeleteIcon fontSize="small" />
+              </button>
+            </div>
+          </td>
+        </tr>
+        {renderFloorDetails(floor)}
+      </React.Fragment>
     );
   };
 
@@ -258,7 +318,9 @@ const FloorsTab: React.FC<FloorsTabProps> = ({ projectNodeId }) => {
               </tr>
             </thead>
             <tbody>
-              {floorsByType.below.map((floor, index) => renderFloorRow(floor, floorsByType.below, index, 'below'))}
+              {floorsByType.below.map((floor, index) => 
+                renderFloorRow(floor, floorsByType.below, index, 'below')
+              )}
               {renderTotalRow(subterraneoTotals, 'TOTAL SUBTERRÁNEO')}
             </tbody>
           </table>
@@ -305,7 +367,9 @@ const FloorsTab: React.FC<FloorsTabProps> = ({ projectNodeId }) => {
               </tr>
             </thead>
             <tbody>
-              {floorsByType.above.map((floor, index) => renderFloorRow(floor, floorsByType.above, index, 'above'))}
+              {floorsByType.above.map((floor, index) => 
+                renderFloorRow(floor, floorsByType.above, index, 'above')
+              )}
               {renderTotalRow(sobreTerrenoTotals, 'TOTAL SOBRE TERRENO')}
             </tbody>
           </table>

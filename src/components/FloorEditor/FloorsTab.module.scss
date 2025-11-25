@@ -345,6 +345,40 @@
       border-color: $error-color;
     }
   }
+
+  .radioGroup {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+    margin-top: $spacing-xs;
+  }
+
+  .radioLabel {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    cursor: pointer;
+    padding: $spacing-xs;
+    border-radius: $border-radius-sm;
+    transition: background-color 0.2s;
+
+    &:hover {
+      background-color: $background-light;
+    }
+
+    input[type="radio"] {
+      cursor: pointer;
+      margin: 0;
+      width: 18px;
+      height: 18px;
+      accent-color: $primary-color;
+    }
+
+    span {
+      color: $text-primary;
+      font-size: $font-size-base;
+    }
+  }
 }
 
 .errorMessage {
@@ -394,5 +428,111 @@
   &:hover:not(:disabled) {
     background-color: darken($success-color, 10%);
   }
+}
+
+// Estilos para desplegables y grupos
+.expandButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: $spacing-xs;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $text-secondary;
+  transition: color 0.2s;
+  margin-right: $spacing-xs;
+
+  &:hover {
+    color: $primary-color;
+  }
+}
+
+.floorNameCell {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.groupedBadge {
+  font-size: $font-size-sm;
+  margin-left: $spacing-xs;
+  opacity: 0.7;
+}
+
+.groupName {
+  font-weight: 600;
+  color: $primary-color;
+}
+
+.groupHeaderRow {
+  background-color: #f0f7ff;
+  font-weight: 600;
+
+  &:hover {
+    background-color: #e0efff;
+  }
+}
+
+.groupedFloorRow {
+  background-color: #f9f9f9;
+
+  &:hover {
+    background-color: #f0f0f0;
+  }
+}
+
+.detailRow {
+  background-color: #fafafa;
+}
+
+.detailCell {
+  padding: 0 !important;
+}
+
+.detailContent {
+  padding: $spacing-md $spacing-lg;
+  border-top: 1px solid #eee;
+}
+
+.detailHeader {
+  font-weight: 600;
+  color: $text-primary;
+  margin-bottom: $spacing-sm;
+  font-size: $font-size-sm;
+}
+
+.levelsList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  padding-left: $spacing-md;
+}
+
+.levelItem {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  padding: $spacing-xs 0;
+}
+
+.levelBuilding {
+  font-weight: 500;
+  color: $text-primary;
+}
+
+.levelSeparator {
+  color: $text-secondary;
+}
+
+.levelName {
+  color: $text-primary;
+}
+
+.levelCode {
+  color: $text-secondary;
+  font-size: $font-size-xs;
 }
 
