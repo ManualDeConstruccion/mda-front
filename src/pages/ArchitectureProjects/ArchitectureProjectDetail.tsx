@@ -259,6 +259,12 @@ const ArchitectureProjectDetail: React.FC = () => {
                     >
                       Superficies
                     </button>
+                    <button
+                      className={`${styles.tab} ${activeTab === 'pisos' ? styles.active : ''}`}
+                      onClick={() => navigate(`/proyectos/${projectId}/arquitectura/${architectureId}/pisos`)}
+                    >
+                      Pisos
+                    </button>
                   </div>
 
                   <div className={styles.tabContent}>

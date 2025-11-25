@@ -95,37 +95,6 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
     return { subterraneo, sobre_terreno, total };
   };
 
-  // Calcular totales del proyecto (suma de todos los edificios)
-  const calculateProjectTotals = (): BuildingTotals => {
-    return buildings.reduce(
-      (acc, building) => {
-        const buildingTotals = calculateBuildingTotals(building.id);
-        return {
-          subterraneo: {
-            util: acc.subterraneo.util + buildingTotals.subterraneo.util,
-            comun: acc.subterraneo.comun + buildingTotals.subterraneo.comun,
-            total: acc.subterraneo.total + buildingTotals.subterraneo.total,
-          },
-          sobre_terreno: {
-            util: acc.sobre_terreno.util + buildingTotals.sobre_terreno.util,
-            comun: acc.sobre_terreno.comun + buildingTotals.sobre_terreno.comun,
-            total: acc.sobre_terreno.total + buildingTotals.sobre_terreno.total,
-          },
-          total: {
-            util: acc.total.util + buildingTotals.total.util,
-            comun: acc.total.comun + buildingTotals.total.comun,
-            total: acc.total.total + buildingTotals.total.total,
-          },
-        };
-      },
-      {
-        subterraneo: { util: 0, comun: 0, total: 0 },
-        sobre_terreno: { util: 0, comun: 0, total: 0 },
-        total: { util: 0, comun: 0, total: 0 },
-      }
-    );
-  };
-
   const formatNumber = (num: number): string => {
     return num.toFixed(2);
   };
@@ -796,36 +765,6 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
             </div>
           );
         })
-      )}
-
-      {/* Totales del Proyecto */}
-      {buildings.length > 0 && (
-        <div className={styles.projectTotals}>
-          <h5>TOTALES DEL PROYECTO</h5>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Concepto</th>
-                <th>ÚTIL (m²)</th>
-                <th>COMÚN (m²)</th>
-                <th>TOTAL (m²)</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {(() => {
-                const projectTotals = calculateProjectTotals();
-                return (
-                  <>
-                    {renderTotalRow(projectTotals.subterraneo, 'TOTAL SUBTERRÁNEO')}
-                    {renderTotalRow(projectTotals.sobre_terreno, 'TOTAL SOBRE TERRENO')}
-                    {renderTotalRow(projectTotals.total, 'TOTAL PROYECTO')}
-                  </>
-                );
-              })()}
-            </tbody>
-          </table>
-        </div>
       )}
 
       {/* Modal para agregar edificio */}
