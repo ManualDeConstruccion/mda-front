@@ -20,7 +20,8 @@ interface HelpTooltipProps {
   defaultExtendedText?: string;
   defaultMedia?: HelpMedia;
   // Opcional: datos precargados desde batch (evita llamada individual)
-  helpTextData?: FieldHelpTextData;
+  // Puede ser FieldHelpTextData si existe, {} si no existe en BD, o undefined si aún carga
+  helpTextData?: FieldHelpTextData | {};
 }
 
 const HelpTooltip: React.FC<HelpTooltipProps> = ({
@@ -34,19 +35,28 @@ const HelpTooltip: React.FC<HelpTooltipProps> = ({
 }) => {
   // Si se proporcionan datos precargados, usarlos directamente
   // Si no, cargar individualmente (fallback para compatibilidad)
+  // Solo hacer query individual si helpTextData es explícitamente undefined
+  // Si helpTextData es un objeto vacío {}, significa que ya se consultó pero no existe en BD
+  // Si helpTextData es null, también significa que no existe
+  const shouldUseIndividualQuery = helpTextData === undefined;
+  
   const { data: helpTextFromQuery } = useFieldHelpText(
     modelName, 
     fieldName,
-    { enabled: !helpTextData } // Solo cargar si no hay datos precargados
+    { enabled: shouldUseIndividualQuery }
   );
   
-  // Usar datos precargados si están disponibles, sino usar query individual
-  const helpText = helpTextData || helpTextFromQuery;
+  // Usar datos precargados si están disponibles (incluyendo objeto vacío {} que indica "no existe")
+  // Solo usar query individual si helpTextData es undefined (no se ha consultado aún)
+  const helpText = helpTextData !== undefined ? helpTextData : helpTextFromQuery;
+  
+  // Verificar si helpText es un FieldHelpTextData válido (no un objeto vacío {})
+  const isValidHelpText = helpText && typeof helpText === 'object' && 'brief_text' in helpText;
   
   // Usar datos de BD si existen, sino usar valores por defecto
-  const briefText = helpText?.brief_text || defaultBriefText;
-  const extendedText = helpText?.extended_text || defaultExtendedText;
-  const media = helpText?.media || defaultMedia;
+  const briefText = isValidHelpText ? (helpText as FieldHelpTextData).brief_text : defaultBriefText;
+  const extendedText = isValidHelpText ? (helpText as FieldHelpTextData).extended_text : defaultExtendedText;
+  const media = isValidHelpText ? (helpText as FieldHelpTextData).media : defaultMedia;
   
   // Si no hay briefText ni defaultBriefText, no mostrar tooltip
   if (!briefText) {
@@ -162,21 +172,21 @@ const HelpTooltip: React.FC<HelpTooltipProps> = ({
                 )}
                 {media?.images && media.images.length > 0 && (
                   <div className={styles.mediaSection}>
-                    {media.images.map((img, idx) => (
+                    {media.images.map((img: string, idx: number) => (
                       <img key={idx} src={img} alt={`Ayuda ${idx + 1}`} className={styles.mediaImage} />
                     ))}
                   </div>
                 )}
                 {media?.videos && media.videos.length > 0 && (
                   <div className={styles.mediaSection}>
-                    {media.videos.map((video, idx) => (
+                    {media.videos.map((video: string, idx: number) => (
                       <video key={idx} src={video} controls className={styles.mediaVideo} />
                     ))}
                   </div>
                 )}
                 {media?.animations && media.animations.length > 0 && (
                   <div className={styles.mediaSection}>
-                    {media.animations.map((anim, idx) => (
+                    {media.animations.map((anim: string, idx: number) => (
                       <img key={idx} src={anim} alt={`Animación ${idx + 1}`} className={styles.mediaAnimation} />
                     ))}
                   </div>

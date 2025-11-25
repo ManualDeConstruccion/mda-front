@@ -29,17 +29,29 @@ export const useModalHelpTexts = (fields: BatchFieldHelpTextRequest[]) => {
   
   /**
    * Obtiene el texto de ayuda para un modelo y campo específico.
-   * Retorna undefined si no existe.
+   * Retorna:
+   * - FieldHelpTextData si existe en BD
+   * - {} (objeto vacío) si ya se consultó pero no existe en BD (para evitar llamadas individuales)
+   * - undefined solo si aún está cargando
    */
   const getHelpText = (
     model: string, 
     field: string
-  ): FieldHelpTextData | undefined => {
-    if (!data) return undefined;
+  ): FieldHelpTextData | {} | undefined => {
+    // Si aún está cargando, retornar undefined para que el componente espere
+    if (isLoading || !data) return undefined;
+    
     const key = `${model}.${field}`;
     const helpText = data[key];
-    // Retorna undefined si es un objeto vacío (no existe en BD)
-    return helpText && Object.keys(helpText).length > 0 ? helpText : undefined;
+    
+    // Si existe y tiene contenido, retornarlo
+    if (helpText && Object.keys(helpText).length > 0) {
+      return helpText;
+    }
+    
+    // Si es un objeto vacío {}, significa que ya se consultó pero no existe en BD
+    // Retornar {} para indicar que ya se consultó y evitar llamadas individuales
+    return {};
   };
   
   return {
