@@ -257,6 +257,36 @@
   }
 }
 
+.rowActions {
+  display: flex;
+  gap: $spacing-xs;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.editButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-xs;
+  border: none;
+  border-radius: $border-radius-sm;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: $font-size-base;
+  background-color: $primary-color;
+  color: white;
+
+  &:hover:not(:disabled) {
+    background-color: darken($primary-color, 10%);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
 .emptyMessage {
   text-align: center;
   color: $text-secondary;

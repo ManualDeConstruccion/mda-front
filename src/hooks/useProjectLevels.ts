@@ -18,6 +18,7 @@ export interface ProjectLevel {
   level_type: 'below' | 'above' | 'roof';
   altura?: number | null;
   template_level?: number | null;
+  floor?: number | null;
   is_active: boolean;
   metadata: Record<string, any>;
   surface_total: number;
@@ -163,6 +164,19 @@ export const useProjectLevels = (filters?: ProjectLevelsFilters) => {
     }
   };
 
+  const getAvailableFloors = async (buildingId: number, levelType: 'below' | 'above' | 'roof'): Promise<{ floors: Array<{ id: number; name: string; code: string; order: number }>; count: number }> => {
+    try {
+      const response = await axios.get(
+        `${API_URL}/api/project-engines/levels/available_floors/?building=${buildingId}&level_type=${levelType}`,
+        axiosConfig
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener pisos disponibles:', error);
+      throw error;
+    }
+  };
+
   const createMultipleLevels = useMutation({
     mutationFn: async (data: { 
       building: number;
@@ -170,6 +184,9 @@ export const useProjectLevels = (filters?: ProjectLevelsFilters) => {
       count: number;
       group_mode?: 'none' | 'new' | 'existing';
       template_level_id?: number;
+      first_floor_id?: number;
+      code_prefix?: string;
+      name_prefix?: string;
     }) => {
       const response = await axios.post(
         `${API_URL}/api/project-engines/levels/create_multiple/`,
@@ -202,6 +219,7 @@ export const useProjectLevels = (filters?: ProjectLevelsFilters) => {
     updateLevel,
     deleteLevel,
     suggestLevelCode,
+    getAvailableFloors,
     createMultipleLevels,
   };
 };

@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useBuildings, useProjectLevels, Building, ProjectLevel } from '../../hooks/useProjectLevels';
+import { useFloors } from '../../hooks/useFloors';
 import { 
   Add as AddIcon, 
   Edit as EditIcon,
@@ -27,9 +28,10 @@ interface BuildingTotals {
 
 const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
   const { buildings, isLoadingBuildings, createBuilding, updateBuilding } = useBuildings(projectNodeId);
-  const { levels, isLoadingLevels, createLevel, updateLevel, deleteLevel, suggestLevelCode, createMultipleLevels } = useProjectLevels({
+  const { levels, isLoadingLevels, createLevel, updateLevel, deleteLevel, suggestLevelCode, getAvailableFloors, createMultipleLevels } = useProjectLevels({
     project_node: projectNodeId,
   });
+  const { floors, isLoadingFloors } = useFloors({ project_node: projectNodeId });
 
   // Cargar todos los textos de ayuda necesarios para los modales en una sola llamada
   const modalHelpTextFields = [
@@ -37,22 +39,22 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
     { model: 'Building', field: 'name' },
     { model: 'ProjectLevel', field: 'code' },
     { model: 'ProjectLevel', field: 'name' },
+    { model: 'ProjectLevel', field: 'floor' },
     { model: 'ProjectLevel', field: 'altura' },
   ];
   const { getHelpText } = useModalHelpTexts(modalHelpTextFields);
 
   const [editingBuilding, setEditingBuilding] = useState<number | null>(null);
   const [editingBuildingName, setEditingBuildingName] = useState('');
-  const [editingLevel, setEditingLevel] = useState<number | null>(null);
-  const [editingLevelName, setEditingLevelName] = useState('');
   const [showAddBuildingModal, setShowAddBuildingModal] = useState(false);
   const [newBuildingName, setNewBuildingName] = useState('');
   const [newBuildingCode, setNewBuildingCode] = useState('');
   const [buildingValidationErrors, setBuildingValidationErrors] = useState<Record<string, string>>({});
-  const [showAddLevelModal, setShowAddLevelModal] = useState<{ buildingId: number; levelType: 'below' | 'above' } | null>(null);
+  const [showAddLevelModal, setShowAddLevelModal] = useState<{ buildingId: number; levelType: 'below' | 'above'; editingLevelId?: number } | null>(null);
   const [newLevelName, setNewLevelName] = useState('');
   const [newLevelCode, setNewLevelCode] = useState('');
   const [newLevelAltura, setNewLevelAltura] = useState<string>('');
+  const [newLevelFloor, setNewLevelFloor] = useState<number | null>(null);
   const [levelValidationErrors, setLevelValidationErrors] = useState<Record<string, string>>({});
   const [showEditHeightsModal, setShowEditHeightsModal] = useState<number | null>(null);
   const [editingHeights, setEditingHeights] = useState<Record<number, number | null>>({});
@@ -61,7 +63,12 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
   const [multipleLevelsCount, setMultipleLevelsCount] = useState<string>('1');
   const [groupMode, setGroupMode] = useState<'none' | 'new' | 'existing'>('none');
   const [selectedTemplateLevelId, setSelectedTemplateLevelId] = useState<number | null>(null);
+  const [selectedFirstFloorId, setSelectedFirstFloorId] = useState<number | null>(null);
+  const [availableFloorsList, setAvailableFloorsList] = useState<Array<{ id: number; name: string; code: string; order: number }>>([]);
+  const [maxFloorsCount, setMaxFloorsCount] = useState<number>(50);
   const [expandedGroups, setExpandedGroups] = useState<Set<number>>(new Set());
+  const [codePrefix, setCodePrefix] = useState<string>('');
+  const [namePrefix, setNamePrefix] = useState<string>('');
 
   // Agrupar niveles por edificio
   const levelsByBuilding = buildings.reduce((acc, building) => {
@@ -130,67 +137,18 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
   };
 
   const handleEditLevel = (level: ProjectLevel) => {
-    setEditingLevel(level.id);
-    setEditingLevelName(level.name);
-    setLevelValidationErrors({}); // Limpiar errores al editar
-  };
-
-  const handleSaveLevel = async (levelId: number) => {
-    const level = levels.find(l => l.id === levelId);
-    if (!level) return;
-
-    // Validar con Yup solo el nombre (ya que solo se puede editar el nombre aquí)
-    const levelsForValidation = levels.map(l => ({
-      code: l.code,
-      name: l.name,
-      altura: l.altura ?? null,
-      building: l.building,
-      id: l.id,
-    }));
-    const validation = await validateLevelData(
-      {
-        code: level.code,
-        name: editingLevelName,
-        altura: level.altura ?? null,
-        level_type: level.level_type,
-        building: level.building,
-        order: level.order,
-        is_active: level.is_active,
-      },
-      levelsForValidation,
-      level.building,
-      levelId
-    );
-
-    if (!validation.isValid) {
-      // Solo mostrar errores relacionados con name
-      if (validation.errors.name) {
-        setLevelValidationErrors({ name: validation.errors.name });
-        return;
-      }
-    }
-
+    setShowAddLevelModal({ 
+      buildingId: level.building, 
+      levelType: level.level_type === 'roof' ? 'above' : level.level_type as 'below' | 'above',
+      editingLevelId: level.id 
+    });
+    setNewLevelName(level.name);
+    setNewLevelCode(level.code);
+    setNewLevelAltura(level.altura !== null && level.altura !== undefined ? level.altura.toString() : '');
+    setNewLevelFloor(level.floor || null);
     setLevelValidationErrors({});
-    try {
-      await updateLevel.mutateAsync({
-        id: levelId,
-        data: { name: editingLevelName.trim() },
-      });
-      setEditingLevel(null);
-      setEditingLevelName('');
-    } catch (error: any) {
-      console.error('Error al actualizar nivel:', error);
-      const errorData = error?.response?.data;
-      const backendErrors: Record<string, string> = {};
-      if (errorData) {
-        Object.keys(errorData).forEach((key) => {
-          const errorValue = errorData[key];
-          backendErrors[key] = Array.isArray(errorValue) ? errorValue[0] : errorValue;
-        });
-        setLevelValidationErrors(backendErrors);
-      }
-    }
   };
+
 
   // Limpiar errores de validación cuando cambian los campos del edificio
   const clearBuildingFieldError = (fieldName: string) => {
@@ -291,6 +249,9 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
   const handleAddLevel = async () => {
     if (!showAddLevelModal) return;
 
+    const isEditing = !!showAddLevelModal.editingLevelId;
+    const editingLevel = isEditing ? levels.find(l => l.id === showAddLevelModal.editingLevelId) : null;
+
     // Validar con Yup
     const levelsForValidation = levels.map(l => ({
       code: l.code,
@@ -306,11 +267,12 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
         altura: newLevelAltura ? parseFloat(newLevelAltura) : null,
         level_type: showAddLevelModal.levelType,
         building: showAddLevelModal.buildingId,
-        order: 0,
-        is_active: true,
+        order: editingLevel?.order || 0,
+        is_active: editingLevel?.is_active ?? true,
       },
       levelsForValidation,
-      showAddLevelModal.buildingId
+      showAddLevelModal.buildingId,
+      isEditing ? showAddLevelModal.editingLevelId : undefined
     );
 
     if (!validation.isValid) {
@@ -320,22 +282,34 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
 
     setLevelValidationErrors({});
     try {
-      await createLevel.mutateAsync({
+      const levelData = {
         building: showAddLevelModal.buildingId,
         name: newLevelName.trim(),
         code: newLevelCode.trim(),
         altura: newLevelAltura ? parseFloat(newLevelAltura) : null,
         level_type: showAddLevelModal.levelType,
-        order: 0,
-        is_active: true,
-      });
+        floor: newLevelFloor || null,
+        order: editingLevel?.order || 0,
+        is_active: editingLevel?.is_active ?? true,
+      };
+
+      if (isEditing && showAddLevelModal.editingLevelId) {
+        await updateLevel.mutateAsync({
+          id: showAddLevelModal.editingLevelId,
+          data: levelData,
+        });
+      } else {
+        await createLevel.mutateAsync(levelData);
+      }
+      
       setNewLevelName('');
       setNewLevelCode('');
       setNewLevelAltura('');
+      setNewLevelFloor(null);
       setLevelValidationErrors({});
       setShowAddLevelModal(null);
     } catch (error: any) {
-      console.error('Error al crear nivel:', error);
+      console.error(`Error al ${isEditing ? 'actualizar' : 'crear'} nivel:`, error);
       console.error('Error response data:', error?.response?.data);
       // Manejar error de validación del backend
       const errorData = error?.response?.data;
@@ -373,7 +347,7 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
       
       // Si aún no hay errores, mostrar mensaje genérico
       if (Object.keys(backendErrors).length === 0) {
-        backendErrors.general = 'Error al crear nivel. Verifique que los campos no estén duplicados.';
+        backendErrors.general = `Error al ${isEditing ? 'actualizar' : 'crear'} nivel. Verifique que los campos no estén duplicados.`;
       }
       
       setLevelValidationErrors(backendErrors);
@@ -384,6 +358,8 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
     setShowAddLevelModal({ buildingId, levelType });
     setNewLevelName('');
     setNewLevelCode('');
+    setNewLevelAltura('');
+    setNewLevelFloor(null);
     
     // Obtener sugerencia de código
     try {
@@ -535,69 +511,39 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
     return (
       <tr key={level.id}>
         <td>
-          {editingLevel === level.id ? (
-            <div style={{ width: '100%' }}>
-              <input
-                type="text"
-                value={editingLevelName}
-                onChange={(e) => {
-                  setEditingLevelName(e.target.value);
-                  clearLevelFieldError('name');
-                }}
-                onBlur={() => handleSaveLevel(level.id)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    handleSaveLevel(level.id);
-                  } else if (e.key === 'Escape') {
-                    setEditingLevel(null);
-                    setEditingLevelName('');
-                    setLevelValidationErrors({});
-                  }
-                }}
-                autoFocus
-                className={`${styles.editInput} ${levelValidationErrors.name ? styles.inputError : ''}`}
-              />
-              {levelValidationErrors.name && (
-                <small className={styles.errorText} style={{ display: 'block', marginTop: '0.25rem' }}>
-                  {levelValidationErrors.name}
-                </small>
-              )}
-            </div>
-          ) : (
-            <div className={styles.levelNameContainer}>
-              <span>{level.name}</span>
-              <button
-                className={styles.editIconButton}
-                onClick={() => handleEditLevel(level)}
-                title="Editar nombre del nivel"
-              >
-                <EditIcon fontSize="small" />
-              </button>
-            </div>
-          )}
+          <span>{level.name}</span>
         </td>
         <td className={styles.numberCell}>{formatNumber(level.surface_util || 0)}</td>
         <td className={styles.numberCell}>{formatNumber(level.surface_comun || 0)}</td>
         <td className={styles.numberCell}>{formatNumber(level.surface_total || 0)}</td>
         <td>
-          {canDelete ? (
+          <div className={styles.rowActions}>
             <button
-              className={styles.deleteButton}
-              onClick={() => handleDeleteLevel(level)}
-              title="Eliminar nivel"
+              className={styles.editButton}
+              onClick={() => handleEditLevel(level)}
+              title="Editar nivel"
             >
-              <DeleteIcon fontSize="small" />
+              <EditIcon fontSize="small" />
             </button>
-          ) : (
-            <button
-              className={styles.deleteButton}
-              disabled
-              title="Solo se pueden eliminar los niveles extremos"
-              style={{ opacity: 0.3, cursor: 'not-allowed' }}
-            >
-              <DeleteIcon fontSize="small" />
-            </button>
-          )}
+            {canDelete ? (
+              <button
+                className={styles.deleteButton}
+                onClick={() => handleDeleteLevel(level)}
+                title="Eliminar nivel"
+              >
+                <DeleteIcon fontSize="small" />
+              </button>
+            ) : (
+              <button
+                className={styles.deleteButton}
+                disabled
+                title="Solo se pueden eliminar los niveles extremos"
+                style={{ opacity: 0.3, cursor: 'not-allowed' }}
+              >
+                <DeleteIcon fontSize="small" />
+              </button>
+            )}
+          </div>
         </td>
       </tr>
     );
@@ -785,8 +731,8 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
     if (!showAddMultipleLevelsModal) return;
 
     const count = parseInt(multipleLevelsCount);
-    if (isNaN(count) || count < 1 || count > 50) {
-      alert('El número de niveles debe estar entre 1 y 50');
+    if (isNaN(count) || count < 1 || count > maxFloorsCount) {
+      alert(`El número de niveles debe estar entre 1 y ${maxFloorsCount} (según pisos disponibles)`);
       return;
     }
 
@@ -797,11 +743,17 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
         count,
         group_mode: groupMode,
         template_level_id: groupMode === 'existing' ? selectedTemplateLevelId || undefined : undefined,
+        first_floor_id: selectedFirstFloorId || undefined,
+        code_prefix: codePrefix || undefined,
+        name_prefix: namePrefix || undefined,
       });
       
       setMultipleLevelsCount('1');
       setGroupMode('none');
       setSelectedTemplateLevelId(null);
+      setSelectedFirstFloorId(null);
+      setCodePrefix('');
+      setNamePrefix('');
       setShowAddMultipleLevelsModal(null);
     } catch (error: any) {
       console.error('Error al crear múltiples niveles:', error);
@@ -813,11 +765,25 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
     }
   };
 
-  const handleOpenAddMultipleLevelsModal = (buildingId: number, levelType: 'below' | 'above' | 'roof') => {
+  const handleOpenAddMultipleLevelsModal = async (buildingId: number, levelType: 'below' | 'above' | 'roof') => {
     setShowAddMultipleLevelsModal({ buildingId, levelType });
     setMultipleLevelsCount('1');
     setGroupMode('none');
     setSelectedTemplateLevelId(null);
+    setSelectedFirstFloorId(null);
+    setCodePrefix('');
+    setNamePrefix('');
+    
+    // Cargar pisos disponibles
+    try {
+      const { floors, count } = await getAvailableFloors(buildingId, levelType);
+      setAvailableFloorsList(floors);
+      setMaxFloorsCount(count);
+    } catch (error) {
+      console.error('Error al cargar pisos disponibles:', error);
+      setAvailableFloorsList([]);
+      setMaxFloorsCount(0);
+    }
   };
 
   if (isLoadingBuildings || isLoadingLevels) {
@@ -1130,144 +1096,191 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
         </div>
       )}
 
-      {/* Modal para agregar nivel */}
-      {showAddLevelModal && (
-        <div className={styles.modalOverlay} onClick={() => {
-          setShowAddLevelModal(null);
-          setNewLevelName('');
-          setNewLevelCode('');
-          setNewLevelAltura('');
-          setLevelValidationErrors({});
-        }}>
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <h3>
-                Agregar Nivel {showAddLevelModal.levelType === 'below' ? 'Subterráneo' : 'Sobre Terreno'}
-              </h3>
-              <button 
-                className={styles.closeButton}
-                onClick={() => {
-                  setShowAddLevelModal(null);
-                  setNewLevelName('');
-                  setNewLevelCode('');
-                  setNewLevelAltura('');
-                  setLevelValidationErrors({});
-                }}
-              >
-                ×
-              </button>
-            </div>
-            <div className={styles.modalContent}>
-              {levelValidationErrors.general && (
-                <div className={styles.errorMessage} style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: '#ffebee', borderRadius: '4px', border: '1px solid #ef5350' }}>
-                  <strong style={{ color: '#d32f2f', display: 'block', marginBottom: '0.25rem' }}>Error:</strong>
-                  <span style={{ color: '#c62828' }}>{levelValidationErrors.general}</span>
+      {/* Modal para agregar/editar nivel */}
+      {showAddLevelModal && (() => {
+        const isEditing = !!showAddLevelModal.editingLevelId;
+        const availableFloors = floors.filter(floor => {
+          // Filtrar pisos según el tipo de nivel
+          if (showAddLevelModal.levelType === 'below') {
+            return floor.floor_type === 'below';
+          } else {
+            return floor.floor_type === 'above';
+          }
+        });
+
+        return (
+          <div className={styles.modalOverlay} onClick={() => {
+            setShowAddLevelModal(null);
+            setNewLevelName('');
+            setNewLevelCode('');
+            setNewLevelAltura('');
+            setNewLevelFloor(null);
+            setLevelValidationErrors({});
+          }}>
+            <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.modalHeader}>
+                <h3>
+                  {isEditing ? 'Editar' : 'Agregar'} Nivel {showAddLevelModal.levelType === 'below' ? 'Subterráneo' : 'Sobre Terreno'}
+                </h3>
+                <button 
+                  className={styles.closeButton}
+                  onClick={() => {
+                    setShowAddLevelModal(null);
+                    setNewLevelName('');
+                    setNewLevelCode('');
+                    setNewLevelAltura('');
+                    setNewLevelFloor(null);
+                    setLevelValidationErrors({});
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+              <div className={styles.modalContent}>
+                {levelValidationErrors.general && (
+                  <div className={styles.errorMessage} style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: '#ffebee', borderRadius: '4px', border: '1px solid #ef5350' }}>
+                    <strong style={{ color: '#d32f2f', display: 'block', marginBottom: '0.25rem' }}>Error:</strong>
+                    <span style={{ color: '#c62828' }}>{levelValidationErrors.general}</span>
+                  </div>
+                )}
+                <div className={styles.formGroup}>
+                  <label>
+                    Código del Nivel *
+                    <HelpTooltip
+                      modelName="ProjectLevel"
+                      fieldName="code"
+                      helpTextData={getHelpText('ProjectLevel', 'code')}
+                      defaultBriefText="Código único del nivel"
+                      defaultExtendedText="Código corto que identifica el nivel. Se recomienda usar patrones como P01, P02 para pisos sobre terreno, SS1, SS2 para subterráneos, AZ para azotea. Caracteres recomendados: letras mayúsculas y números."
+                      position="right"
+                    />
+                  </label>
+                  <input
+                    type="text"
+                    value={newLevelCode}
+                    onChange={(e) => {
+                      setNewLevelCode(e.target.value);
+                      clearLevelFieldError('code');
+                    }}
+                    placeholder="ej: ss1, p01"
+                    className={levelValidationErrors.code ? styles.inputError : ''}
+                    disabled={isEditing}
+                  />
+                  {levelValidationErrors.code && (
+                    <small className={styles.errorText}>{levelValidationErrors.code}</small>
+                  )}
                 </div>
-              )}
-              <div className={styles.formGroup}>
-                <label>
-                  Código del Nivel *
-                  <HelpTooltip
-                    modelName="ProjectLevel"
-                    fieldName="code"
-                    helpTextData={getHelpText('ProjectLevel', 'code')}
-                    defaultBriefText="Código único del nivel"
-                    defaultExtendedText="Código corto que identifica el nivel. Se recomienda usar patrones como P01, P02 para pisos sobre terreno, SS1, SS2 para subterráneos, AZ para azotea. Caracteres recomendados: letras mayúsculas y números."
-                    position="right"
+                <div className={styles.formGroup}>
+                  <label>
+                    Nombre del Nivel *
+                    <HelpTooltip
+                      modelName="ProjectLevel"
+                      fieldName="name"
+                      helpTextData={getHelpText('ProjectLevel', 'name')}
+                      defaultBriefText="Nombre descriptivo del nivel"
+                      defaultExtendedText="Nombre legible que se mostrará en la interfaz. Puede incluir espacios y caracteres especiales. Ejemplos: Subterráneo 1, Piso 1, Azotea, Mezzanine."
+                      position="right"
+                    />
+                  </label>
+                  <input
+                    type="text"
+                    value={newLevelName}
+                    onChange={(e) => {
+                      setNewLevelName(e.target.value);
+                      clearLevelFieldError('name');
+                    }}
+                    placeholder="ej: Subterráneo 1, Piso 1"
+                    className={levelValidationErrors.name ? styles.inputError : ''}
                   />
-                </label>
-                <input
-                  type="text"
-                  value={newLevelCode}
-                  onChange={(e) => {
-                    setNewLevelCode(e.target.value);
-                    clearLevelFieldError('code');
-                  }}
-                  placeholder="ej: ss1, p01"
-                  className={levelValidationErrors.code ? styles.inputError : ''}
-                />
-                {levelValidationErrors.code && (
-                  <small className={styles.errorText}>{levelValidationErrors.code}</small>
-                )}
-              </div>
-              <div className={styles.formGroup}>
-                <label>
-                  Nombre del Nivel *
-                  <HelpTooltip
-                    modelName="ProjectLevel"
-                    fieldName="name"
-                    helpTextData={getHelpText('ProjectLevel', 'name')}
-                    defaultBriefText="Nombre descriptivo del nivel"
-                    defaultExtendedText="Nombre legible que se mostrará en la interfaz. Puede incluir espacios y caracteres especiales. Ejemplos: Subterráneo 1, Piso 1, Azotea, Mezzanine."
-                    position="right"
+                  {levelValidationErrors.name && (
+                    <small className={styles.errorText}>{levelValidationErrors.name}</small>
+                  )}
+                </div>
+                <div className={styles.formGroup}>
+                  <label>
+                    Piso Consolidado
+                    <HelpTooltip
+                      modelName="ProjectLevel"
+                      fieldName="floor"
+                      helpTextData={getHelpText('ProjectLevel', 'floor')}
+                      defaultBriefText="Piso consolidado al que tributa este nivel"
+                      defaultExtendedText="Si se especifica un piso consolidado, los datos de este nivel se consolidarán en el Floor seleccionado."
+                      position="right"
+                    />
+                  </label>
+                  <select
+                    value={newLevelFloor || ''}
+                    onChange={(e) => {
+                      setNewLevelFloor(e.target.value ? parseInt(e.target.value) : null);
+                      clearLevelFieldError('floor');
+                    }}
+                    className={levelValidationErrors.floor ? styles.inputError : styles.formInput}
+                  >
+                    <option value="">Sin piso consolidado</option>
+                    {availableFloors.map(floor => (
+                      <option key={floor.id} value={floor.id}>
+                        {floor.name} ({floor.code})
+                      </option>
+                    ))}
+                  </select>
+                  {levelValidationErrors.floor && (
+                    <small className={styles.errorText}>{levelValidationErrors.floor}</small>
+                  )}
+                </div>
+                <div className={styles.formGroup}>
+                  <label>
+                    Altura (m)
+                    <HelpTooltip
+                      modelName="ProjectLevel"
+                      fieldName="altura"
+                      helpTextData={getHelpText('ProjectLevel', 'altura')}
+                      defaultBriefText="Altura del nivel desde el nivel del terreno"
+                      defaultExtendedText="Altura del nivel desde el nivel del terreno en metros. Negativo para subterráneos. Se calcula automáticamente desde order si no se especifica."
+                      position="right"
+                    />
+                  </label>
+                  <input
+                    type="number"
+                    step="0.001"
+                    value={newLevelAltura}
+                    onChange={(e) => {
+                      setNewLevelAltura(e.target.value);
+                      clearLevelFieldError('altura');
+                    }}
+                    placeholder="Se calculará automáticamente si se deja vacío"
+                    className={levelValidationErrors.altura ? styles.inputError : ''}
                   />
-                </label>
-                <input
-                  type="text"
-                  value={newLevelName}
-                  onChange={(e) => {
-                    setNewLevelName(e.target.value);
-                    clearLevelFieldError('name');
-                  }}
-                  placeholder="ej: Subterráneo 1, Piso 1"
-                  className={levelValidationErrors.name ? styles.inputError : ''}
-                />
-                {levelValidationErrors.name && (
-                  <small className={styles.errorText}>{levelValidationErrors.name}</small>
-                )}
+                  {levelValidationErrors.altura && (
+                    <small className={styles.errorText}>{levelValidationErrors.altura}</small>
+                  )}
+                </div>
               </div>
-              <div className={styles.formGroup}>
-                <label>
-                  Altura (m)
-                  <HelpTooltip
-                    modelName="ProjectLevel"
-                    fieldName="altura"
-                    helpTextData={getHelpText('ProjectLevel', 'altura')}
-                    defaultBriefText="Altura del nivel desde el nivel del terreno"
-                    defaultExtendedText="Altura del nivel desde el nivel del terreno en metros. Negativo para subterráneos. Se calcula automáticamente desde order si no se especifica."
-                    position="right"
-                  />
-                </label>
-                <input
-                  type="number"
-                  step="0.001"
-                  value={newLevelAltura}
-                  onChange={(e) => {
-                    setNewLevelAltura(e.target.value);
-                    clearLevelFieldError('altura');
+              <div className={styles.modalActions}>
+                <button 
+                  className={styles.cancelButton}
+                  onClick={() => {
+                    setShowAddLevelModal(null);
+                    setNewLevelName('');
+                    setNewLevelCode('');
+                    setNewLevelAltura('');
+                    setNewLevelFloor(null);
+                    setLevelValidationErrors({});
                   }}
-                  placeholder="Se calculará automáticamente si se deja vacío"
-                  className={levelValidationErrors.altura ? styles.inputError : ''}
-                />
-                {levelValidationErrors.altura && (
-                  <small className={styles.errorText}>{levelValidationErrors.altura}</small>
-                )}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  className={styles.saveButton}
+                  onClick={handleAddLevel}
+                  disabled={!newLevelName.trim() || !newLevelCode.trim() || Object.keys(levelValidationErrors).filter(key => key !== 'general').length > 0}
+                >
+                  {isEditing ? 'Guardar Cambios' : 'Crear Nivel'}
+                </button>
               </div>
-            </div>
-            <div className={styles.modalActions}>
-              <button 
-                className={styles.cancelButton}
-                onClick={() => {
-                  setShowAddLevelModal(null);
-                  setNewLevelName('');
-                  setNewLevelCode('');
-                  setNewLevelAltura('');
-                  setLevelValidationErrors({});
-                }}
-              >
-                Cancelar
-              </button>
-              <button 
-                className={styles.saveButton}
-                onClick={handleAddLevel}
-                disabled={!newLevelName.trim() || !newLevelCode.trim() || Object.keys(levelValidationErrors).filter(key => key !== 'general').length > 0}
-              >
-                Crear Nivel
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Modal para agregar múltiples niveles */}
       {showAddMultipleLevelsModal && (() => {
@@ -1281,6 +1294,9 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
             setMultipleLevelsCount('1');
             setGroupMode('none');
             setSelectedTemplateLevelId(null);
+            setSelectedFirstFloorId(null);
+            setCodePrefix('');
+            setNamePrefix('');
           }}>
             <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
               <div className={styles.modalHeader}>
@@ -1294,6 +1310,9 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
                     setMultipleLevelsCount('1');
                     setGroupMode('none');
                     setSelectedTemplateLevelId(null);
+                    setSelectedFirstFloorId(null);
+                    setCodePrefix('');
+                    setNamePrefix('');
                   }}
                 >
                   ×
@@ -1301,7 +1320,14 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
               </div>
               <div className={styles.modalContent}>
                 <div className={styles.formGroup}>
-                  <label htmlFor="levelsCount">Número de Niveles</label>
+                  <label htmlFor="levelsCount">
+                    Número de Niveles
+                    {maxFloorsCount > 0 && (
+                      <span className={styles.helpText} style={{ marginLeft: '0.5rem', fontSize: '0.875rem', color: '#666' }}>
+                        (Máximo: {maxFloorsCount} pisos disponibles)
+                      </span>
+                    )}
+                  </label>
                   <input
                     id="levelsCount"
                     type="text"
@@ -1320,16 +1346,95 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
                         const num = parseInt(value, 10);
                         if (isNaN(num) || num < 1) {
                           setMultipleLevelsCount('1');
-                        } else if (num > 50) {
-                          setMultipleLevelsCount('50');
+                        } else if (num > maxFloorsCount) {
+                          setMultipleLevelsCount(maxFloorsCount.toString());
+                          alert(`El número máximo de niveles es ${maxFloorsCount} (según pisos disponibles)`);
                         } else {
                           setMultipleLevelsCount(num.toString());
                         }
                       }
                     }}
                     className={styles.formInput}
-                    placeholder="1-50"
+                    placeholder={`1-${maxFloorsCount}`}
+                    max={maxFloorsCount}
                   />
+                  {maxFloorsCount === 0 && (
+                    <small className={styles.errorText} style={{ display: 'block', marginTop: '0.25rem' }}>
+                      No hay pisos disponibles para este tipo de nivel. Debe crear pisos primero.
+                    </small>
+                  )}
+                </div>
+
+                {availableFloorsList.length > 0 && (
+                  <div className={styles.formGroup}>
+                    <label htmlFor="firstFloor">Primer Piso a Asociar</label>
+                    <select
+                      id="firstFloor"
+                      value={selectedFirstFloorId || ''}
+                      onChange={(e) => setSelectedFirstFloorId(e.target.value ? parseInt(e.target.value) : null)}
+                      className={styles.formInput}
+                    >
+                      <option value="">Seleccionar automáticamente desde el primer piso disponible</option>
+                      {availableFloorsList.map(floor => (
+                        <option key={floor.id} value={floor.id}>
+                          {floor.name} ({floor.code}) - Orden: {floor.order}
+                        </option>
+                      ))}
+                    </select>
+                    <small className={styles.helpText} style={{ display: 'block', marginTop: '0.25rem', fontSize: '0.875rem', color: '#666' }}>
+                      Los niveles se asociarán automáticamente con los pisos siguientes en orden secuencial.
+                    </small>
+                  </div>
+                )}
+
+                <div className={styles.formGroup}>
+                  <label htmlFor="codePrefix">
+                    Prefijo de Código (Opcional)
+                    <HelpTooltip
+                      modelName="ProjectLevel"
+                      fieldName="code"
+                      helpTextData={getHelpText('ProjectLevel', 'code')}
+                      defaultBriefText="Prefijo para el código del nivel"
+                      defaultExtendedText="Si se especifica, los códigos se generarán como: {prefijo}6, {prefijo}7, {prefijo}8, etc. Si se deja vacío, se detectará automáticamente según los códigos existentes."
+                      position="right"
+                    />
+                  </label>
+                  <input
+                    id="codePrefix"
+                    type="text"
+                    value={codePrefix}
+                    onChange={(e) => setCodePrefix(e.target.value)}
+                    placeholder="ej: P, SS, Nivel"
+                    className={styles.formInput}
+                  />
+                  <small className={styles.helpText} style={{ display: 'block', marginTop: '0.25rem', fontSize: '0.875rem', color: '#666' }}>
+                    Si se deja vacío, se detectará automáticamente según los códigos existentes.
+                  </small>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label htmlFor="namePrefix">
+                    Prefijo de Nombre (Opcional)
+                    <HelpTooltip
+                      modelName="ProjectLevel"
+                      fieldName="name"
+                      helpTextData={getHelpText('ProjectLevel', 'name')}
+                      defaultBriefText="Prefijo para el nombre del nivel"
+                      defaultExtendedText="Si se especifica, los nombres se generarán como: {prefijo} 6, {prefijo} 7, {prefijo} 8, etc. Si se deja vacío, se generará automáticamente según el tipo de nivel."
+                      position="right"
+                    />
+                  </label>
+                  <input
+                    id="namePrefix"
+                    type="text"
+                    value={namePrefix}
+                    onChange={(e) => setNamePrefix(e.target.value)}
+                    placeholder="ej: Nivel, Subterráneo, Piso"
+                    className={styles.formInput}
+                  />
+                  <small className={styles.helpText} style={{ display: 'block', marginTop: '0.25rem', fontSize: '0.875rem', color: '#666' }}>
+                    Si se deja vacío, se generará automáticamente según el tipo de nivel.
+                  </small>
                 </div>
 
                 <div className={styles.formGroup}>
@@ -1405,6 +1510,9 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
                       setMultipleLevelsCount('1');
                       setGroupMode('none');
                       setSelectedTemplateLevelId(null);
+                      setSelectedFirstFloorId(null);
+                      setCodePrefix('');
+                      setNamePrefix('');
                     }}
                   >
                     Cancelar
@@ -1412,7 +1520,13 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
                   <button
                     className={styles.saveButton}
                     onClick={handleAddMultipleLevels}
-                    disabled={createMultipleLevels.isPending || !multipleLevelsCount || parseInt(multipleLevelsCount) < 1 || (groupMode === 'existing' && !selectedTemplateLevelId)}
+                    disabled={
+                      createMultipleLevels.isPending || 
+                      !multipleLevelsCount || 
+                      parseInt(multipleLevelsCount) < 1 || 
+                      parseInt(multipleLevelsCount) > maxFloorsCount ||
+                      (groupMode === 'existing' && !selectedTemplateLevelId)
+                    }
                   >
                     {createMultipleLevels.isPending ? 'Creando...' : 'Crear Niveles'}
                   </button>
