@@ -14,8 +14,12 @@ export const useProjectSnapshots = (projectNodeId: number | null) => {
   const { accessToken } = useAuth();
   const queryClient = useQueryClient();
 
-  const axiosConfig = {
-    headers: { Authorization: `Bearer ${accessToken}` },
+  // Helper function para crear el config de axios
+  // Permite que axios maneje errores HTTP normalmente si no hay token
+  const getAxiosConfig = () => {
+    return {
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+    };
   };
 
   // Obtener todos los snapshots de un proyecto
@@ -25,7 +29,7 @@ export const useProjectSnapshots = (projectNodeId: number | null) => {
       if (!projectNodeId) return [];
       const response = await axios.get(
         `${API_URL}/api/projects/project-nodes/${projectNodeId}/snapshots/`,
-        axiosConfig
+        getAxiosConfig()
       );
       return Array.isArray(response.data) ? response.data : [];
     },
@@ -39,13 +43,14 @@ export const useProjectSnapshots = (projectNodeId: number | null) => {
   // Crear snapshot
   const createSnapshot = useMutation({
     mutationFn: async (data: CreateProjectSnapshotDto) => {
+      const config = getAxiosConfig();
       const response = await axios.post(
         `${API_URL}/api/projects/project-nodes/${data.project_node}/snapshots/`,
         data,
         {
-          ...axiosConfig,
+          ...config,
           headers: {
-            ...axiosConfig.headers,
+            ...config.headers,
             'Content-Type': 'application/json',
           },
         }
@@ -68,13 +73,14 @@ export const useProjectSnapshots = (projectNodeId: number | null) => {
       snapshotId: number; 
       data: UpdateProjectSnapshotDto 
     }) => {
+      const config = getAxiosConfig();
       const response = await axios.patch(
         `${API_URL}/api/projects/project-nodes/${projectNodeId}/snapshots/${snapshotId}/`,
         data,
         {
-          ...axiosConfig,
+          ...config,
           headers: {
-            ...axiosConfig.headers,
+            ...config.headers,
             'Content-Type': 'application/json',
           },
         }
@@ -97,13 +103,14 @@ export const useProjectSnapshots = (projectNodeId: number | null) => {
       snapshotId: number;
       data: RestoreSnapshotDto;
     }) => {
+      const config = getAxiosConfig();
       const response = await axios.post(
         `${API_URL}/api/projects/project-nodes/${projectNodeId}/snapshots/${snapshotId}/restore/`,
         data,
         {
-          ...axiosConfig,
+          ...config,
           headers: {
-            ...axiosConfig.headers,
+            ...config.headers,
             'Content-Type': 'application/json',
           },
         }
@@ -153,7 +160,7 @@ export const useProjectSnapshots = (projectNodeId: number | null) => {
     }) => {
       await axios.delete(
         `${API_URL}/api/projects/project-nodes/${projectNodeId}/snapshots/${snapshotId}/`,
-        axiosConfig
+        getAxiosConfig()
       );
     },
     onSuccess: (_, variables) => {

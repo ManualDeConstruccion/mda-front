@@ -63,7 +63,7 @@ const ProjectVersionSelector: React.FC = () => {
         <label className={styles.label}>Versión:</label>
         <select
           className={styles.select}
-          value={activeSnapshot?.id || ''}
+          value={activeSnapshot?.id ?? ''}
           onChange={(e) => handleVersionChange(e.target.value)}
           disabled={isChanging || sortedSnapshots.length === 0}
         >
