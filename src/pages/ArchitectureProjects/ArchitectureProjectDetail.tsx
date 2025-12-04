@@ -22,6 +22,8 @@ import ArchitectTab from '../../components/ProjectTabs/ArchitectTab';
 import ProfessionalsTab from '../../components/ProjectTabs/ProfessionalsTab';
 import SurfacesTab from '../../components/SurfacesTab/SurfacesTab';
 import { PropertyData, CIPData, OwnerData, ArchitectData, ProfessionalsData } from '../../types/property.types';
+import { ProjectProvider } from '../../context/ProjectContext';
+import ProjectVersionSelector from '../../components/ProjectVersionSelector/ProjectVersionSelector';
 
 type TabType = 'propiedad' | 'cip' | 'propietario' | 'arquitecto' | 'profesionales' | 'superficies';
 
@@ -176,11 +178,13 @@ const ArchitectureProjectDetail: React.FC = () => {
 
 
   return (
-    <div className={styles.container}>
-      <header className={styles.header}>
-        <div className={styles.headerContent}>
-          <h1>{architectureProject.name}</h1>
-        </div>
+    <ProjectProvider projectNodeId={Number(architectureId)}>
+      <div className={styles.container}>
+        <header className={styles.header}>
+          <div className={styles.headerContent}>
+            <h1>{architectureProject.name}</h1>
+            <ProjectVersionSelector />
+          </div>
         <div className={styles.headerActions}>
           <button 
             className={styles.editButton}
@@ -797,7 +801,8 @@ const ArchitectureProjectDetail: React.FC = () => {
           }
         }}
       />
-    </div>
+      </div>
+    </ProjectProvider>
   );
 };
 

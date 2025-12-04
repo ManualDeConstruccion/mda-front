@@ -12,6 +12,8 @@ import {
 } from '@mui/icons-material';
 import LevelsTab from '../../components/SurfaceEditor/LevelsTab';
 import FloorsTab from '../../components/FloorEditor/FloorsTab';
+import { ProjectProvider } from '../../context/ProjectContext';
+import ProjectVersionSelector from '../../components/ProjectVersionSelector/ProjectVersionSelector';
 
 type FloorTabType = 'pisos' | 'niveles';
 
@@ -36,11 +38,13 @@ const FloorEditor: React.FC = () => {
   }
 
   return (
-    <div className={styles.container}>
-      <header className={styles.header}>
-        <div className={styles.headerContent}>
-          <h1>{architectureProject.name} - Pisos</h1>
-        </div>
+    <ProjectProvider projectNodeId={Number(architectureId)}>
+      <div className={styles.container}>
+        <header className={styles.header}>
+          <div className={styles.headerContent}>
+            <h1>{architectureProject.name} - Pisos</h1>
+            <ProjectVersionSelector />
+          </div>
         <div className={styles.headerActions}>
           <button 
             className={styles.backButton}
@@ -105,6 +109,7 @@ const FloorEditor: React.FC = () => {
         </main>
       </div>
     </div>
+    </ProjectProvider>
   );
 };
 
