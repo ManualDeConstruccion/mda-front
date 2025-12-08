@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -11,27 +11,43 @@ import { ThemeProvider } from "@mui/material/styles";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import theme from "./utils/theme";
 
-// ↳ Contextos y páginas
+// ↳ Contextos (siempre necesarios)
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { FormNodeProvider } from './context/FormNodeContext';
 import Layout from "./components/Layout/Layout";
 import PublicLayout from "./components/Layout/PublicLayout";
-import Home from "./pages/Home";
-import Login from "./pages/Login/Login";
-import Landing from "./pages/Landing/Landing";
-import CreateProject from "./pages/Projects/CreateProject";
-import ProjectList from "./pages/Projects/ProjectList";
-import ProjectDetail from "./pages/Projects/ProjectDetail";
-import CreateArchitectureProject from "./pages/ArchitectureProjects/CreateArchitectureProject";
-import ArchitectureProjectDetail from "./pages/ArchitectureProjects/ArchitectureProjectDetail";
-import EditArchitectureProject from "./pages/ArchitectureProjects/EditArchitectureProject";
-import SurfaceEditor from "./pages/ArchitectureProjects/SurfaceEditor";
-import { FormNodeProvider } from './context/FormNodeContext';
-import SelectorFormPage from './pages/Forms/Step1SelectorFormPage';
-import Step2NodeFormCreatePage from './pages/Forms/Step2NodeFormCreatePage';
-import Step3FormPage from './pages/Forms/Step3FormPage';
-import FormReportView from './pages/Forms/FormReportView';
-import ReportConfigurationForm from './pages/ReportConfiguration/ReportConfigurationForm';
-import ReportConfigurationPage from './pages/ReportConfiguration/ReportConfigurationPage';
+
+// ↳ Lazy loading de páginas (solo se cargan cuando se necesitan)
+const Home = lazy(() => import("./pages/Home"));
+const Login = lazy(() => import("./pages/Login/Login"));
+const Landing = lazy(() => import("./pages/Landing/Landing"));
+const CreateProject = lazy(() => import("./pages/Projects/CreateProject"));
+const ProjectList = lazy(() => import("./pages/Projects/ProjectList"));
+const ProjectDetail = lazy(() => import("./pages/Projects/ProjectDetail"));
+const CreateArchitectureProject = lazy(() => import("./pages/ArchitectureProjects/CreateArchitectureProject"));
+const ArchitectureProjectDetail = lazy(() => import("./pages/ArchitectureProjects/ArchitectureProjectDetail"));
+const EditArchitectureProject = lazy(() => import("./pages/ArchitectureProjects/EditArchitectureProject"));
+const SurfaceEditor = lazy(() => import("./pages/ArchitectureProjects/SurfaceEditor"));
+const SelectorFormPage = lazy(() => import('./pages/Forms/Step1SelectorFormPage'));
+const Step2NodeFormCreatePage = lazy(() => import('./pages/Forms/Step2NodeFormCreatePage'));
+const Step3FormPage = lazy(() => import('./pages/Forms/Step3FormPage'));
+const FormReportView = lazy(() => import('./pages/Forms/FormReportView'));
+const ReportConfigurationForm = lazy(() => import('./pages/ReportConfiguration/ReportConfigurationForm'));
+const ReportConfigurationPage = lazy(() => import('./pages/ReportConfiguration/ReportConfigurationPage'));
+
+// Componente de carga (fallback)
+const LoadingFallback: React.FC = () => (
+  <div style={{ 
+    display: 'flex', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    height: '100vh',
+    fontSize: '18px',
+    color: '#666'
+  }}>
+    Cargando...
+  </div>
+);
 
 /** ────────────────────────────────────────────────────────────────────────────
  *  🎛️  React‑Query client (sin refetch on focus)
@@ -81,61 +97,63 @@ const App: React.FC = () => {
           <Router future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
             <AuthProvider>
               <FormNodeProvider>
-                <Routes>
-                  {/* ───────── Public ‐‐ landing y login ───────── */}
-                  <Route
-                    path="/"
-                    element={
-                      <PublicLayout>
-                        <Landing />
-                      </PublicLayout>
-                    }
-                  />
-                  <Route path="/login" element={<Login />} />
+                <Suspense fallback={<LoadingFallback />}>
+                  <Routes>
+                    {/* ───────── Public ‐‐ landing y login ───────── */}
+                    <Route
+                      path="/"
+                      element={
+                        <PublicLayout>
+                          <Landing />
+                        </PublicLayout>
+                      }
+                    />
+                    <Route path="/login" element={<Login />} />
 
-                  {/* ───────── Protected ‐‐ todo lo demás ───────── */}
-                  <Route element={<ProtectedLayout />}>
-                    <Route path="home" element={<Home />} />
+                    {/* ───────── Protected ‐‐ todo lo demás ───────── */}
+                    <Route element={<ProtectedLayout />}>
+                      <Route path="home" element={<Home />} />
 
-                    {/*  Agrupamos las rutas de proyectos  */}
-                    <Route path="proyectos">
-                      {/* /proyectos/crear */}
-                      <Route path="crear" element={<CreateProject />} />
+                      {/*  Agrupamos las rutas de proyectos  */}
+                      <Route path="proyectos">
+                        {/* /proyectos/crear */}
+                        <Route path="crear" element={<CreateProject />} />
 
-                      {/* /proyectos/lista */}
-                      <Route path="lista" element={<ProjectList />} />
+                        {/* /proyectos/lista */}
+                        <Route path="lista" element={<ProjectList />} />
 
-                      {/* /proyectos/:projectId  */}
-                      <Route path=":projectId" element={<ProjectDetail />} />
+                        {/* /proyectos/:projectId  */}
+                        <Route path=":projectId" element={<ProjectDetail />} />
 
-                      {/* /proyectos/:projectId/arquitectura/*  */}
-                      <Route path=":projectId/arquitectura">
-                        {/* /proyectos/:projectId/arquitectura/crear */}
-                        <Route path="crear" element={<CreateArchitectureProject />} />
+                        {/* /proyectos/:projectId/arquitectura/*  */}
+                        <Route path=":projectId/arquitectura">
+                          {/* /proyectos/:projectId/arquitectura/crear */}
+                          <Route path="crear" element={<CreateArchitectureProject />} />
 
-                        {/* /proyectos/:projectId/arquitectura/:architectureId */}
-                        <Route path=":architectureId" element={<ArchitectureProjectDetail />} />
+                          {/* /proyectos/:projectId/arquitectura/:architectureId */}
+                          <Route path=":architectureId" element={<ArchitectureProjectDetail />} />
 
-                        {/* /proyectos/:projectId/arquitectura/:architectureId/editar */}
-                        <Route path=":architectureId/editar" element={<EditArchitectureProject />} />
+                          {/* /proyectos/:projectId/arquitectura/:architectureId/editar */}
+                          <Route path=":architectureId/editar" element={<EditArchitectureProject />} />
 
-                        {/* /proyectos/:projectId/arquitectura/:architectureId/superficies */}
-                        <Route path=":architectureId/superficies" element={<SurfaceEditor />} />
+                          {/* /proyectos/:projectId/arquitectura/:architectureId/superficies */}
+                          <Route path=":architectureId/superficies" element={<SurfaceEditor />} />
+                        </Route>
                       </Route>
+
+                      {/* Rutas para formularios */}
+                      <Route path="form/select" element={<SelectorFormPage />} />
+                      <Route path="form/node/:mode/:id?" element={<Step2NodeFormCreatePage />} />
+                      <Route path="/form/:formTypeModel/:nodeId" element={<Step3FormPage />} />
+                      <Route path="form/:formTypeModel/:nodeId/informe" element={<FormReportView />} />
+                      <Route path="/herramientas/configuracion-informes" element={<ReportConfigurationPage />} />
+                      <Route path="/herramientas/configuracion-informes/:nodeId" element={<ReportConfigurationForm />} />
                     </Route>
 
-                    {/* Rutas para formularios */}
-                    <Route path="form/select" element={<SelectorFormPage />} />
-                    <Route path="form/node/:mode/:id?" element={<Step2NodeFormCreatePage />} />
-                    <Route path="/form/:formTypeModel/:nodeId" element={<Step3FormPage />} />
-                    <Route path="form/:formTypeModel/:nodeId/informe" element={<FormReportView />} />
-                    <Route path="/herramientas/configuracion-informes" element={<ReportConfigurationPage />} />
-                    <Route path="/herramientas/configuracion-informes/:nodeId" element={<ReportConfigurationForm />} />
-                  </Route>
-
-                  {/* fallback */}
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
+                    {/* fallback */}
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
+                </Suspense>
               </FormNodeProvider>
             </AuthProvider>
           </Router>

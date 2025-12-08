@@ -1,0 +1,311 @@
+{
+    "Formularios de Trámites Direcciones de Obras Municipales - DOM": {
+      "1 – Formularios de Permisos de Obra Menor": {
+        "Ampliación hasta 100 m2": [
+          "1-1.1. Solicitud Permiso de Obra Menor- Ampliación hasta 100 m2 – Artículo 5.1.4. N° 1 letra A de la OGUC",
+          "1-2.1. Permiso de Obra Menor- Ampliación hasta 100 m2 – Artículo 5.1.4. N° 1 letra A de la OGUC",
+          "1-3.1. Solicitud Modificación de Proyecto Obra Menor - Ampliación hasta 100 m2 – Artículo 5.1.4. N° 1 letra A de la OGUC",
+          "1-4.1. Resolución: Aprueba Modificación de Proyecto Obra Menor - Ampliación hasta 100 m2 – Artículo 5.1.4. N° 1 letra A de la OGUC",
+          "1-5.1. Solicitud Recepción Definitiva de Obras de Edificación - Ampliación hasta 100 m2 – Artículo 5.1.4. N° 1 letra A de la OGUC",
+          "1-6.1. Certificado de Recepción Definitiva de Obras de Edificación - Ampliación hasta 100 m2 – Artículo 5.1.4. N° 1 letra A de la OGUC"
+        ],
+        "Modificación edificaciones existentes que no alteren su estructura": [
+          "1-1.2. Solicitud Permiso de Obra Menor- Modificación edificaciones existentes que no alteren su estructura – Artículo 5.1.4. N° 1 letra B de la OGUC",
+          "1-2.2. Permiso de Obra Menor- Modificaciones de edificaciones existentes que no alteren su estructura – Artículo 5.1.4. N° 1 letra B de la OGUC",
+          "1-5.2. Solicitud Recepción Definitiva de Obras de Edificación - Modificación edificaciones existentes que no alteren su estructura – Artículo 5.1.4. N° 1 letra B de la OGUC",
+          "1-6.2. Certificado de Recepción Definitiva de Obras de Edificación - Modificación edificaciones existentes que no alteren su estructura – Artículo 5.1.4. N° 1 letra B de la OGUC"
+        ],
+        "Ampliación de vivienda social y otras": [
+          "1-1.3. Solicitud Permiso de Obra Menor- Ampliación de Vivienda Social y Otras – Artículo 5.1.4. N° 2 letra A de la OGUC",
+          "1-2.3. Permiso de Obra Menor- Ampliación de vivienda social y otras – Artículo 5.1.4. N° 2 letra A de la OGUC",
+          "1-3.2. Solicitud Modificación de Proyecto Obra Menor - Ampliación vivienda social y otras – Artículo 5.1.4. N° 2 letra A de la OGUC",
+          "1-4.2. Resolución: Aprueba Modificación de Proyecto Obra Menor - Ampliación vivienda social y otras – Artículo 5.1.4. N° 2 letra A de la OGUC",
+          "1-5.3. Solicitud Recepción Definitiva de Obras de Edificación - Ampliación vivienda social y otras – Artículo 5.1.4. N° 2 letra A de la OGUC",
+          "1-6.3. Certificado de Recepción Definitiva de Obras de Edificación - Ampliación vivienda social y otras – Artículo 5.1.4. N° 2 letra A de la OGUC"
+        ],
+        "Regularización de edificación antigua": [
+          "1-1.4. Solicitud Permiso de Obra Menor- Regularización edificación antigua, de cualquier destino, construida antes del 31-07-1959 – Artículo 5.1.4. N° 2 letra B de la OGUC",
+          "1-6.4. Certificado de Regularización edificación antigua de cualquier destino, construida antes del 31-07-1959 – Artículo 5.1.4. N° 2 letra B de la OGUC"
+        ],
+        "Proyectos de radicación": [
+          "1-1.5. Solicitud Permiso de Obra Menor- Proyectos de radicación, - inciso segundo del artículo 6.2.9. de la OGUC",
+          "1-2.4. Permiso de Obra Menor- Proyectos de radicación, - inciso segundo del artículo 6.2.9. de la OGUC",
+          "1-3.3. Solicitud Modificación de Proyecto Obra Menor - Proyectos de radicación, - inciso segundo del artículo 6.2.9. de la OGUC",
+          "1-4.3. Resolución: Aprueba Modificación de Proyecto Obra Menor - Proyectos de radicación, - inciso segundo del artículo 6.2.9. de la OGUC",
+          "1-5.4. Solicitud Recepción Definitiva de Obras de Edificación - Proyectos de radicación, - inciso segundo del artículo 6.2.9. de la OGUC",
+          "1-6.5. Certificado de Recepción Definitiva de Obras de Edificación - Proyectos de radicación - inciso segundo del artículo 6.2.9. de la OGUC"
+        ]
+      },
+      "2 – Formularios de Permisos de Edificación": {
+        "Obra nueva": [
+          "2-1.1 Solicitud de Aprobación de Anteproyecto de Obras de Edificación, Obra Nueva.",
+          "2-2.1 Resolución de Aprobación de Anteproyecto de Obras de Edificación, Obra Nueva.",
+          "2-3.1 Solicitud de Permiso de Edificación, Obra nueva.",
+          "2-4.1 Permiso de Edificación, Obra nueva.",
+          "2-5.1 Solicitud de Modificación de Proyecto de Edificación, Obra nueva.",
+          "2-6.1 Resolución Aprueba Modificación de Proyecto de Edificación, Obra nueva.",
+          "2-7.1 Solicitud de Recepción Definitiva de Obras de Edificación, Obra nueva.",
+          "2-8.1 Certificado de Recepción Definitiva de Obras de Edificación, Obra nueva."
+        ],
+        "Ampliación mayor a 100 m2": [
+          "2-1.2 Solicitud de Aprobación de Anteproyecto de Obras de Edificación, Ampliación Mayor a 100 m2.",
+          "2-2.2 Resolución de Aprobación de Anteproyecto de Obras de Edificación, Ampliación Mayor a 100 m2.",
+          "2-3.2 Solicitud de Permiso de Edificación, Ampliación Mayor a 100 m2.",
+          "2-4.2 Permiso de Edificación, Ampliación Mayor a 100 m2.",
+          "2-5.2 Solicitud de Modificación de Proyecto de Edificación, Ampliación Mayor a 100 m2.",
+          "2-6.2 Resolución Aprueba Modificación de Proyecto de Edificación, Ampliación Mayor a 100 m2.",
+          "2-7.2 Solicitud de Recepción Definitiva de Obras de Edificación, Ampliación Mayor a 100 m2.",
+          "2-8.2 Certificado de Recepción Definitiva de Obras de Edificación, Ampliación Mayor a 100 m2."
+        ],
+        "Alteración": [
+          "2-1.3 Solicitud de Aprobación de Anteproyecto de Obras de Edificación, Alteración.",
+          "2-2.3 Resolución de Aprobación de Anteproyecto de Obras de Edificación, Alteración.",
+          "2-3.3 Solicitud de Permiso de Edificación, Alteración.",
+          "2-4.3 Permiso de Edificación, Alteración",
+          "2-5.3 Solicitud de Modificación de Proyecto de Edificación, Alteración.",
+          "2-6.3 Resolución Aprueba Modificación de Proyecto de Edificación, Alteración.",
+          "2-7.3 Solicitud de Recepción Definitiva de Obras de Edificación, Alteración.",
+          "2-8.3 Certificado de Recepción Definitiva de Obras de Edificación, Alteración."
+        ],
+        "Reconstrucción": [
+          "2-1.4 Solicitud de Aprobación de Anteproyecto de Obras de Edificación, Reconstrucción.",
+          "2-2.4 Resolución de Aprobación de Anteproyecto de Obras de Edificación, Reconstrucción.",
+          "2-3.4 Solicitud de Permiso de Edificación, Reconstrucción.",
+          "2-4.4 Permiso de Edificación, Reconstrucción.",
+          "2-5.4 Solicitud de Modificación de Proyecto de Edificación, Reconstrucción.",
+          "2-6.4 Resolución Aprueba Modificación de Proyecto de Edificación, Reconstrucción.",
+          "2-7.4 Solicitud de Recepción Definitiva de Obras de Edificación, Reconstrucción.",
+          "2-8.4 Certificado de Recepción Definitiva de Obras de Edificación, Reconstrucción."
+        ],
+        "Reparación": [
+          "2-3.5 Solicitud de Permiso de Edificación, Reparación.",
+          "2-4.5 Permiso de Edificación, Reparación.",
+          "2-5.5 Solicitud de Modificación de Proyecto de Edificación, Reparación.",
+          "2-6.5 Resolución Aprueba Modificación de Proyecto de Edificación, Reparación.",
+          "2-7.5 Solicitud de Recepción Definitiva de Obras de Edificación, Reparación.",
+          "2-8.5 Certificado de Recepción Definitiva de Obras de Edificación, Reparación."
+        ]
+      },
+      "3 – Formularios Subdivisión y Urbanización": {
+        "Subdivisión": [
+          "3.3 Solicitud de aprobación de: subdivisión, fusión, urbanización, loteo, loteo con construcción simultánea",
+          "3.4 Resolución de aprobación de subdivisión o fusión"
+        ],
+        "Fusión": [
+          "3.3 Solicitud de aprobación de: subdivisión, fusión, urbanización, loteo, loteo con construcción simultánea",
+          "3.4 Resolución de aprobación de subdivisión o fusión"
+        ],
+        "Urbanización": [
+          "3.3 Solicitud de aprobación de: subdivisión, fusión, urbanización, loteo, loteo con construcción simultánea",
+          "3.5 Resolución de aprobación de: loteo, urbanización, loteo con construcción simultánea, loteo dfl n° 2",
+          "3.6 Solicitud de modificación de: loteo, urbanización, loteo con construcción simultánea, loteol dfl n°2",
+          "3.7 Resolución de modificación de proyecto de: loteo, urbanización, loteo con construcción simultánea",
+          "3.8 Solicitud de garantía de obras de urbanización",
+          "3.9 Certificado de obras de urbanización garantizadas",
+          "3.10 Solicitud de recepción definitiva de obras de urbanización",
+          "3.11 Certificado de recepción definitiva de obras de urbanización"
+        ],
+        "Loteo": [
+          "3.1 Solicitud de aprobación de anteproyecto de loteo",
+          "3.2 Resolución de aprobación de anteproyecto de loteo",
+          "3.3 Solicitud de aprobación de: subdivisión, fusión, urbanización, loteo, loteo con construcción simultánea",
+          "3.5 Resolución de aprobación de: loteo, urbanización, loteo con construcción simultánea, loteo dfl n° 2",
+          "3.6 Solicitud de modificación de: loteo, urbanización, loteo con construcción simultánea, loteol dfl n°2",
+          "3.7 Resolución de modificación de proyecto de: loteo, urbanización, loteo con construcción simultánea"
+        ],
+        "Loteo con construcción simultánea": [
+          "3.3 Solicitud de aprobación de: subdivisión, fusión, urbanización, loteo, loteo con construcción simultánea",
+          "3.5 Resolución de aprobación de: loteo, urbanización, loteo con construcción simultánea, loteo dfl n° 2",
+          "3.6 Solicitud de modificación de: loteo, urbanización, loteo con construcción simultánea, loteol dfl n°2",
+          "3.7 Resolución de modificación de proyecto de: loteo, urbanización, loteo con construcción simultánea"
+        ],
+        "Loteo DFL N° 2 con construcción simultánea": [
+          "3.5 Resolución de aprobación de: loteo, urbanización, loteo con construcción simultánea, loteo dfl n° 2",
+          "3.6 Solicitud de modificación de: loteo, urbanización, loteo con construcción simultánea, loteol dfl n°2"
+        ]
+      },
+      "4 – Formularios División del Suelo y Condominios con afectación a Utilidad Pública": {
+        "División predial con afectación a utilidad pública": [
+          "4.1 Solicitud de aprobación división predial con afectación a utilidad pública",
+          "4.2 Resolución de aprobación de división predial con afectación a utilidad pública"
+        ],
+        "Obras de urbanización con afectación a utilidad pública": [
+          "4.3 Solicitud de garantía de obras de urbanización",
+          "4.4 Certificado de obras de urbanización garantizadas",
+          "4.5 Solicitud de recepción definitiva de obras de urbanización",
+          "4.6 Certificado de recepción definitiva de obras de urbanización"
+        ]
+      },
+      "5 – Formularios de Solicitudes y Certificaciones Varias": {
+        "Informaciones previas": [
+          "5.1 Solicitud de certificado de Informaciones Previas",
+          "5.2 Certificado de Informaciones Previas"
+        ],
+        "Afectación a utilidad pública": [
+          "5.3 Solicitud de certificado de afectación a utilidad pública",
+          "5.4 Certificado de afectación a utilidad pública"
+        ],
+        "Certificado de número": [
+          "5.5 Certificado de Número"
+        ],
+        "Copropiedad inmobiliaria": [
+          "5.6 Solicitud de Copropiedad Inmobiliaria",
+          "5.7 Certificado de Copropiedad Inmobiliaria"
+        ],
+        "Demolición y obras preliminares": [
+          "5.8 Solicitud de autorización de obras preliminares y/o demolición",
+          "5.9 Autorización de obras preliminares y/o demolición"
+        ],
+        "Control de trámite": [
+          "5.10 Ficha de control de Trámite para Permiso o Aprobación",
+          "5.11 Ficha de control de Trámite para Recepción Definitiva"
+        ],
+        "Acta de observaciones": [
+          "5.12 Acta de Observaciones Solicitud de Permiso o Autorización"
+        ]
+      },
+      "6 – Formularios de Regularización de Viviendas Sociales (Ley 20.671 y sus modificaciones)": {
+        "Regularización de viviendas sociales (Ley 20.671)": []
+      },
+      "7 – Encuesta Edificación INE": {
+        "Encuesta de edificación INE": [
+          "Encuesta Edificación INE"
+        ],
+        "Regularización de viviendas Ley 20.251": [
+          "Formulario para regularización de viviendas acogidas a Ley 20.251"
+        ]
+      },
+      "8 – Formularios para Construcciones en Zonas Declaradas Afectadas por Catástrofes": {
+        "Reconstrucción en zona de catástrofe": [
+          "8.1 Solicitud Permiso de Reconstrucción",
+          "8.2 Permiso de Reconstrucción",
+          "8.3 Solicitud Recepción Definitiva de Reconstrucción de Edificación",
+          "8.4 Certificado Recepción Definitiva de Reconstrucción de Edificación"
+        ],
+        "Edificación en zona de catástrofe": [
+          "8.5 Solicitud Permiso de Edificación",
+          "8.6 Permiso de Edificación",
+          "8.7 Solicitud Recepción Definitiva de Edificación",
+          "8.8 Certificado Recepción Definitiva de Edificación"
+        ],
+        "Edificación vivienda tipo en zona de catástrofe": [
+          "8.9 Solicitud Permiso de Edificación Vivienda Tipo",
+          "8.10 Permiso de Edificación Vivienda Tipo",
+          "8.11 Solicitud Recepción Definitiva de Edificación Vivienda Tipo",
+          "8.12 Certificado Recepción Definitiva Vivienda Tipo"
+        ],
+        "Regularización de edificaciones dañadas por catástrofe": [
+          "8.13 Solicitud Regularización de Edificaciones dañadas a consecuencia de una catástrofe",
+          "8.14 Certificado de Regularización de Edificaciones dañadas a consecuencia de una catástrofe"
+        ]
+      },
+      "9 – Formularios Permisos y Recepciones de Viviendas Unifamiliares (Art. Transitorio OGUC D.S. 2 – D.O. 24.03.11)": {
+        "Permisos y recepciones de viviendas unifamiliares": [
+          "Formularios Permisos y Recepciones de Viviendas Unifamiliares (Art. Transitorio OGUC D.S. 2 - D.O. 24.03.11)"
+        ]
+      },
+      "10 – Formulario para Regularizar construcción de bienes raíces destinados a microempresas y equipamiento social (Ley 20.563)": {
+        "Regularización de bienes raíces destinados a microempresas y equipamiento social (Ley 20.563)": []
+      },
+      "11 – Formularios de Permisos de Instalación de Torres Soporte de Antenas": {
+        "Instalación de torre soporte de antenas y sistemas radiantes": [
+          "11.1. Solicitud de Permiso de Instalación de Torre Soporte de Antenas y Sistemas Radiantes de Transmisión de Telecomunicaciones.",
+          "11.2. Permiso de Instalación de Torre Soporte de Antenas y Sistemas Radiantes de Transmisión de Telecomunicaciones.",
+          "11.3. Solicitud de Recepción Definitiva de Torre Soporte de Antenas y Sistemas Radiantes de Transmisión de Telecomunicaciones.",
+          "11.4. Certificado de Recepción Definitiva de Instalación de Torre Soporte de Antenas y Sistemas Radiantes de Transmisión de Telecomunicaciones."
+        ]
+      },
+      "12 – Formularios Regularización Ley N°20.898": {
+        "Regularización Ley 20.898 Título I art. 1°": [
+          "12.1. Solicitud Título I art. 1° Ley N°20.898. Solicitud de Regularización (Permiso y Recepción definitiva)",
+          "12.2. Certificado Título I art. 1° paga Derechos Municipales Ley N°20.898 Certificado de Regularización (Permiso y Recepción definitiva)",
+          "12.3. Certificado Título I art. 1° exento pago Derechos Municipales Ley N°20.898 Certificado de Regularización (Permiso y Recepción definitiva)"
+        ],
+        "Regularización Ley 20.898 Título I art. 3°": [
+          "12.4. Solicitud Título I art. 3° Ley N°20.898 Solicitud de Regularización (Permiso y Recepción definitiva)",
+          "12.5. Certificado Título I art. 3° Ley N°20.898 Certificado de Regularización (Permiso y Recepción definitiva)"
+        ],
+        "Regularización Ley 20.898 microempresa inofensiva o equipamiento social": [
+          "12.6 Solicitud Regularización Ley 20.898 (Microempresa Inofensiva o Equipamiento Social)"
+        ],
+        "Regularización Ley 20.898 Título II": [
+          "12.7. Certificado Título II Ley N°20.898. Certificado de Regularización (Permiso y Recepción definitiva)"
+        ],
+        "Regularización Ley 20.898 Título III": [
+          "12.9. Certificado Título III Ley N°20.898."
+        ]
+      },
+      "13 – Formularios de regularización Ley N°20.301 y Ley N°21.052": {
+        "Edificaciones destinadas a Bomberos de Chile (Ley N°21.031)": [
+          "13.1 Solicitud de Permiso de Edificación y/o Recepción Definitiva simultánea Edificaciones destinadas a los fines de Bomberos de Chile - Ley N°21.031",
+          "13.2 Certificado de Regularización de Edificación Destinada a los fines de Bomberos de Chile - Ley N°21.031)"
+        ],
+        "Edificaciones destinadas a establecimientos educacionales D.F.L. N°2 de 1998 MINEDUC (Ley N°21.051)": [
+          "13.3 Solicitud de Permiso de Edificación y/o Recepción Definitiva Destinada a establecimientos educacionales regidos por el D.F.L. N°2, de 1998, MINEDUC - Ley N°21.051",
+          "13.4 Certificado de Regularización de Edificación Destinada a establecimientos educaciones regidos por el D.F.L. N°2, de 1998 MINEDUC - Ley N°21.051"
+        ]
+      },
+      "14 – Formularios Procedimiento de Saneamiento y Regularización de Loteos Ley 20.234.": {
+        "Saneamiento y regularización de loteos Ley 20.234": [
+          "14.1. SOLICITUD DE SANEAMIENTO Y REGULARIZACIÓN DE LOTEOS – LEY N°20.234",
+          "14.2. CERTIFICADO DE RECEPCIÓN PROVISORIA DE OBRAS DE URBANIZACIÓN – Procedimiento de Saneamiento y Regularización de Loteos – Ley N°20.234",
+          "14.3. CERTIFICADO DE RECEPCIÓN DEFINITIVA DE OBRAS DE URBANIZACIÓN – Procedimiento de Saneamiento y Regularización de Loteos – Ley N°20.234"
+        ]
+      },
+      "15 – Formato Tipo de Informes Revisor Independiente (Nuevo)": {
+        "Informe revisor independiente para permiso de edificación / obra menor / alteración / reconstrucción": [
+          "15-1 Solicitud de permiso de edificación, obra menor, alteración, reconstrucción",
+          "15-1.1 Anexo Edificios de Asistencia Hospitalaria.",
+          "15-1.2 Anexo Locales Escolares y Hogares Estudiantiles.",
+          "15-1.3 Anexo Edificios destinados a Culto y Locales",
+          "15-1.4 Anexo Teatros y otros Locales de Reuniones",
+          "15-1.5 Anexo Establecimientos Deportivos y Recreativos",
+          "15-1.6 Anexo Hoteles, Residenciales, Hogares y Hospederías",
+          "15-1.7 Anexo Centros Comerciales",
+          "15-1.8 Anexo Edificios de Estacionamientos, Centros de Reparación Automotor y Estaciones de Servicio Automotor",
+          "15-1.9 Anexo Caballerizas y Establos",
+          "15-1.10 Anexo Terminales de Servicios de Locomoción Colectiva Urbana",
+          "15-1.11 Anexo Establecimientos Industriales o de Bodegaje"
+        ],
+        "Informe revisor independiente para modificación de proyecto": [
+          "15-2 Solicitud de modificación de proyecto.",
+          "15-2.1 Anexo Edificios de Asistencia Hospitalaria",
+          "15-2.2 Anexo Locales Escolares y Hogares Estudiantiles",
+          "15-2.3 Anexo Edificios destinados a Culto y Locales Anexos",
+          "15-2.4 Anexo Teatros y otros Locales de Reuniones",
+          "15-2.5 Anexo Establecimientos Deportivos y Recreativos",
+          "15-2.6 Anexo Hoteles, Residenciales, Hogares y Hospederías",
+          "15-2.7 Anexo Centros Comerciales",
+          "15-2.8 Anexo Edificios de Estacionamientos, Centros de Reparación Automotor y Estaciones de Servicio Automotor",
+          "15-2.9 Anexo Caballerizas y Establos",
+          "15-2.10 Anexo Terminales de Servicios de Locomoción Colectiva Urbana",
+          "15-2.11 Anexo Establecimientos Industriales o de Bodegaje"
+        ],
+        "Informe revisor independiente para recepción definitiva": [
+          "15-3 Solicitud de Recepción definitiva total o parcial."
+        ],
+        "Anexos generales informe revisor independiente": [
+          "15-4 Anexo 1 Proyectos que consideran más de un predio.",
+          "15-5 Anexo 2 Superficies por Edificios que forman parte de un conjunto.",
+          "15-6 Anexo 3 Condiciones de seguridad contra incendio."
+        ]
+      },
+      "16 – Declaraciones Juradas (Nuevo)": {
+        "Declaraciones juradas de obras preliminares": [
+          "16.1 Declaración Jurada de Obras Preliminares"
+        ]
+      },
+      "17- Modelos de Resoluciones – Publicidad Municipal Art. 116 bis C de la LGUC": {
+        "Modelos de resoluciones de publicidad municipal Art. 116 bis C LGUC": [
+          "Modelo Resolución SEREMI Publicidad Municipal Permisos (Formato Word)",
+          "Modelo Resolución DOM Publicidad Municipal Permisos(Formato Word)"
+        ]
+      },
+      "18- Silencio Administrativo Negativo – Art. 118 de la LGUC": {
+        "Silencio administrativo negativo Art. 118 LGUC": [
+          "Presentación para hacer valer: Silencio Administrativo Negativo (Formato pdf)"
+        ]
+      }
+    }
+  }
+  

@@ -68,10 +68,33 @@
     @include card-container;
     margin-bottom: $spacing-xl;
 
-    h2 {
-      margin-top: 0;
+    .sectionHeader {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       margin-bottom: $spacing-lg;
-      color: $text-primary;
+
+      h2 {
+        margin: 0;
+        color: $text-primary;
+      }
+
+      .editInfoButton {
+        @include action-button($primary-color);
+        display: flex;
+        align-items: center;
+        gap: $spacing-xs;
+        padding: $spacing-xs $spacing-md;
+      }
+    }
+
+    .projectInfoForm {
+      .projectDetails {
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        gap: $spacing-xl;
+        margin-bottom: $spacing-xl;
+      }
     }
 
     .projectDetails {
@@ -99,15 +122,155 @@
         }
       }
 
-      .info {
-        p {
-          margin: $spacing-xs 0;
-          color: $text-secondary;
+      .imageUploadLabel {
+        cursor: pointer;
+        display: block;
+        position: relative;
 
-          strong {
-            color: $text-primary;
+        .imagePreviewContainer {
+          position: relative;
+          width: 100%;
+          height: 300px;
+          border-radius: $border-radius-sm;
+          overflow: hidden;
+
+          img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
+
+          .imageOverlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            @include flex-center();
+            opacity: 0;
+            transition: opacity $transition-fast;
+
+            span {
+              color: white;
+              font-weight: 600;
+            }
+          }
+
+          &:hover .imageOverlay {
+            opacity: 1;
           }
         }
+
+        .noImage {
+          width: 100%;
+          height: 200px;
+          @include flex-center();
+          background: $background-light;
+          border: 2px dashed $border-color;
+          border-radius: $border-radius-sm;
+          color: $text-secondary;
+          transition: all $transition-fast;
+
+          &:hover {
+            border-color: $primary-color;
+            background: rgba($primary-color, 0.05);
+            color: $primary-color;
+          }
+        }
+      }
+
+      .info {
+        display: flex;
+        flex-direction: column;
+        gap: $spacing-sm;
+
+        .infoField {
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+          gap: $spacing-md;
+
+          .infoLabel {
+            font-size: $font-size-sm;
+            font-weight: 600;
+            color: $text-primary;
+            margin: 0;
+            min-width: 150px;
+            flex-shrink: 0;
+          }
+
+          p {
+            margin: 0;
+            color: $text-secondary;
+            font-size: $font-size-md;
+            flex: 1;
+          }
+
+          .infoInput {
+            padding: $spacing-sm;
+            border: 1px solid $border-color;
+            border-radius: $border-radius-sm;
+            font-size: $font-size-md;
+            color: $text-primary;
+            background: white;
+            transition: border-color $transition-fast;
+            flex: 1;
+            min-width: 0;
+
+            &:focus {
+              outline: none;
+              border-color: $primary-color;
+            }
+
+            &[type="date"] {
+              cursor: pointer;
+            }
+          }
+
+          .infoSelect {
+            padding: $spacing-sm;
+            border: 1px solid $border-color;
+            border-radius: $border-radius-sm;
+            font-size: $font-size-md;
+            color: $text-primary;
+            background: white;
+            cursor: pointer;
+            transition: border-color $transition-fast;
+            flex: 1;
+            min-width: 0;
+
+            &:focus {
+              outline: none;
+              border-color: $primary-color;
+            }
+          }
+
+          textarea.infoInput {
+            resize: vertical;
+            min-height: 60px;
+            font-family: inherit;
+          }
+        }
+      }
+    }
+
+    .projectInfoActions {
+      display: flex;
+      justify-content: flex-end;
+      gap: $spacing-md;
+      margin-top: $spacing-lg;
+      padding-top: $spacing-lg;
+      border-top: 1px solid $border-color;
+
+      .saveButton {
+        @include action-button($success-color);
+        padding: $spacing-sm $spacing-lg;
+      }
+
+      .cancelButton {
+        @include action-button($text-secondary);
+        padding: $spacing-sm $spacing-lg;
       }
     }
   }
@@ -473,4 +636,692 @@
 
 .formActions {
   margin-top: $spacing-lg;
-} 
+}
+
+// Estilos para la sección de Datos del Proyecto
+.projectDataSection {
+  margin-top: $spacing-xl;
+  margin-bottom: $spacing-xl;
+}
+
+.sectionTitle {
+  margin: 0 0 $spacing-lg 0;
+  font-size: $font-size-xl;
+  color: $text-primary;
+  font-weight: 600;
+}
+
+.dataSectionsList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.dataSectionCard {
+  @include card-container;
+  overflow: hidden;
+  transition: box-shadow $transition-fast;
+
+  &:hover {
+    box-shadow: $shadow-md;
+  }
+}
+
+.dataSectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-md $spacing-lg;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color $transition-fast;
+  border-bottom: 1px solid transparent;
+
+  &:hover {
+    background-color: rgba($primary-color, 0.02);
+  }
+
+  .dataSectionCard:has(.dataSectionContent:not(:empty)) & {
+    border-bottom-color: $border-color;
+  }
+}
+
+.dataSectionHeaderContent {
+  flex: 1;
+}
+
+.dataSectionHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.dataSectionTitle {
+  margin: 0 0 $spacing-xs 0;
+  font-size: $font-size-lg;
+  color: $text-primary;
+  font-weight: 600;
+}
+
+.dataSectionDescription {
+  margin: 0;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+.editSectionButton {
+  @include action-button($primary-color);
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-md;
+  font-size: $font-size-sm;
+  white-space: nowrap;
+
+  svg {
+    font-size: 1rem;
+  }
+}
+
+.dataSectionToggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $primary-color;
+  padding: $spacing-xs;
+  border-radius: 50%;
+  transition: all $transition-fast;
+
+  svg {
+    font-size: 1.5rem;
+  }
+
+  &:hover {
+    background-color: rgba($primary-color, 0.1);
+  }
+
+  &:focus {
+    outline: 2px solid $primary-color;
+    outline-offset: 2px;
+  }
+}
+
+.dataSectionContent {
+  padding: $spacing-lg;
+  animation: slideDown 0.3s ease-out;
+  overflow: hidden;
+}
+
+.sectionEditHeader {
+  display: flex;
+  justify-content: flex-end;
+  padding-bottom: $spacing-md;
+}
+
+.fieldsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $spacing-lg;
+  
+  // En pantallas más pequeñas, ajustar a 2 columnas
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  // En pantallas muy pequeñas, 1 columna
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fieldItem {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.fieldSpacer {
+  // Espacio vacío en la grilla, no renderiza nada visual
+  // Solo ocupa espacio según el span definido
+}
+
+.fieldLabel {
+  font-size: $font-size-sm;
+  font-weight: 600;
+  color: $text-primary;
+  margin: 0;
+
+  .required {
+    color: $error-color;
+    margin-left: 2px;
+  }
+}
+
+.fieldValue {
+  font-size: $font-size-md;
+  color: $text-secondary;
+  padding: $spacing-sm;
+  background-color: $background-light;
+  border-radius: $border-radius-sm;
+  min-height: 2.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.fieldInputWrapper {
+  flex: 1;
+  min-width: 0;
+}
+
+.fieldInput,
+.fieldSelect {
+  width: 100%;
+  padding: $spacing-sm;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-sm;
+  font-size: $font-size-md;
+  color: $text-primary;
+  background: white;
+  transition: border-color $transition-fast;
+  font-family: inherit;
+
+  &:focus {
+    outline: none;
+    border-color: $primary-color;
+  }
+
+  &:disabled {
+    background-color: $background-light;
+    cursor: not-allowed;
+    color: $text-secondary;
+  }
+}
+
+.fieldInput {
+  &[type="date"],
+  &[type="number"] {
+    cursor: pointer;
+  }
+}
+
+.fieldSelect {
+  cursor: pointer;
+}
+
+.multiSelectContainer {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  padding: $spacing-sm;
+  background-color: $background-light;
+  border-radius: $border-radius-sm;
+}
+
+.fileInputContainer {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.fileInputLabel {
+  @include action-button($primary-color);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-xs;
+  cursor: pointer;
+  color: $white !important;
+  padding: $spacing-xs $spacing-md;
+  font-size: $font-size-sm;
+
+  input {
+    display: none;
+  }
+}
+
+.removeFileButton {
+  @include action-button($error-color);
+  padding: $spacing-xs $spacing-md;
+  font-size: $font-size-sm;
+}
+
+.datosTabHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-lg;
+
+  h2 {
+    margin: 0;
+    color: $text-primary;
+  }
+
+  .editFormButton {
+    @include action-button($primary-color);
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+    padding: $spacing-xs $spacing-md;
+  }
+}
+
+.formFieldsActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: $spacing-md;
+  margin-top: $spacing-xl;
+  padding-top: $spacing-lg;
+  border-top: 1px solid $border-color;
+}
+
+.sectionFieldsActions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: $spacing-md;
+  margin-top: $spacing-lg;
+  padding-top: $spacing-lg;
+  border-top: 1px solid $border-color;
+  flex-wrap: wrap;
+
+  .saveButton {
+    @include action-button($success-color);
+    padding: $spacing-sm $spacing-lg;
+    
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+
+  .cancelButton {
+    @include action-button($text-secondary);
+    padding: $spacing-sm $spacing-lg;
+    
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+
+  .errorMessage {
+    color: $error-color;
+    font-size: $font-size-sm;
+    margin-left: auto;
+    width: 100%;
+    text-align: right;
+    margin-top: $spacing-xs;
+  }
+}
+
+.fileLink {
+  color: $primary-color;
+  text-decoration: underline;
+  cursor: pointer;
+
+  &:hover {
+    color: color.adjust($primary-color, $lightness: -10%);
+  }
+}
+
+// Estilos para selección de tipo de trámite
+.flowTypeSelection {
+  @include card-container;
+  margin-top: $spacing-xl;
+  margin-bottom: $spacing-xl;
+  padding: $spacing-xl;
+}
+
+.flowTypeHeader {
+  text-align: center;
+  margin-bottom: $spacing-xl;
+  position: relative;
+
+  .backButton {
+    position: absolute;
+    left: 0;
+    top: 0;
+    @include action-button($text-secondary);
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+    padding: $spacing-xs $spacing-md;
+    font-size: $font-size-sm;
+  }
+}
+
+.flowTypeTitle {
+  margin: 0 0 $spacing-md 0;
+  font-size: $font-size-xl;
+  color: $text-primary;
+  font-weight: 600;
+}
+
+.flowTypeDescription {
+  margin: 0;
+  font-size: $font-size-md;
+  color: $text-secondary;
+}
+
+.flowTypeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: $spacing-lg;
+  margin-top: $spacing-xl;
+}
+
+.flowTypeCard {
+  @include card-container;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-lg;
+  cursor: pointer;
+  transition: all $transition-fast;
+  border: 2px solid transparent;
+  text-align: left;
+  background: white;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: $shadow-lg;
+    border-color: $primary-color;
+  }
+}
+
+.flowTypeCardContent {
+  flex: 1;
+}
+
+.flowTypeCardTitle {
+  margin: 0 0 $spacing-xs 0;
+  font-size: $font-size-lg;
+  color: $text-primary;
+  font-weight: 600;
+}
+
+.flowTypeCardDescription {
+  margin: 0;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+.flowTypeCardArrow {
+  font-size: 1.5rem;
+  color: $primary-color;
+  margin-left: $spacing-md;
+  transition: transform $transition-fast;
+  
+  .flowTypeCard:hover & {
+    transform: translateX(4px);
+  }
+}
+
+.loadingContainer,
+.errorContainer {
+  text-align: center;
+  padding: $spacing-xl;
+  color: $text-secondary;
+  
+  p {
+    margin: 0;
+    font-size: $font-size-md;
+  }
+}
+
+.errorContainer {
+  color: $error-color;
+  background-color: rgba($error-color, 0.1);
+  border-radius: $border-radius-sm;
+  border: 1px solid rgba($error-color, 0.3);
+}
+
+// Estilos para sistema de pestañas
+.tabsSection {
+  margin-top: $spacing-xl;
+  margin-bottom: $spacing-xl;
+}
+
+.tabsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: $spacing-md;
+  border-bottom: 2px solid $border-color;
+  margin-bottom: $spacing-lg;
+  padding-bottom: $spacing-xs;
+}
+
+.tabsContainer {
+  display: flex;
+  gap: $spacing-sm;
+  flex: 1;
+  overflow-x: auto;
+  
+  // Ocultar scrollbar pero mantener funcionalidad
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.tabButton {
+  background: none;
+  border: none;
+  padding: $spacing-md $spacing-lg;
+  font-size: $font-size-md;
+  font-weight: 500;
+  color: $text-secondary;
+  cursor: pointer;
+  transition: all $transition-fast;
+  position: relative;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+
+  &:hover {
+    color: $primary-color;
+    background: rgba($primary-color, 0.05);
+  }
+
+  &.active {
+    color: $primary-color;
+    border-bottom-color: $primary-color;
+    font-weight: 600;
+  }
+}
+
+.tabContent {
+  min-height: 400px;
+}
+
+// Estilos para pestaña de trámite
+.tramiteTab {
+  @include card-container;
+  padding: $spacing-xl;
+}
+
+.selectedFlowType {
+  margin-bottom: $spacing-xl;
+  padding-bottom: $spacing-xl;
+  border-bottom: 1px solid $border-color;
+
+  h3 {
+    margin: 0 0 $spacing-sm 0;
+    font-size: $font-size-lg;
+    color: $text-primary;
+    font-weight: 600;
+  }
+}
+
+.selectedFlowTypeLabel {
+  margin: 0 0 $spacing-md 0;
+  font-size: $font-size-md;
+  color: $text-secondary;
+  font-weight: 500;
+}
+
+.changeFlowTypeButton {
+  @include action-button($text-secondary);
+  margin-top: $spacing-sm;
+}
+
+.addTramiteButton {
+  @include action-button($primary-color);
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-bottom: -2px;
+  padding: $spacing-sm $spacing-md;
+  font-size: $font-size-sm;
+  font-weight: 500;
+}
+
+.attachmentsSection {
+  h3 {
+    margin: 0 0 $spacing-sm 0;
+    font-size: $font-size-lg;
+    color: $text-primary;
+    font-weight: 600;
+  }
+}
+
+.attachmentsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: $spacing-xl;
+  margin-bottom: $spacing-lg;
+  flex-wrap: wrap;
+}
+
+.attachmentsDescription {
+  margin: 0 0 $spacing-lg 0;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+.progressContainer {
+  min-width: 250px;
+  flex-shrink: 0;
+}
+
+.progressInfo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-xs;
+}
+
+.progressLabel {
+  font-size: $font-size-sm;
+  font-weight: 600;
+  color: $text-primary;
+}
+
+.progressPercentage {
+  font-size: $font-size-lg;
+  font-weight: 700;
+  color: $primary-color;
+}
+
+.progressBar {
+  width: 100%;
+  height: 12px;
+  background-color: $background-light;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: $spacing-xs;
+  position: relative;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, $primary-color 0%, color.adjust($primary-color, $lightness: 10%) 100%);
+  border-radius: 6px;
+  transition: width 0.3s ease;
+  position: relative;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.3) 50%,
+      transparent 100%
+    );
+    animation: shimmer 2s infinite;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.progressText {
+  margin: 0;
+  font-size: $font-size-xs;
+  color: $text-secondary;
+  text-align: right;
+}
+
+.attachmentsList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.attachmentItem {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-md;
+  background: $background-light;
+  border-radius: $border-radius-sm;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: rgba($primary-color, 0.05);
+    transform: translateX(4px);
+  }
+}
+
+.attachmentCheckbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.checkIcon {
+  color: $success-color;
+  font-size: 1.5rem;
+}
+
+.uncheckIcon {
+  color: $text-secondary;
+  font-size: 1.5rem;
+}
+
+.attachmentLabel {
+  font-size: $font-size-md;
+  color: $text-primary;
+  font-weight: 500;
+}
+
+// Estilos para pestaña de datos
+// Los estilos ya están definidos arriba para .dataSectionsList, etc. 
