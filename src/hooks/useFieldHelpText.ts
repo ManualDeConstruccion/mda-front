@@ -20,22 +20,44 @@ export interface FieldHelpTextData {
   is_active?: boolean;
 }
 
-export const useFieldHelpText = (modelName: string, fieldName: string) => {
+interface BatchFieldHelpTextResponse {
+  [key: string]: FieldHelpTextData; // "Model.field": FieldHelpTextData
+}
+
+/**
+ * Hook para cargar un texto de ayuda individual.
+ * Internamente usa el endpoint batch para mantener consistencia y optimización.
+ * 
+ * @param modelName Nombre del modelo (ej: 'Building', 'ProjectLevel')
+ * @param fieldName Nombre del campo (ej: 'code', 'name')
+ * @param options Opciones adicionales (ej: enabled)
+ * @returns Query result con el texto de ayuda
+ */
+export const useFieldHelpText = (
+  modelName: string, 
+  fieldName: string,
+  options?: { enabled?: boolean }
+) => {
   const { accessToken } = useAuth();
   
   return useQuery<FieldHelpTextData>({
     queryKey: ['fieldHelpText', modelName, fieldName],
     queryFn: async () => {
-      const response = await axios.get<FieldHelpTextData>(
-        `${API_URL}/api/project-engines/help-texts/by_model_field/`,
+      // Usar batch internamente, incluso para un solo campo
+      // Esto mantiene consistencia y aprovecha las optimizaciones del batch
+      const response = await axios.post<BatchFieldHelpTextResponse>(
+        `${API_URL}/api/project-engines/help-texts/batch_by_model_field/`,
+        { fields: [{ model: modelName, field: fieldName }] },
         {
-          params: { model: modelName, field: fieldName },
           headers: { Authorization: `Bearer ${accessToken}` },
         }
       );
-      return response.data;
+      
+      // Extraer el resultado del diccionario batch
+      const key = `${modelName}.${fieldName}`;
+      return response.data[key] || {};
     },
-    enabled: !!accessToken && !!modelName && !!fieldName,
+    enabled: (options?.enabled !== false) && !!accessToken && !!modelName && !!fieldName,
     staleTime: 1000 * 60 * 60, // Cache por 1 hora (las ayudas no cambian frecuentemente)
   });
 };

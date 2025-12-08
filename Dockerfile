@@ -2,12 +2,12 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-# Limpiar instalación previa
-RUN rm -rf node_modules package-lock.json
+# Copiar package.json y package-lock.json primero para aprovechar el cache de Docker
+COPY package.json package-lock.json* ./
 
-# Instalar dependencias
-COPY package.json ./
-RUN npm install
+# Instalar dependencias usando npm ci (más rápido y determinista)
+# Si package-lock.json no existe, npm ci fallará y usaremos npm install
+RUN npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
 # Copiar el resto del código
 COPY . .

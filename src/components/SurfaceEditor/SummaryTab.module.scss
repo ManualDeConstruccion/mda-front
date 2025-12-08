@@ -1,0 +1,181 @@
+// src/components/SurfaceEditor/SummaryTab.module.scss
+
+@use '../../styles/variables' as *;
+
+.container {
+  padding: $spacing-lg;
+}
+
+.header {
+  margin-bottom: $spacing-xl;
+
+  h3 {
+    margin: 0;
+    font-size: $font-size-xl;
+    color: $text-primary;
+  }
+}
+
+.summaryContent {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+}
+
+.collapsibleSection {
+  background: white;
+  border-radius: $border-radius-md;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.collapsibleHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-md $spacing-lg;
+  background-color: #f8f9fa;
+  border-bottom: 2px solid $primary-color;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #e9ecef;
+  }
+
+  h4 {
+    margin: 0;
+    font-size: $font-size-lg;
+    font-weight: 700;
+    color: $primary-color;
+  }
+
+  .headerTotals {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+  }
+
+  .totalValue {
+    font-size: $font-size-lg;
+    font-weight: 700;
+    color: $primary-color;
+    font-family: 'Courier New', monospace;
+  }
+
+  .toggleButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: $text-secondary;
+    padding: $spacing-xs;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+
+    &:hover {
+      color: $text-primary;
+    }
+  }
+}
+
+.collapsibleContent {
+  padding: $spacing-lg;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+
+  thead {
+    background-color: #f5f5f5;
+
+    th {
+      padding: $spacing-md;
+      text-align: left;
+      font-weight: 600;
+      color: $text-primary;
+      border-bottom: 2px solid #ddd;
+
+      &:nth-child(2),
+      &:nth-child(3),
+      &:nth-child(4) {
+        text-align: right;
+      }
+    }
+  }
+
+  tbody {
+    tr {
+      border-bottom: 1px solid #eee;
+
+      &:hover {
+        background-color: #f9f9f9;
+      }
+    }
+
+    td {
+      padding: $spacing-md;
+      color: $text-primary;
+    }
+  }
+}
+
+.levelRow {
+  .levelName {
+    font-weight: 500;
+  }
+}
+
+.numberCell {
+  text-align: right;
+  font-family: 'Courier New', monospace;
+}
+
+.totalRow {
+  background-color: #f0f0f0;
+  font-weight: 600;
+
+  .totalLabel {
+    font-weight: 700;
+  }
+
+  .totalCell {
+    font-weight: 700;
+    color: $primary-color;
+  }
+}
+
+.emptyMessage {
+  text-align: center;
+  color: $text-secondary;
+  font-style: italic;
+  padding: $spacing-lg;
+  background: $background-light;
+  border-radius: $border-radius-sm;
+}
+
+.projectTotal {
+  margin-top: $spacing-lg;
+  padding-top: $spacing-xl;
+  border-top: 3px solid $secondary-color;
+  background-color: #f8f9fa;
+  padding: $spacing-xl;
+  border-radius: $border-radius-md;
+
+  h5 {
+    margin: 0 0 $spacing-md 0;
+    font-size: $font-size-lg;
+    font-weight: 700;
+    color: $secondary-color;
+  }
+}
+
+.loading {
+  text-align: center;
+  padding: $spacing-xl;
+  color: $text-secondary;
+}
+

@@ -1,4 +1,4 @@
-// src/pages/ArchitectureProjects/SurfaceEditor.tsx
+// src/pages/ArchitectureProjects/FloorEditor.tsx
 
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -6,22 +6,23 @@ import { useProjectNodes } from '../../hooks/useProjectNodes';
 import { ProjectNode } from '../../types/project_nodes.types';
 import styles from './SurfaceEditor.module.scss';
 import {
-  Edit as EditIcon,
   ArrowBack as ArrowBackIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
 } from '@mui/icons-material';
-import PolygonsTab from '../../components/SurfaceEditor/PolygonsTab';
-import SummaryTab from '../../components/SurfaceEditor/SummaryTab';
+import LevelsTab from '../../components/SurfaceEditor/LevelsTab';
+import FloorsTab from '../../components/FloorEditor/FloorsTab';
+import { ProjectProvider } from '../../context/ProjectContext';
+import ProjectVersionSelector from '../../components/ProjectVersionSelector/ProjectVersionSelector';
 
-type SurfaceTabType = 'poligonos' | 'copropiedad' | 'resumen';
+type FloorTabType = 'pisos' | 'niveles';
 
-const SurfaceEditor: React.FC = () => {
+const FloorEditor: React.FC = () => {
   const { projectId, architectureId } = useParams<{ projectId: string; architectureId: string }>();
   const navigate = useNavigate();
 
-  const [isSurfacesExpanded, setIsSurfacesExpanded] = useState(true);
-  const [activeTab, setActiveTab] = useState<SurfaceTabType>('poligonos');
+  const [isFloorsExpanded, setIsFloorsExpanded] = useState(true);
+  const [activeTab, setActiveTab] = useState<FloorTabType>('pisos');
 
   const { projects: architectureProjects } = useProjectNodes<ProjectNode>({ type: 'architecture_subproject' });
   const architectureProject = architectureProjects?.find(p => p.id === Number(architectureId));
@@ -37,11 +38,13 @@ const SurfaceEditor: React.FC = () => {
   }
 
   return (
-    <div className={styles.container}>
-      <header className={styles.header}>
-        <div className={styles.headerContent}>
-          <h1>{architectureProject.name} - Superficies</h1>
-        </div>
+    <ProjectProvider projectNodeId={Number(architectureId)}>
+      <div className={styles.container}>
+        <header className={styles.header}>
+          <div className={styles.headerContent}>
+            <h1>{architectureProject.name} - Pisos</h1>
+            <ProjectVersionSelector />
+          </div>
         <div className={styles.headerActions}>
           <button 
             className={styles.backButton}
@@ -54,62 +57,48 @@ const SurfaceEditor: React.FC = () => {
 
       <div className={styles.content}>
         <main className={styles.mainInfo}>
-          {/* Sección colapsable: Superficies */}
+          {/* Sección colapsable: Pisos */}
           <section className={styles.collapsibleSection}>
             <div 
               className={styles.collapsibleHeader}
-              onClick={() => setIsSurfacesExpanded(!isSurfacesExpanded)}
+              onClick={() => setIsFloorsExpanded(!isFloorsExpanded)}
             >
-              <h2>Superficies</h2>
+              <h2>Pisos Consolidados</h2>
               <p><strong>Descripción:</strong> {architectureProject.description}</p>
               <button className={styles.toggleButton}>
-                {isSurfacesExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                {isFloorsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
               </button>
             </div>
 
-            {isSurfacesExpanded && (
+            {isFloorsExpanded && (
               <div className={styles.collapsibleContent}>
                 {/* Pestañas de navegación */}
                 <div className={styles.tabsContainer}>
                   <div className={styles.tabs}>
                     <button
-                      className={`${styles.tab} ${activeTab === 'poligonos' ? styles.active : ''}`}
-                      onClick={() => setActiveTab('poligonos')}
+                      className={`${styles.tab} ${activeTab === 'pisos' ? styles.active : ''}`}
+                      onClick={() => setActiveTab('pisos')}
                     >
-                      Polígonos de Superficies
+                      Pisos
                     </button>
                     <button
-                      className={`${styles.tab} ${activeTab === 'copropiedad' ? styles.active : ''}`}
-                      onClick={() => setActiveTab('copropiedad')}
+                      className={`${styles.tab} ${activeTab === 'niveles' ? styles.active : ''}`}
+                      onClick={() => setActiveTab('niveles')}
                     >
-                      Unidades de Copropiedad
-                    </button>
-                    <button
-                      className={`${styles.tab} ${activeTab === 'resumen' ? styles.active : ''}`}
-                      onClick={() => setActiveTab('resumen')}
-                    >
-                      Resumen
+                      Niveles
                     </button>
                   </div>
 
                   <div className={styles.tabContent}>
-                    {activeTab === 'poligonos' && (
+                    {activeTab === 'pisos' && (
                       <div className={styles.tabPane}>
-                        <PolygonsTab projectNodeId={Number(architectureId)} />
+                        <FloorsTab projectNodeId={Number(architectureId)} />
                       </div>
                     )}
 
-                    {activeTab === 'copropiedad' && (
+                    {activeTab === 'niveles' && (
                       <div className={styles.tabPane}>
-                        <h3>Unidades de Copropiedad (Superficie Útil)</h3>
-                        <p>Aquí podrás gestionar las unidades de copropiedad y sus superficies útiles.</p>
-                        {/* TODO: Implementar componente de gestión de copropiedad */}
-                      </div>
-                    )}
-
-                    {activeTab === 'resumen' && (
-                      <div className={styles.tabPane}>
-                        <SummaryTab projectNodeId={Number(architectureId)} />
+                        <LevelsTab projectNodeId={Number(architectureId)} />
                       </div>
                     )}
                   </div>
@@ -120,8 +109,9 @@ const SurfaceEditor: React.FC = () => {
         </main>
       </div>
     </div>
+    </ProjectProvider>
   );
 };
 
-export default SurfaceEditor;
+export default FloorEditor;
 

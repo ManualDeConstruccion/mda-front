@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { HelpOutline } from '@mui/icons-material';
-import { useFieldHelpText } from '../../../hooks/useFieldHelpText';
+import { useFieldHelpText, FieldHelpTextData } from '../../../hooks/useFieldHelpText';
 import styles from './HelpTooltip.module.scss';
 
 interface HelpMedia {
@@ -19,6 +19,9 @@ interface HelpTooltipProps {
   defaultBriefText?: string;
   defaultExtendedText?: string;
   defaultMedia?: HelpMedia;
+  // Opcional: datos precargados desde batch (evita llamada individual)
+  // Puede ser FieldHelpTextData si existe, {} si no existe en BD, o undefined si aún carga
+  helpTextData?: FieldHelpTextData | {};
 }
 
 const HelpTooltip: React.FC<HelpTooltipProps> = ({
@@ -28,13 +31,51 @@ const HelpTooltip: React.FC<HelpTooltipProps> = ({
   defaultBriefText = '',
   defaultExtendedText,
   defaultMedia,
+  helpTextData,
 }) => {
-  const { data: helpText } = useFieldHelpText(modelName, fieldName);
+  // PRIORIDAD: 1) Datos de BD (desde batch o query individual), 2) Valores por defecto
   
-  // Usar datos de BD si existen, sino usar valores por defecto
-  const briefText = helpText?.brief_text || defaultBriefText;
-  const extendedText = helpText?.extended_text || defaultExtendedText;
-  const media = helpText?.media || defaultMedia;
+  // Si se proporcionan datos precargados (batch), usarlos directamente
+  // Si no, cargar individualmente (fallback para compatibilidad)
+  const shouldUseIndividualQuery = helpTextData === undefined;
+  
+  const { data: helpTextFromQuery, isLoading: isLoadingQuery } = useFieldHelpText(
+    modelName, 
+    fieldName,
+    { enabled: shouldUseIndividualQuery }
+  );
+  
+  // Determinar qué datos usar:
+  // 1. Si hay datos precargados (batch), usarlos
+  // 2. Si no hay datos precargados, usar datos de query individual
+  const helpText = helpTextData !== undefined ? helpTextData : helpTextFromQuery;
+  
+  // Verificar si helpText es un FieldHelpTextData válido
+  // Un objeto vacío {} significa que se consultó pero no existe en BD
+  // Un objeto con 'brief_text' significa que existe en BD
+  const hasBriefText = helpText && 
+                       typeof helpText === 'object' && 
+                       'brief_text' in helpText &&
+                       typeof (helpText as any).brief_text === 'string' &&
+                       (helpText as any).brief_text.trim().length > 0;
+  
+  // Verificar si es un objeto vacío (se consultó pero no existe)
+  const isEmptyObject = helpText && 
+                        typeof helpText === 'object' && 
+                        Object.keys(helpText).length === 0;
+  
+  // PRIORIDAD: 1) Datos de BD si existen y tienen brief_text, 2) Valores por defecto
+  // Si es un objeto vacío {}, significa que se consultó pero no existe, usar valores por defecto
+  // Si tiene brief_text, usar datos de BD
+  const briefText = hasBriefText 
+    ? (helpText as FieldHelpTextData).brief_text 
+    : defaultBriefText;
+  const extendedText = hasBriefText 
+    ? (helpText as FieldHelpTextData).extended_text 
+    : defaultExtendedText;
+  const media = hasBriefText 
+    ? (helpText as FieldHelpTextData).media 
+    : defaultMedia;
   
   // Si no hay briefText ni defaultBriefText, no mostrar tooltip
   if (!briefText) {
@@ -150,21 +191,21 @@ const HelpTooltip: React.FC<HelpTooltipProps> = ({
                 )}
                 {media?.images && media.images.length > 0 && (
                   <div className={styles.mediaSection}>
-                    {media.images.map((img, idx) => (
+                    {media.images.map((img: string, idx: number) => (
                       <img key={idx} src={img} alt={`Ayuda ${idx + 1}`} className={styles.mediaImage} />
                     ))}
                   </div>
                 )}
                 {media?.videos && media.videos.length > 0 && (
                   <div className={styles.mediaSection}>
-                    {media.videos.map((video, idx) => (
+                    {media.videos.map((video: string, idx: number) => (
                       <video key={idx} src={video} controls className={styles.mediaVideo} />
                     ))}
                   </div>
                 )}
                 {media?.animations && media.animations.length > 0 && (
                   <div className={styles.mediaSection}>
-                    {media.animations.map((anim, idx) => (
+                    {media.animations.map((anim: string, idx: number) => (
                       <img key={idx} src={anim} alt={`Animación ${idx + 1}`} className={styles.mediaAnimation} />
                     ))}
                   </div>
