@@ -15,9 +15,9 @@ const FloorsSummaryTab: React.FC<FloorsSummaryTabProps> = ({ projectNodeId }) =>
 
   const [surfaceTerreno, setSurfaceTerreno] = useState<number>(300);
   const [permittedValues, setPermittedValues] = useState({
-    ocupacionPisosSuperiores: 0,
-    ocupacionSuelo: 0,
-    constructibilidad: 0,
+    ocupacionPisosSuperiores: 4,
+    ocupacionSuelo: 0.6,
+    constructibilidad: 6,
   });
 
   const formatNumber = (num: number): string => {
@@ -185,7 +185,7 @@ const FloorsSummaryTab: React.FC<FloorsSummaryTabProps> = ({ projectNodeId }) =>
             type="number"
             min="0"
             step="0.01"
-            value={surfaceTerreno}
+            value={surfaceTerreno.toFixed(2)}
             onChange={(e) => {
               const value = parseFloat(e.target.value) || 0;
               setSurfaceTerreno(value);
@@ -196,23 +196,32 @@ const FloorsSummaryTab: React.FC<FloorsSummaryTabProps> = ({ projectNodeId }) =>
       </div>
 
       {/* Cuadro Comparativo */}
-      <div className={styles.section}>
-        <h4 className={styles.sectionTitle}>
+      <div className={styles.comparativeSection}>
+        <h4 className={styles.comparativeTitle}>
           Cuadro Comparativo
         </h4>
-        <table className={styles.table}>
+        <table className={styles.comparativeTable}>
           <thead>
             <tr>
               <th>Parámetro</th>
               <th>Proyecto</th>
-              <th>Permitido</th>
+              <th style={{ textAlign: 'center' }}>Permitido</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td>COEFICIENTE DE OCUPACIÓN PISOS SUPERIORES (sobre 1er piso)</td>
-              <td className={styles.numberCell}>{formatNumber(projectCoefficients.ocupacionPisosSuperiores)}</td>
-              <td>
+              <td className={`${styles.numberCell} ${styles.projectValueCell}`}>
+                <span className={styles.projectValue}>
+                  {formatNumber(projectCoefficients.ocupacionPisosSuperiores)}
+                </span>
+                {projectCoefficients.ocupacionPisosSuperiores <= permittedValues.ocupacionPisosSuperiores ? (
+                  <span style={{ color: '#4caf50', marginLeft: '8px', fontSize: '18px' }}>✓</span>
+                ) : (
+                  <span style={{ color: '#f44336', marginLeft: '8px', fontSize: '18px' }}>✗</span>
+                )}
+              </td>
+              <td style={{ textAlign: 'center' }}>
                 <input
                   type="number"
                   min="0"
@@ -225,15 +234,23 @@ const FloorsSummaryTab: React.FC<FloorsSummaryTabProps> = ({ projectNodeId }) =>
                       ocupacionPisosSuperiores: value,
                     });
                   }}
-                  className={styles.formInput}
-                  style={{ width: '100%', textAlign: 'right', padding: '4px 8px', border: '1px solid #ddd', borderRadius: '4px' }}
+                  className={styles.permittedInput}
                 />
               </td>
             </tr>
             <tr>
               <td>COEFICIENTE DE OCUPACIÓN DE SUELO (1er piso)</td>
-              <td className={styles.numberCell}>{formatNumber(projectCoefficients.ocupacionSuelo)}</td>
-              <td>
+              <td className={`${styles.numberCell} ${styles.projectValueCell}`}>
+                <span className={styles.projectValue}>
+                  {formatNumber(projectCoefficients.ocupacionSuelo)}
+                </span>
+                {projectCoefficients.ocupacionSuelo <= permittedValues.ocupacionSuelo ? (
+                  <span style={{ color: '#4caf50', marginLeft: '8px', fontSize: '18px' }}>✓</span>
+                ) : (
+                  <span style={{ color: '#f44336', marginLeft: '8px', fontSize: '18px' }}>✗</span>
+                )}
+              </td>
+              <td style={{ textAlign: 'center' }}>
                 <input
                   type="number"
                   min="0"
@@ -246,15 +263,23 @@ const FloorsSummaryTab: React.FC<FloorsSummaryTabProps> = ({ projectNodeId }) =>
                       ocupacionSuelo: value,
                     });
                   }}
-                  className={styles.formInput}
-                  style={{ width: '100%', textAlign: 'right', padding: '4px 8px', border: '1px solid #ddd', borderRadius: '4px' }}
+                  className={styles.permittedInput}
                 />
               </td>
             </tr>
             <tr>
               <td>COEFICIENTE DE CONSTRUCTIBILIDAD</td>
-              <td className={styles.numberCell}>{formatNumber(projectCoefficients.constructibilidad)}</td>
-              <td>
+              <td className={`${styles.numberCell} ${styles.projectValueCell}`}>
+                <span className={styles.projectValue}>
+                  {formatNumber(projectCoefficients.constructibilidad)}
+                </span>
+                {projectCoefficients.constructibilidad <= permittedValues.constructibilidad ? (
+                  <span style={{ color: '#4caf50', marginLeft: '8px', fontSize: '18px' }}>✓</span>
+                ) : (
+                  <span style={{ color: '#f44336', marginLeft: '8px', fontSize: '18px' }}>✗</span>
+                )}
+              </td>
+              <td style={{ textAlign: 'center' }}>
                 <input
                   type="number"
                   min="0"
@@ -267,8 +292,7 @@ const FloorsSummaryTab: React.FC<FloorsSummaryTabProps> = ({ projectNodeId }) =>
                       constructibilidad: value,
                     });
                   }}
-                  className={styles.formInput}
-                  style={{ width: '100%', textAlign: 'right', padding: '4px 8px', border: '1px solid #ddd', borderRadius: '4px' }}
+                  className={styles.permittedInput}
                 />
               </td>
             </tr>
