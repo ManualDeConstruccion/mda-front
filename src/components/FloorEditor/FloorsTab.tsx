@@ -283,7 +283,7 @@ const FloorsTab: React.FC<FloorsTabProps> = ({ projectNodeId }) => {
         <div className={styles.floorTypeHeader}>
           <h5>
             S. EDIFICADA SUBTERRÁNEO (S)
-            <span className={styles.subtitle}>S. Edificada por nivel o piso</span>
+            <span className={styles.subtitle}>S. Edificada por nivel</span>
           </h5>
           <div className={styles.floorTypeActions}>
             <button
@@ -332,7 +332,7 @@ const FloorsTab: React.FC<FloorsTabProps> = ({ projectNodeId }) => {
         <div className={styles.floorTypeHeader}>
           <h5>
             S. EDIFICADA SOBRE TERRENO
-            <span className={styles.subtitle}>S. Edificada por nivel o piso</span>
+            <span className={styles.subtitle}>S. Edificada por nivel</span>
           </h5>
           <div className={styles.floorTypeActions}>
             <button

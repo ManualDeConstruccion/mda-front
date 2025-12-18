@@ -867,7 +867,7 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
                 <div className={styles.levelTypeHeader}>
                   <h5>
                     S. EDIFICADA SUBTERRÁNEO (S)
-                    <span className={styles.subtitle}>S. Edificada por nivel o piso</span>
+                    <span className={styles.subtitle}>S. Edificada por nivel</span>
                   </h5>
                   <div className={styles.levelTypeActions}>
                     <button
@@ -893,7 +893,7 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
                   <table className={styles.table}>
                     <thead>
                       <tr>
-                        <th>Nivel o Piso</th>
+                        <th>Nivel</th>
                         <th>ÚTIL (m²)</th>
                         <th>COMÚN (m²)</th>
                         <th>TOTAL (m²)</th>
@@ -919,7 +919,7 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
                 <div className={styles.levelTypeHeader}>
                   <h5>
                     S. EDIFICADA SOBRE TERRENO
-                    <span className={styles.subtitle}>S. Edificada por nivel o piso</span>
+                    <span className={styles.subtitle}>S. Edificada por nivel</span>
                   </h5>
                   <div className={styles.levelTypeActions}>
                     <button
@@ -945,7 +945,7 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
                   <table className={styles.table}>
                     <thead>
                       <tr>
-                        <th>Nivel o Piso</th>
+                        <th>Nivel</th>
                         <th>ÚTIL (m²)</th>
                         <th>COMÚN (m²)</th>
                         <th>TOTAL (m²)</th>

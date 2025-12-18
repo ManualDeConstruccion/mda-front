@@ -19,6 +19,26 @@
   }
 }
 
+.section {
+  margin-bottom: $spacing-xl;
+}
+
+.sectionTitle {
+  font-size: $font-size-lg;
+  font-weight: 600;
+  color: $text-primary;
+  margin-bottom: $spacing-sm;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.sectionSubtitle {
+  font-size: $font-size-sm;
+  font-weight: 400;
+  color: $text-secondary;
+}
+
 .addFloorButton,
 .addMultipleButton {
   display: flex !important;

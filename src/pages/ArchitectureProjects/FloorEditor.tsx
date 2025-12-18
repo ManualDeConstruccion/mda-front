@@ -12,17 +12,19 @@ import {
 } from '@mui/icons-material';
 import LevelsTab from '../../components/SurfaceEditor/LevelsTab';
 import FloorsTab from '../../components/FloorEditor/FloorsTab';
+import FloorsSummaryTab from '../../components/FloorEditor/FloorsSummaryTab';
+import PolygonsTab from '../../components/SurfaceEditor/PolygonsTab';
 import { ProjectProvider } from '../../context/ProjectContext';
 import ProjectVersionSelector from '../../components/ProjectVersionSelector/ProjectVersionSelector';
 
-type FloorTabType = 'pisos' | 'niveles';
+type FloorTabType = 'resumen' | 'pisos' | 'niveles' | 'poligonos';
 
 const FloorEditor: React.FC = () => {
   const { projectId, architectureId } = useParams<{ projectId: string; architectureId: string }>();
   const navigate = useNavigate();
 
   const [isFloorsExpanded, setIsFloorsExpanded] = useState(true);
-  const [activeTab, setActiveTab] = useState<FloorTabType>('pisos');
+  const [activeTab, setActiveTab] = useState<FloorTabType>('resumen');
 
   const { projects: architectureProjects } = useProjectNodes<ProjectNode>({ type: 'architecture_subproject' });
   const architectureProject = architectureProjects?.find(p => p.id === Number(architectureId));
@@ -76,6 +78,12 @@ const FloorEditor: React.FC = () => {
                 <div className={styles.tabsContainer}>
                   <div className={styles.tabs}>
                     <button
+                      className={`${styles.tab} ${activeTab === 'resumen' ? styles.active : ''}`}
+                      onClick={() => setActiveTab('resumen')}
+                    >
+                      Resumen
+                    </button>
+                    <button
                       className={`${styles.tab} ${activeTab === 'pisos' ? styles.active : ''}`}
                       onClick={() => setActiveTab('pisos')}
                     >
@@ -87,9 +95,21 @@ const FloorEditor: React.FC = () => {
                     >
                       Niveles
                     </button>
+                    <button
+                      className={`${styles.tab} ${activeTab === 'poligonos' ? styles.active : ''}`}
+                      onClick={() => setActiveTab('poligonos')}
+                    >
+                      Polígonos de Superficies
+                    </button>
                   </div>
 
                   <div className={styles.tabContent}>
+                    {activeTab === 'resumen' && (
+                      <div className={styles.tabPane}>
+                        <FloorsSummaryTab projectNodeId={Number(architectureId)} />
+                      </div>
+                    )}
+
                     {activeTab === 'pisos' && (
                       <div className={styles.tabPane}>
                         <FloorsTab projectNodeId={Number(architectureId)} />
@@ -99,6 +119,12 @@ const FloorEditor: React.FC = () => {
                     {activeTab === 'niveles' && (
                       <div className={styles.tabPane}>
                         <LevelsTab projectNodeId={Number(architectureId)} />
+                      </div>
+                    )}
+
+                    {activeTab === 'poligonos' && (
+                      <div className={styles.tabPane}>
+                        <PolygonsTab projectNodeId={Number(architectureId)} />
                       </div>
                     )}
                   </div>

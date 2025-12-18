@@ -45,10 +45,13 @@ const SortableNodeRow: React.FC<SortableNodeRowProps> = ({
       ref={setNodeRef}
       style={style}
       {...attributes}
-      {...listeners}
       className={`${isDragging ? styles.dragging : ''} ${isOver ? styles.over : ''}`}
     >
-      <td className={`${styles.tableCellIndent} ${indentClass || ''}`}>
+      <td 
+        className={`${styles.tableCellIndent} ${indentClass || ''}`}
+        {...listeners}
+        style={{ cursor: 'grab' }}
+      >
         {node.file_url ? (
           <a href={node.file_url} target="_blank" rel="noopener noreferrer" className={styles.textDocument}>
             {node.numbered_name || node.name}
@@ -70,9 +73,8 @@ const SortableNodeRow: React.FC<SortableNodeRowProps> = ({
           size="small" 
           onClick={(e) => {
             e.stopPropagation();
-            if (!isDragging) {
-              onEdit(node);
-            }
+            e.preventDefault();
+            onEdit(node);
           }}
         >
           <EditIcon />
@@ -82,9 +84,8 @@ const SortableNodeRow: React.FC<SortableNodeRowProps> = ({
           color="error"
           onClick={(e) => {
             e.stopPropagation();
-            if (!isDragging) {
-              onDelete(node);
-            }
+            e.preventDefault();
+            onDelete(node);
           }}
           className={styles.tableCellRightButton}
         >

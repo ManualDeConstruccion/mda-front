@@ -195,8 +195,39 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
         navigate('/form/select');
         return;
       case 'document':
-        // Lógica para crear documento
-        break;
+        // Crear documento - abrir modal de edición con nodo temporal
+        const tempDocumentNode: ProjectNode = {
+          id: -1,
+          parent: selectedListId,
+          name: '',
+          description: '',
+          is_active: true,
+          type: 'document',
+          type_name: '',
+          children: [],
+          file_type: null,
+          properties: [],
+          architecture_project: null,
+          file: null,
+          cover_image: null,
+          external_url: null,
+          external_file_name: null,
+          external_file_id: null,
+          metadata: {},
+          start_date: null,
+          end_date: null,
+          status: 'en_estudio',
+          progress_percent: 0,
+          order: 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          file_url: null,
+          cover_image_url: null,
+          object_id: null
+        };
+        setEditingNode(tempDocumentNode);
+        handleMenuClose();
+        return;
       case 'certificate':
         // Lógica para crear certificado
         break;
@@ -422,7 +453,7 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
       {/* --- Modales de edición según tipo de nodo --- */}
       {/* Modal para editar nodos tipo 'document' */}
       <ModalDocumentNode
-        open={!!editingNode && editingNode.type === 'document'}
+        open={editingNode?.type === 'document'}
         onClose={() => setEditingNode(null)}
         node={editingNode}
         stageId={stageId}

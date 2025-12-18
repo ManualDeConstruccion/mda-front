@@ -494,7 +494,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                 <div className={styles.levelTypeSection}>
                   <h5>
                     S. EDIFICADA SUBTERRÁNEO (S)
-                    <span className={styles.subtitle}>S. Edificada por nivel o piso</span>
+                    <span className={styles.subtitle}>S. Edificada por nivel</span>
                   </h5>
                   {buildingLevels.below.map(renderLevelSection)}
                 </div>
@@ -505,7 +505,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                 <div className={styles.levelTypeSection}>
                   <h5>
                     S. EDIFICADA SOBRE TERRENO
-                    <span className={styles.subtitle}>S. Edificada por nivel o piso</span>
+                    <span className={styles.subtitle}>S. Edificada por nivel</span>
                   </h5>
                   {buildingLevels.above.map(renderLevelSection)}
                 </div>
