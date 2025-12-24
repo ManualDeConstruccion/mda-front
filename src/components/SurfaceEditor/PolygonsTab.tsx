@@ -41,6 +41,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
     { model: 'SurfacePolygon', field: 'length' },
     { model: 'SurfacePolygon', field: 'triangulo_rectangulo' },
     { model: 'SurfacePolygon', field: 'count_as_half' },
+    { model: 'SurfacePolygon', field: 'is_util' },
   ];
   const { getHelpText } = useModalHelpTexts(modalHelpTextFields);
 
@@ -53,6 +54,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
   const [newPolygonLength, setNewPolygonLength] = useState('');
   const [newPolygonTrianguloRectangulo, setNewPolygonTrianguloRectangulo] = useState(false);
   const [newPolygonCountAsHalf, setNewPolygonCountAsHalf] = useState(false);
+  const [newPolygonIsUtil, setNewPolygonIsUtil] = useState(true);
   const [newPolygonManualTotal, setNewPolygonManualTotal] = useState('');
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
@@ -228,6 +230,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
         length: newPolygonLength ? parseFloat(newPolygonLength) : null,
         triangulo_rectangulo: newPolygonTrianguloRectangulo,
         count_as_half: newPolygonCountAsHalf,
+        is_util: newPolygonIsUtil,
         manual_total: newPolygonManualTotal ? parseFloat(newPolygonManualTotal) : null,
       });
       setNewPolygonName('');
@@ -235,6 +238,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
       setNewPolygonLength('');
       setNewPolygonTrianguloRectangulo(false);
       setNewPolygonCountAsHalf(false);
+      setNewPolygonIsUtil(true);
       setNewPolygonManualTotal('');
       setValidationErrors({});
       setShowAddPolygonModal(null);
@@ -268,6 +272,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
     setNewPolygonLength(polygon.length?.toString() || '');
     setNewPolygonTrianguloRectangulo(polygon.triangulo_rectangulo || false);
     setNewPolygonCountAsHalf(polygon.count_as_half || false);
+    setNewPolygonIsUtil(polygon.is_util !== undefined ? polygon.is_util : true);
     setNewPolygonManualTotal(polygon.manual_total?.toString() || '');
     setValidationErrors({}); // Limpiar errores al editar
   };
@@ -306,6 +311,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
           length: newPolygonLength ? parseFloat(newPolygonLength) : null,
           triangulo_rectangulo: newPolygonTrianguloRectangulo,
           count_as_half: newPolygonCountAsHalf,
+          is_util: newPolygonIsUtil,
           manual_total: newPolygonManualTotal ? parseFloat(newPolygonManualTotal) : null,
         },
       });
@@ -314,6 +320,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
       setNewPolygonLength('');
       setNewPolygonTrianguloRectangulo(false);
       setNewPolygonCountAsHalf(false);
+      setNewPolygonIsUtil(true);
       setNewPolygonManualTotal('');
       setValidationErrors({});
       setEditingPolygon(null);
@@ -361,6 +368,9 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
             }
           }}
         />
+      </td>
+      <td className={styles.centerCell}>
+        <span>{polygon.is_util !== false ? 'Útil' : 'Común'}</span>
       </td>
       <td className={styles.numberCell}>{formatNumber(polygon.manual_total)}</td>
       <td className={styles.numberCell}>{formatNumber(polygon.total)}</td>
@@ -439,6 +449,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                       <th>Ancho (m)</th>
                       <th>Largo (m)</th>
                       <th>Media Superficie</th>
+                      <th>Tipo</th>
                       <th>Total Manual (m²)</th>
                       <th>Total (m²)</th>
                       <th></th>
@@ -447,7 +458,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                   <tbody>
                     {levelPolygons.map(renderPolygonRow)}
                     <tr className={styles.totalRow}>
-                      <td className={styles.totalLabel} colSpan={5}>
+                      <td className={styles.totalLabel} colSpan={6}>
                         <strong>TOTAL DEL NIVEL {level.building_name}</strong>
                       </td>
                       <td className={`${styles.numberCell} ${styles.totalCell}`}>
@@ -701,6 +712,26 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
               </div>
               <div className={styles.formGroup}>
                 <label>
+                  <input
+                    type="checkbox"
+                    checked={newPolygonIsUtil}
+                    onChange={(e) => {
+                      setNewPolygonIsUtil(e.target.checked);
+                    }}
+                  />
+                  Superficie Útil
+                  <HelpTooltip
+                    modelName="SurfacePolygon"
+                    fieldName="is_util"
+                    helpTextData={getHelpText('SurfacePolygon', 'is_util')}
+                    defaultBriefText="Superficie útil"
+                    defaultExtendedText="Si está marcado, la superficie se considera útil. Si no está marcado, se considera común."
+                    position="right"
+                  />
+                </label>
+              </div>
+              <div className={styles.formGroup}>
+                <label>
                   <strong>Total Calculado (m²)</strong>
                 </label>
                 <div className={styles.totalDisplay}>
@@ -722,6 +753,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                   setNewPolygonLength('');
                   setNewPolygonTrianguloRectangulo(false);
                   setNewPolygonCountAsHalf(false);
+                  setNewPolygonIsUtil(true);
                   setNewPolygonManualTotal('');
                   setValidationErrors({});
                 }}
@@ -926,6 +958,26 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
               </div>
               <div className={styles.formGroup}>
                 <label>
+                  <input
+                    type="checkbox"
+                    checked={newPolygonIsUtil}
+                    onChange={(e) => {
+                      setNewPolygonIsUtil(e.target.checked);
+                    }}
+                  />
+                  Superficie Útil
+                  <HelpTooltip
+                    modelName="SurfacePolygon"
+                    fieldName="is_util"
+                    helpTextData={getHelpText('SurfacePolygon', 'is_util')}
+                    defaultBriefText="Superficie útil"
+                    defaultExtendedText="Si está marcado, la superficie se considera útil. Si no está marcado, se considera común."
+                    position="right"
+                  />
+                </label>
+              </div>
+              <div className={styles.formGroup}>
+                <label>
                   <strong>Total Calculado (m²)</strong>
                 </label>
                 <div className={styles.totalDisplay}>
@@ -947,6 +999,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                   setNewPolygonLength('');
                   setNewPolygonTrianguloRectangulo(false);
                   setNewPolygonCountAsHalf(false);
+                  setNewPolygonIsUtil(true);
                   setNewPolygonManualTotal('');
                   setValidationErrors({});
                 }}
