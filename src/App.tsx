@@ -33,6 +33,7 @@ import Step3FormPage from './pages/Forms/Step3FormPage';
 import FormReportView from './pages/Forms/FormReportView';
 import ReportConfigurationForm from './pages/ReportConfiguration/ReportConfigurationForm';
 import ReportConfigurationPage from './pages/ReportConfiguration/ReportConfigurationPage';
+import PermisosPage from './pages/Admin/PermisosPage';
 import FormulariosPage from './pages/Admin/FormulariosPage';
 
 /** ────────────────────────────────────────────────────────────────────────────
@@ -138,6 +139,7 @@ const App: React.FC = () => {
                     <Route path="/herramientas/configuracion-informes/:nodeId" element={<ReportConfigurationForm />} />
 
                     {/* Rutas de administración (solo para is_staff) */}
+                    <Route path="/admin/permisos" element={<PermisosPage />} />
                     <Route path="/admin/formularios" element={<FormulariosPage />} />
                   </Route>
 

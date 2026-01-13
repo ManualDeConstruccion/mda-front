@@ -14,6 +14,7 @@ import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
 import SettingsIcon from '@mui/icons-material/Settings';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import DescriptionIcon from '@mui/icons-material/Description';
+import GavelIcon from '@mui/icons-material/Gavel';
 import { useAuth } from '../../context/AuthContext';
 import styles from './Sidebar.module.scss';
 import classNames from 'classnames';
@@ -81,6 +82,7 @@ const getMenuStructure = (isStaff: boolean): (MenuItem | MenuGroup)[] => {
       highlighted: true, // ⚡ Resaltado
       staffOnly: true,
       items: [
+        { path: '/admin/permisos', icon: <GavelIcon />, text: 'Permisos' },
         { path: '/admin/formularios', icon: <DescriptionIcon />, text: 'Formularios' }
       ]
     });
