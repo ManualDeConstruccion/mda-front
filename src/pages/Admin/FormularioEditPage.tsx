@@ -42,7 +42,7 @@ interface FormParameterCategory {
 interface FormParameter {
   id: number;
   category: number;
-  parameter_definition: {
+  parameter_definition: number | {
     id: number;
     code: string;
     name: string;
@@ -52,6 +52,8 @@ interface FormParameter {
   order: number;
   is_required: boolean;
   is_visible: boolean;
+  parameter_definition_name?: string;
+  parameter_definition_code?: string;
 }
 
 interface ArchitectureProjectType {
