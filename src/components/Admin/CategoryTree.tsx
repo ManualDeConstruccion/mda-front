@@ -11,6 +11,7 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
 import FolderIcon from '@mui/icons-material/Folder';
 import DescriptionIcon from '@mui/icons-material/Description';
 import styles from './CategoryTree.module.scss';
@@ -42,6 +43,8 @@ interface CategoryTreeProps {
   level?: number;
   onAddCategory: (parentId: number | null) => void;
   onAddProjectType: (categoryId: number) => void;
+  onEditCategory?: (category: Category) => void;
+  onEditProjectType?: (projectType: ArchitectureProjectType) => void;
 }
 
 const CategoryTree: React.FC<CategoryTreeProps> = ({
@@ -49,6 +52,8 @@ const CategoryTree: React.FC<CategoryTreeProps> = ({
   level = 0,
   onAddCategory,
   onAddProjectType,
+  onEditCategory,
+  onEditProjectType,
 }) => {
   const [isExpanded, setIsExpanded] = useState(level === 0); // Expandir raíz por defecto
   const hasChildren = category.children && category.children.length > 0;
@@ -137,6 +142,24 @@ const CategoryTree: React.FC<CategoryTreeProps> = ({
 
         {/* Botones de acción */}
         <Box sx={{ display: 'flex', gap: 0.5 }}>
+          {onEditCategory && (
+            <Tooltip title="Editar categoría">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEditCategory(category);
+                }}
+                sx={{
+                  '&:hover': {
+                    bgcolor: 'rgba(0, 0, 0, 0.04)',
+                  },
+                }}
+              >
+                <EditIcon />
+              </IconButton>
+            </Tooltip>
+          )}
           <Tooltip title="Agregar subcategoría">
             <IconButton
               size="small"
@@ -181,6 +204,8 @@ const CategoryTree: React.FC<CategoryTreeProps> = ({
                 level={level + 1}
                 onAddCategory={onAddCategory}
                 onAddProjectType={onAddProjectType}
+                onEditCategory={onEditCategory}
+                onEditProjectType={onEditProjectType}
               />
             ))}
 
@@ -221,6 +246,25 @@ const CategoryTree: React.FC<CategoryTreeProps> = ({
                     size="small"
                     variant="outlined"
                   />
+                  {onEditProjectType && (
+                    <Tooltip title="Editar tipo de proyecto">
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEditProjectType(projectType);
+                        }}
+                        sx={{
+                          ml: 1,
+                          '&:hover': {
+                            bgcolor: 'rgba(0, 0, 0, 0.04)',
+                          },
+                        }}
+                      >
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
                 </Box>
               ))}
             </Box>
