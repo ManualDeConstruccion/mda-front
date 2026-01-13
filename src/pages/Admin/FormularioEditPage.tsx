@@ -13,6 +13,9 @@ import {
   IconButton,
   Chip,
   Tooltip,
+  ToggleButton,
+  ToggleButtonGroup,
+  Paper,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -25,6 +28,10 @@ import { useAuth } from '../../context/AuthContext';
 import EditFormParameterCategoryModal from '../../components/Admin/EditFormParameterCategoryModal';
 import AddFormParameterModal from '../../components/Admin/AddFormParameterModal';
 import EditFormParameterModal from '../../components/Admin/EditFormParameterModal';
+import SectionTreeWithModes from '../../components/Admin/SectionTreeWithModes';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import EditNoteIcon from '@mui/icons-material/EditNote';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 
 interface FormParameterCategory {
   id: number;
@@ -296,11 +303,14 @@ const SectionTree: React.FC<SectionTreeProps> = ({
   );
 };
 
+type SectionTreeMode = 'view' | 'editable' | 'admin';
+
 const FormularioEditPage: React.FC = () => {
   const { projectTypeId } = useParams<{ projectTypeId: string }>();
   const navigate = useNavigate();
   const { accessToken } = useAuth();
   const [addSectionModalOpen, setAddSectionModalOpen] = useState(false);
+  const [mode, setMode] = useState<SectionTreeMode>('admin');
 
   // Función para obtener todas las secciones de forma plana
   const getAllSections = (sections: FormParameterCategory[]): FormParameterCategory[] => {
@@ -415,21 +425,57 @@ const FormularioEditPage: React.FC = () => {
           </Button>
         </Box>
 
-        {/* Secciones del formulario */}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setAddSectionModalOpen(true)}
-          >
-            Agregar Sección
-          </Button>
-        </Box>
+        {/* Selector de modo y acciones */}
+        <Paper sx={{ p: 2, mb: 3 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+            {/* Selector de modo */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Typography variant="body2" fontWeight="medium" color="text.secondary">
+                Modo de visualización:
+              </Typography>
+              <ToggleButtonGroup
+                value={mode}
+                exclusive
+                onChange={(_, newMode) => {
+                  if (newMode !== null) {
+                    setMode(newMode);
+                  }
+                }}
+                aria-label="modo de visualización"
+                size="small"
+              >
+                <ToggleButton value="view" aria-label="modo vista">
+                  <VisibilityIcon sx={{ mr: 1 }} fontSize="small" />
+                  Vista
+                </ToggleButton>
+                <ToggleButton value="editable" aria-label="modo editable">
+                  <EditNoteIcon sx={{ mr: 1 }} fontSize="small" />
+                  Editable
+                </ToggleButton>
+                <ToggleButton value="admin" aria-label="modo admin">
+                  <AdminPanelSettingsIcon sx={{ mr: 1 }} fontSize="small" />
+                  Admin
+                </ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
+
+            {/* Botón agregar sección (solo visible en modo admin) */}
+            {mode === 'admin' && (
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => setAddSectionModalOpen(true)}
+              >
+                Agregar Sección
+              </Button>
+            )}
+          </Box>
+        </Paper>
 
         {formStructure.sections && formStructure.sections.length > 0 ? (
           <Box>
             {formStructure.sections.map((section) => (
-              <SectionTree
+              <SectionTreeWithModes
                 key={section.id}
                 section={section}
                 level={0}
@@ -439,6 +485,7 @@ const FormularioEditPage: React.FC = () => {
                   // Invalidar query para refrescar
                   window.location.reload();
                 }}
+                mode={mode}
               />
             ))}
           </Box>
