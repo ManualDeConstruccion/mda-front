@@ -12,6 +12,9 @@ import AddIcon from '@mui/icons-material/Add';
 import ListIcon from '@mui/icons-material/List';
 import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
 import SettingsIcon from '@mui/icons-material/Settings';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import DescriptionIcon from '@mui/icons-material/Description';
+import { useAuth } from '../../context/AuthContext';
 import styles from './Sidebar.module.scss';
 import classNames from 'classnames';
 
@@ -25,46 +28,66 @@ interface MenuGroup {
   icon: JSX.Element;
   text: string;
   items: MenuItem[];
+  highlighted?: boolean; // ⚡ NUEVO: Para resaltar el ítem
+  staffOnly?: boolean; // ⚡ NUEVO: Solo visible para usuarios is_staff
 }
 
-const menuStructure: (MenuItem | MenuGroup)[] = [
-  {
-    path: '/',
-    icon: <DashboardIcon />,
-    text: 'Dashboard'
-  },
-  {
-    icon: <FolderIcon />,
-    text: 'Proyectos',
-    items: [
-      { path: '/proyectos/lista', icon: <ListIcon />, text: 'Mis Proyectos' },
-      { path: '/proyectos/crear', icon: <AddIcon />, text: 'Crear Proyecto Nuevo' }      
-    ]
-  },
-  {
-    icon: <AccountBalanceWalletIcon />,
-    text: 'Presupuestos',
-    items: [
-      { path: '/presupuestos/crear', icon: <AddIcon />, text: 'Crear Presupuesto' }
-    ]
-  },
-  {
-    icon: <BusinessIcon />,
-    text: 'Propiedades',
-    items: [
-      { path: '/propiedades/crear', icon: <AddIcon />, text: 'Añadir Propiedad' },
-      { path: '/propiedades/lista', icon: <ListIcon />, text: 'Lista Propiedades' }
-    ]
-  },
-  {
-    icon: <BuildIcon />,
-    text: 'Herramientas',
-    items: [
-      { path: '/herramientas/resistencia-fuego', icon: <LocalFireDepartmentIcon />, text: 'Resistencia al Fuego' },
-      { path: '/herramientas/configuracion-informes', icon: <SettingsIcon />, text: 'Configuración de Informes' }
-    ]
+// ⚡ Función para obtener estructura de menú según permisos
+const getMenuStructure = (isStaff: boolean): (MenuItem | MenuGroup)[] => {
+  const baseMenu: (MenuItem | MenuGroup)[] = [
+    {
+      path: '/',
+      icon: <DashboardIcon />,
+      text: 'Dashboard'
+    },
+    {
+      icon: <FolderIcon />,
+      text: 'Proyectos',
+      items: [
+        { path: '/proyectos/lista', icon: <ListIcon />, text: 'Mis Proyectos' },
+        { path: '/proyectos/crear', icon: <AddIcon />, text: 'Crear Proyecto Nuevo' }      
+      ]
+    },
+    {
+      icon: <AccountBalanceWalletIcon />,
+      text: 'Presupuestos',
+      items: [
+        { path: '/presupuestos/crear', icon: <AddIcon />, text: 'Crear Presupuesto' }
+      ]
+    },
+    {
+      icon: <BusinessIcon />,
+      text: 'Propiedades',
+      items: [
+        { path: '/propiedades/crear', icon: <AddIcon />, text: 'Añadir Propiedad' },
+        { path: '/propiedades/lista', icon: <ListIcon />, text: 'Lista Propiedades' }
+      ]
+    },
+    {
+      icon: <BuildIcon />,
+      text: 'Herramientas',
+      items: [
+        { path: '/herramientas/resistencia-fuego', icon: <LocalFireDepartmentIcon />, text: 'Resistencia al Fuego' },
+        { path: '/herramientas/configuracion-informes', icon: <SettingsIcon />, text: 'Configuración de Informes' }
+      ]
+    }
+  ];
+
+  // ⚡ Agregar menú de Administrar solo para staff
+  if (isStaff) {
+    baseMenu.push({
+      icon: <AdminPanelSettingsIcon />,
+      text: 'Administrar',
+      highlighted: true, // ⚡ Resaltado
+      staffOnly: true,
+      items: [
+        { path: '/admin/formularios', icon: <DescriptionIcon />, text: 'Formularios' }
+      ]
+    });
   }
-];
+
+  return baseMenu;
+};
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -74,7 +97,14 @@ interface SidebarProps {
 const Sidebar = forwardRef<HTMLDivElement, SidebarProps>((props, ref) => {
   const { isCollapsed, onToggle } = props;
   const location = useLocation();
+  const { user } = useAuth();
   const [openMenus, setOpenMenus] = React.useState<{ [key: string]: boolean }>({});
+  
+  // ⚡ Obtener estructura de menú según permisos
+  const menuStructure = React.useMemo(
+    () => getMenuStructure(user?.is_staff || false),
+    [user?.is_staff]
+  );
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -118,25 +148,33 @@ const Sidebar = forwardRef<HTMLDivElement, SidebarProps>((props, ref) => {
     </Link>
   );
 
-  const renderMenuGroup = (group: MenuGroup) => (
-    <div key={group.text}>
-      <ListItem
-        onClick={(e) => handleMenuClick(group.text, e)}
-        className={styles.menuItem}
-      >
-        <ListItemIcon 
-          className={styles.menuIcon}
-          onClick={handleIconClick}
+  const renderMenuGroup = (group: MenuGroup) => {
+    // ⚡ Filtrar grupos solo para staff si es necesario
+    if (group.staffOnly && !user?.is_staff) {
+      return null;
+    }
+
+    return (
+      <div key={group.text}>
+        <ListItem
+          onClick={(e) => handleMenuClick(group.text, e)}
+          className={classNames(styles.menuItem, {
+            [styles.highlighted]: group.highlighted // ⚡ Aplicar estilo resaltado
+          })}
         >
-          {group.icon}
-        </ListItemIcon>
-        {!isCollapsed && (
-          <>
-            <ListItemText primary={group.text} className={styles.menuText} />
-            {openMenus[group.text] ? <ExpandLess /> : <ExpandMore />}
-          </>
-        )}
-      </ListItem>
+          <ListItemIcon 
+            className={styles.menuIcon}
+            onClick={handleIconClick}
+          >
+            {group.icon}
+          </ListItemIcon>
+          {!isCollapsed && (
+            <>
+              <ListItemText primary={group.text} className={styles.menuText} />
+              {openMenus[group.text] ? <ExpandLess /> : <ExpandMore />}
+            </>
+          )}
+        </ListItem>
       {!isCollapsed && (
         <Collapse in={openMenus[group.text]} timeout="auto" unmountOnExit>
           <List component="div" disablePadding className={styles.submenuList}>
@@ -160,8 +198,9 @@ const Sidebar = forwardRef<HTMLDivElement, SidebarProps>((props, ref) => {
           </List>
         </Collapse>
       )}
-    </div>
-  );
+      </div>
+    );
+  };
 
   return (
     <div 

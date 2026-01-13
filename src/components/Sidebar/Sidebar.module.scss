@@ -63,6 +63,26 @@
       color: white;
     }
   }
+  
+  // ⚡ NUEVO: Estilo resaltado para ítems de administración
+  &.highlighted {
+    background-color: rgba($primary-color, 0.1);
+    border-left: 3px solid $primary-color;
+    font-weight: 600;
+    
+    .menuIcon {
+      color: $primary-color;
+    }
+    
+    .menuText span {
+      color: $primary-color;
+      font-weight: 600;
+    }
+    
+    &:hover {
+      background-color: rgba($primary-color, 0.15);
+    }
+  }
 }
 
 .submenuList {
