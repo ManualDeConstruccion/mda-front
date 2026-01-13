@@ -13,6 +13,7 @@ import {
   ExpandLess as ExpandLessIcon,
 } from '@mui/icons-material';
 import HelpTooltip from '../common/HelpTooltip/HelpTooltip';
+import { useModalHelpTexts } from '../../hooks/useModalHelpTexts';
 import { validatePolygonData } from '../../validation/polygonSchemas';
 import styles from './PolygonsTab.module.scss';
 
@@ -32,6 +33,18 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
     project_node: projectNodeId,
   });
 
+  // Cargar todos los textos de ayuda necesarios para los modales en una sola llamada
+  const modalHelpTextFields = [
+    { model: 'SurfacePolygon', field: 'name' },
+    { model: 'SurfacePolygon', field: 'manual_total' },
+    { model: 'SurfacePolygon', field: 'width' },
+    { model: 'SurfacePolygon', field: 'length' },
+    { model: 'SurfacePolygon', field: 'triangulo_rectangulo' },
+    { model: 'SurfacePolygon', field: 'count_as_half' },
+    { model: 'SurfacePolygon', field: 'is_util' },
+  ];
+  const { getHelpText } = useModalHelpTexts(modalHelpTextFields);
+
   // Estado para controlar qué niveles están expandidos (por defecto todos abiertos)
   const [expandedLevels, setExpandedLevels] = useState<Set<number>>(new Set());
   const [showAddPolygonModal, setShowAddPolygonModal] = useState<{ levelId: number } | null>(null);
@@ -41,6 +54,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
   const [newPolygonLength, setNewPolygonLength] = useState('');
   const [newPolygonTrianguloRectangulo, setNewPolygonTrianguloRectangulo] = useState(false);
   const [newPolygonCountAsHalf, setNewPolygonCountAsHalf] = useState(false);
+  const [newPolygonIsUtil, setNewPolygonIsUtil] = useState(true);
   const [newPolygonManualTotal, setNewPolygonManualTotal] = useState('');
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
@@ -216,6 +230,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
         length: newPolygonLength ? parseFloat(newPolygonLength) : null,
         triangulo_rectangulo: newPolygonTrianguloRectangulo,
         count_as_half: newPolygonCountAsHalf,
+        is_util: newPolygonIsUtil,
         manual_total: newPolygonManualTotal ? parseFloat(newPolygonManualTotal) : null,
       });
       setNewPolygonName('');
@@ -223,6 +238,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
       setNewPolygonLength('');
       setNewPolygonTrianguloRectangulo(false);
       setNewPolygonCountAsHalf(false);
+      setNewPolygonIsUtil(true);
       setNewPolygonManualTotal('');
       setValidationErrors({});
       setShowAddPolygonModal(null);
@@ -256,6 +272,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
     setNewPolygonLength(polygon.length?.toString() || '');
     setNewPolygonTrianguloRectangulo(polygon.triangulo_rectangulo || false);
     setNewPolygonCountAsHalf(polygon.count_as_half || false);
+    setNewPolygonIsUtil(polygon.is_util !== undefined ? polygon.is_util : true);
     setNewPolygonManualTotal(polygon.manual_total?.toString() || '');
     setValidationErrors({}); // Limpiar errores al editar
   };
@@ -294,6 +311,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
           length: newPolygonLength ? parseFloat(newPolygonLength) : null,
           triangulo_rectangulo: newPolygonTrianguloRectangulo,
           count_as_half: newPolygonCountAsHalf,
+          is_util: newPolygonIsUtil,
           manual_total: newPolygonManualTotal ? parseFloat(newPolygonManualTotal) : null,
         },
       });
@@ -302,6 +320,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
       setNewPolygonLength('');
       setNewPolygonTrianguloRectangulo(false);
       setNewPolygonCountAsHalf(false);
+      setNewPolygonIsUtil(true);
       setNewPolygonManualTotal('');
       setValidationErrors({});
       setEditingPolygon(null);
@@ -349,6 +368,9 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
             }
           }}
         />
+      </td>
+      <td className={styles.centerCell}>
+        <span>{polygon.is_util !== false ? 'Útil' : 'Común'}</span>
       </td>
       <td className={styles.numberCell}>{formatNumber(polygon.manual_total)}</td>
       <td className={styles.numberCell}>{formatNumber(polygon.total)}</td>
@@ -427,6 +449,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                       <th>Ancho (m)</th>
                       <th>Largo (m)</th>
                       <th>Media Superficie</th>
+                      <th>Tipo</th>
                       <th>Total Manual (m²)</th>
                       <th>Total (m²)</th>
                       <th></th>
@@ -435,7 +458,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                   <tbody>
                     {levelPolygons.map(renderPolygonRow)}
                     <tr className={styles.totalRow}>
-                      <td className={styles.totalLabel} colSpan={5}>
+                      <td className={styles.totalLabel} colSpan={6}>
                         <strong>TOTAL DEL NIVEL {level.building_name}</strong>
                       </td>
                       <td className={`${styles.numberCell} ${styles.totalCell}`}>
@@ -482,7 +505,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                 <div className={styles.levelTypeSection}>
                   <h5>
                     S. EDIFICADA SUBTERRÁNEO (S)
-                    <span className={styles.subtitle}>S. Edificada por nivel o piso</span>
+                    <span className={styles.subtitle}>S. Edificada por nivel</span>
                   </h5>
                   {buildingLevels.below.map(renderLevelSection)}
                 </div>
@@ -493,7 +516,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                 <div className={styles.levelTypeSection}>
                   <h5>
                     S. EDIFICADA SOBRE TERRENO
-                    <span className={styles.subtitle}>S. Edificada por nivel o piso</span>
+                    <span className={styles.subtitle}>S. Edificada por nivel</span>
                   </h5>
                   {buildingLevels.above.map(renderLevelSection)}
                 </div>
@@ -528,6 +551,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                   <HelpTooltip
                     modelName="SurfacePolygon"
                     fieldName="name"
+                    helpTextData={getHelpText('SurfacePolygon', 'name')}
                     defaultBriefText="Identificador del polígono"
                     defaultExtendedText="Nombre descriptivo que identifica el polígono de superficie. Ejemplos: Sala de estar, Cocina, Dormitorio principal, Estacionamiento."
                     position="right"
@@ -553,6 +577,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                   <HelpTooltip
                     modelName="SurfacePolygon"
                     fieldName="manual_total"
+                    helpTextData={getHelpText('SurfacePolygon', 'manual_total')}
                     defaultBriefText="Superficie ingresada manualmente"
                     defaultExtendedText="Superficie total ingresada manualmente para polígonos irregulares o cuando no se pueden medir ancho y largo por separado. Si se define este valor, se ignora width y length."
                     position="right"
@@ -585,9 +610,10 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                   <label>
                     Ancho (m)
                     <HelpTooltip
-                      modelName="SurfacePolygon"
-                      fieldName="width"
-                      defaultBriefText="Ancho del polígono en metros"
+                    modelName="SurfacePolygon"
+                    fieldName="width"
+                    helpTextData={getHelpText('SurfacePolygon', 'width')}
+                    defaultBriefText="Ancho del polígono en metros"
                       defaultExtendedText="Ancho del polígono en metros. Se usa junto con length para calcular la superficie automáticamente. Opcional si se define manual_total para polígonos irregulares."
                       position="right"
                     />
@@ -612,9 +638,10 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                   <label>
                     Largo (m)
                     <HelpTooltip
-                      modelName="SurfacePolygon"
-                      fieldName="length"
-                      defaultBriefText="Largo del polígono en metros"
+                    modelName="SurfacePolygon"
+                    fieldName="length"
+                    helpTextData={getHelpText('SurfacePolygon', 'length')}
+                    defaultBriefText="Largo del polígono en metros"
                       defaultExtendedText="Largo del polígono en metros. Se usa junto con width para calcular la superficie automáticamente. Opcional si se define manual_total para polígonos irregulares."
                       position="right"
                     />
@@ -653,6 +680,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                   <HelpTooltip
                     modelName="SurfacePolygon"
                     fieldName="triangulo_rectangulo"
+                    helpTextData={getHelpText('SurfacePolygon', 'triangulo_rectangulo')}
                     defaultBriefText="Triángulo rectángulo (triangulo_rectangulo)"
                     defaultExtendedText="Calcula el área como triángulo rectángulo usando la fórmula: (ancho × largo) / 2. Requiere ingresar ancho y largo. Este concepto es diferente a media superficie normativa (count_as_half), que se aplica a espacios sin muros por todas sus caras según normativa."
                     position="right"
@@ -675,8 +703,29 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                   <HelpTooltip
                     modelName="SurfacePolygon"
                     fieldName="count_as_half"
+                    helpTextData={getHelpText('SurfacePolygon', 'count_as_half')}
                     defaultBriefText="Media superficie (count_as_half)"
                     defaultExtendedText="Indica que la superficie calculada debe dividirse por 2. Este concepto es distinto a medir la superficie de un triángulo rectángulo. La media superficie identifica aquellas superficies que normativamente no tienen muros por todas sus caras, es decir, espacios abiertos o semiabiertos que deben contabilizarse al 50% según la normativa aplicable."
+                    position="right"
+                  />
+                </label>
+              </div>
+              <div className={styles.formGroup}>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={newPolygonIsUtil}
+                    onChange={(e) => {
+                      setNewPolygonIsUtil(e.target.checked);
+                    }}
+                  />
+                  Superficie Útil
+                  <HelpTooltip
+                    modelName="SurfacePolygon"
+                    fieldName="is_util"
+                    helpTextData={getHelpText('SurfacePolygon', 'is_util')}
+                    defaultBriefText="Superficie útil"
+                    defaultExtendedText="Si está marcado, la superficie se considera útil. Si no está marcado, se considera común."
                     position="right"
                   />
                 </label>
@@ -704,6 +753,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                   setNewPolygonLength('');
                   setNewPolygonTrianguloRectangulo(false);
                   setNewPolygonCountAsHalf(false);
+                  setNewPolygonIsUtil(true);
                   setNewPolygonManualTotal('');
                   setValidationErrors({});
                 }}
@@ -747,6 +797,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                   <HelpTooltip
                     modelName="SurfacePolygon"
                     fieldName="name"
+                    helpTextData={getHelpText('SurfacePolygon', 'name')}
                     defaultBriefText="Identificador del polígono"
                     defaultExtendedText="Nombre descriptivo que identifica el polígono de superficie. Ejemplos: Sala de estar, Cocina, Dormitorio principal, Estacionamiento."
                     position="right"
@@ -772,6 +823,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                   <HelpTooltip
                     modelName="SurfacePolygon"
                     fieldName="manual_total"
+                    helpTextData={getHelpText('SurfacePolygon', 'manual_total')}
                     defaultBriefText="Superficie ingresada manualmente"
                     defaultExtendedText="Superficie total ingresada manualmente para polígonos irregulares o cuando no se pueden medir ancho y largo por separado. Si se define este valor, se ignora width y length."
                     position="right"
@@ -804,9 +856,10 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                   <label>
                     Ancho (m)
                     <HelpTooltip
-                      modelName="SurfacePolygon"
-                      fieldName="width"
-                      defaultBriefText="Ancho del polígono en metros"
+                    modelName="SurfacePolygon"
+                    fieldName="width"
+                    helpTextData={getHelpText('SurfacePolygon', 'width')}
+                    defaultBriefText="Ancho del polígono en metros"
                       defaultExtendedText="Ancho del polígono en metros. Se usa junto con length para calcular la superficie automáticamente. Opcional si se define manual_total para polígonos irregulares."
                       position="right"
                     />
@@ -831,9 +884,10 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                   <label>
                     Largo (m)
                     <HelpTooltip
-                      modelName="SurfacePolygon"
-                      fieldName="length"
-                      defaultBriefText="Largo del polígono en metros"
+                    modelName="SurfacePolygon"
+                    fieldName="length"
+                    helpTextData={getHelpText('SurfacePolygon', 'length')}
+                    defaultBriefText="Largo del polígono en metros"
                       defaultExtendedText="Largo del polígono en metros. Se usa junto con width para calcular la superficie automáticamente. Opcional si se define manual_total para polígonos irregulares."
                       position="right"
                     />
@@ -872,6 +926,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                   <HelpTooltip
                     modelName="SurfacePolygon"
                     fieldName="triangulo_rectangulo"
+                    helpTextData={getHelpText('SurfacePolygon', 'triangulo_rectangulo')}
                     defaultBriefText="Triángulo rectángulo (triangulo_rectangulo)"
                     defaultExtendedText="Calcula el área como triángulo rectángulo usando la fórmula: (ancho × largo) / 2. Requiere ingresar ancho y largo. Este concepto es diferente a media superficie normativa (count_as_half), que se aplica a espacios sin muros por todas sus caras según normativa."
                     position="right"
@@ -894,8 +949,29 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                   <HelpTooltip
                     modelName="SurfacePolygon"
                     fieldName="count_as_half"
+                    helpTextData={getHelpText('SurfacePolygon', 'count_as_half')}
                     defaultBriefText="Media superficie (count_as_half)"
                     defaultExtendedText="Indica que la superficie calculada debe dividirse por 2. Este concepto es distinto a medir la superficie de un triángulo rectángulo. La media superficie identifica aquellas superficies que normativamente no tienen muros por todas sus caras, es decir, espacios abiertos o semiabiertos que deben contabilizarse al 50% según la normativa aplicable."
+                    position="right"
+                  />
+                </label>
+              </div>
+              <div className={styles.formGroup}>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={newPolygonIsUtil}
+                    onChange={(e) => {
+                      setNewPolygonIsUtil(e.target.checked);
+                    }}
+                  />
+                  Superficie Útil
+                  <HelpTooltip
+                    modelName="SurfacePolygon"
+                    fieldName="is_util"
+                    helpTextData={getHelpText('SurfacePolygon', 'is_util')}
+                    defaultBriefText="Superficie útil"
+                    defaultExtendedText="Si está marcado, la superficie se considera útil. Si no está marcado, se considera común."
                     position="right"
                   />
                 </label>
@@ -923,6 +999,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                   setNewPolygonLength('');
                   setNewPolygonTrianguloRectangulo(false);
                   setNewPolygonCountAsHalf(false);
+                  setNewPolygonIsUtil(true);
                   setNewPolygonManualTotal('');
                   setValidationErrors({});
                 }}

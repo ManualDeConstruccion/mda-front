@@ -57,11 +57,12 @@ const SortableListNode: React.FC<SortableListNodeProps> = ({
         ref={setNodeRef}
         style={style}
         {...attributes}
-        {...listeners}
         className={`${styles.listadoRow} ${isDragging ? styles.dragging : ''} ${isOver ? styles.over : ''}`}
       >
         <td 
-          className={`${styles.listadoCellNombre} ${depth > 0 ? styles.listadoCellNombreIndent : ''} ${indentClass ? indentClass : ''}`} 
+          className={`${styles.listadoCellNombre} ${depth > 0 ? styles.listadoCellNombreIndent : ''} ${indentClass ? indentClass : ''}`}
+          {...listeners}
+          style={{ cursor: 'grab' }}
           onClick={(e) => {
             // Prevenir el clic durante el arrastre
             if (!isDragging) {
@@ -74,9 +75,8 @@ const SortableListNode: React.FC<SortableListNodeProps> = ({
               size="small" 
               onClick={e => { 
                 e.stopPropagation(); 
-                if (!isDragging) {
-                  onToggle(node.id); 
-                }
+                e.preventDefault();
+                onToggle(node.id); 
               }}
             >
               {isOpen ? <ExpandMoreIcon sx={{ transform: 'rotate(180deg)' }} /> : <ExpandMoreIcon />}
@@ -102,9 +102,8 @@ const SortableListNode: React.FC<SortableListNodeProps> = ({
             size="small" 
             onClick={e => { 
               e.stopPropagation(); 
-              if (!isDragging) {
-                onEdit(node); 
-              }
+              e.preventDefault();
+              onEdit(node); 
             }}
           >
             <EditIcon />
@@ -113,9 +112,8 @@ const SortableListNode: React.FC<SortableListNodeProps> = ({
             size="small"
             onClick={e => { 
               e.stopPropagation(); 
-              if (!isDragging) {
-                onAdd(node.id); 
-              }
+              e.preventDefault();
+              onAdd(node.id); 
             }}
             className={styles.botonAzul}
           >
@@ -126,9 +124,8 @@ const SortableListNode: React.FC<SortableListNodeProps> = ({
             color="error"
             onClick={e => {
               e.stopPropagation();
-              if (!isDragging) {
-                onDelete(node);
-              }
+              e.preventDefault();
+              onDelete(node);
             }}
             className={styles.botonRojo}
           >

@@ -16,6 +16,8 @@ export interface SurfacePolygon {
   triangulo_rectangulo: boolean;
   count_as_half: boolean;
   manual_total: number | null;
+  apply_to_group: boolean;
+  is_util: boolean;
   total: number;
   created_at: string;
   updated_at: string;

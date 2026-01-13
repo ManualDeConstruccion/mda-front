@@ -48,7 +48,7 @@ const SurfacesTab: React.FC<SurfacesTabProps> = ({ projectNodeId }) => {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h3>Superficies por Nivel</h3>
+        <h3>Superficies por Piso</h3>
         <button
           className={styles.editButton}
           onClick={() => navigate(`/proyectos/${projectId}/arquitectura/${architectureId}/superficies`)}
@@ -61,12 +61,12 @@ const SurfacesTab: React.FC<SurfacesTabProps> = ({ projectNodeId }) => {
       <div className={styles.section}>
         <h4 className={styles.sectionTitle}>
           S. EDIFICADA SUBTERRÁNEO (S)
-          <span className={styles.sectionSubtitle}>S. Edificada por nivel o piso</span>
+          <span className={styles.sectionSubtitle}>S. Edificada por piso</span>
         </h4>
         <table className={styles.table}>
           <thead>
             <tr>
-              <th>Nivel o Piso</th>
+              <th>Piso</th>
               <th>ÚTIL (m²)</th>
               <th>COMÚN (m²)</th>
               <th>TOTAL (m²)</th>
@@ -95,12 +95,12 @@ const SurfacesTab: React.FC<SurfacesTabProps> = ({ projectNodeId }) => {
       <div className={styles.section}>
         <h4 className={styles.sectionTitle}>
           S. EDIFICADA SOBRE TERRENO
-          <span className={styles.sectionSubtitle}>S. Edificada por nivel o piso</span>
+          <span className={styles.sectionSubtitle}>S. Edificada por piso</span>
         </h4>
         <table className={styles.table}>
           <thead>
             <tr>
-              <th>Nivel o Piso</th>
+              <th>Piso</th>
               <th>ÚTIL (m²)</th>
               <th>COMÚN (m²)</th>
               <th>TOTAL (m²)</th>
