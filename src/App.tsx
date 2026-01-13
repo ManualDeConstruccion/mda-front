@@ -35,6 +35,7 @@ import ReportConfigurationForm from './pages/ReportConfiguration/ReportConfigura
 import ReportConfigurationPage from './pages/ReportConfiguration/ReportConfigurationPage';
 import PermisosPage from './pages/Admin/PermisosPage';
 import FormulariosPage from './pages/Admin/FormulariosPage';
+import FormularioEditPage from './pages/Admin/FormularioEditPage';
 
 /** ────────────────────────────────────────────────────────────────────────────
  *  🎛️  React‑Query client (sin refetch on focus)
@@ -141,6 +142,7 @@ const App: React.FC = () => {
                     {/* Rutas de administración (solo para is_staff) */}
                     <Route path="/admin/permisos" element={<PermisosPage />} />
                     <Route path="/admin/formularios" element={<FormulariosPage />} />
+                    <Route path="/admin/formularios/:projectTypeId" element={<FormularioEditPage />} />
                   </Route>
 
                   {/* fallback */}
