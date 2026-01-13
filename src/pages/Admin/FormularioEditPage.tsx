@@ -12,13 +12,19 @@ import {
   Collapse,
   IconButton,
   Chip,
+  Tooltip,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import EditIcon from '@mui/icons-material/Edit';
+import AddIcon from '@mui/icons-material/Add';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import EditFormParameterCategoryModal from '../../components/Admin/EditFormParameterCategoryModal';
+import AddFormParameterModal from '../../components/Admin/AddFormParameterModal';
+import EditFormParameterModal from '../../components/Admin/EditFormParameterModal';
 
 interface FormParameterCategory {
   id: number;
@@ -67,8 +73,26 @@ interface FormStructure {
 }
 
 // Componente recursivo para mostrar secciones con subcategorías
-const SectionTree: React.FC<{ section: FormParameterCategory; level: number }> = ({ section, level }) => {
+interface SectionTreeProps {
+  section: FormParameterCategory;
+  level: number;
+  projectTypeId: number;
+  allSections: FormParameterCategory[];
+  onSectionUpdated: () => void;
+}
+
+const SectionTree: React.FC<SectionTreeProps> = ({ 
+  section, 
+  level, 
+  projectTypeId,
+  allSections,
+  onSectionUpdated,
+}) => {
   const [isExpanded, setIsExpanded] = useState(level === 0);
+  const [editCategoryModalOpen, setEditCategoryModalOpen] = useState(false);
+  const [addParameterModalOpen, setAddParameterModalOpen] = useState(false);
+  const [editParameterModalOpen, setEditParameterModalOpen] = useState(false);
+  const [selectedParameter, setSelectedParameter] = useState<FormParameter | null>(null);
   const hasSubcategories = section.subcategories && section.subcategories.length > 0;
   const hasParameters = section.form_parameters && section.form_parameters.length > 0;
 
@@ -113,8 +137,28 @@ const SectionTree: React.FC<{ section: FormParameterCategory; level: number }> =
               size="small"
               color="primary"
               variant="outlined"
+              sx={{ mr: 1 }}
             />
           )}
+
+          <Tooltip title="Editar sección">
+            <IconButton
+              size="small"
+              onClick={() => setEditCategoryModalOpen(true)}
+              sx={{ mr: 0.5 }}
+            >
+              <EditIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+
+          <Tooltip title="Agregar parámetro">
+            <IconButton
+              size="small"
+              onClick={() => setAddParameterModalOpen(true)}
+            >
+              <AddIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
         </Box>
 
         {section.description && (
@@ -143,8 +187,29 @@ const SectionTree: React.FC<{ section: FormParameterCategory; level: number }> =
                       borderColor: 'divider',
                       borderRadius: 1,
                       bgcolor: 'background.default',
+                      position: 'relative',
+                      '&:hover .edit-param-button': {
+                        opacity: 1,
+                      },
                     }}
                   >
+                    <IconButton
+                      size="small"
+                      className="edit-param-button"
+                      onClick={() => {
+                        setSelectedParameter(param);
+                        setEditParameterModalOpen(true);
+                      }}
+                      sx={{
+                        position: 'absolute',
+                        top: 4,
+                        right: 4,
+                        opacity: 0,
+                        transition: 'opacity 0.2s',
+                      }}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
                     <Typography variant="body2" fontWeight="medium">
                       {param.parameter_definition.name}
                     </Typography>
@@ -181,6 +246,9 @@ const SectionTree: React.FC<{ section: FormParameterCategory; level: number }> =
                   key={subcategory.id}
                   section={subcategory}
                   level={level + 1}
+                  projectTypeId={projectTypeId}
+                  allSections={allSections}
+                  onSectionUpdated={onSectionUpdated}
                 />
               ))}
             </Box>
@@ -193,6 +261,35 @@ const SectionTree: React.FC<{ section: FormParameterCategory; level: number }> =
           )}
         </Collapse>
       </Box>
+
+      {/* Modales */}
+      <EditFormParameterCategoryModal
+        open={editCategoryModalOpen}
+        onClose={() => setEditCategoryModalOpen(false)}
+        onSuccess={onSectionUpdated}
+        category={section}
+        projectTypeId={projectTypeId}
+        parentCategories={allSections}
+      />
+
+      <AddFormParameterModal
+        open={addParameterModalOpen}
+        onClose={() => setAddParameterModalOpen(false)}
+        onSuccess={onSectionUpdated}
+        categoryId={section.id}
+        projectTypeId={projectTypeId}
+      />
+
+      <EditFormParameterModal
+        open={editParameterModalOpen}
+        onClose={() => {
+          setEditParameterModalOpen(false);
+          setSelectedParameter(null);
+        }}
+        onSuccess={onSectionUpdated}
+        parameter={selectedParameter}
+        projectTypeId={projectTypeId}
+      />
     </Box>
   );
 };
@@ -201,6 +298,19 @@ const FormularioEditPage: React.FC = () => {
   const { projectTypeId } = useParams<{ projectTypeId: string }>();
   const navigate = useNavigate();
   const { accessToken } = useAuth();
+  const [addSectionModalOpen, setAddSectionModalOpen] = useState(false);
+
+  // Función para obtener todas las secciones de forma plana
+  const getAllSections = (sections: FormParameterCategory[]): FormParameterCategory[] => {
+    let result: FormParameterCategory[] = [];
+    sections.forEach((section) => {
+      result.push(section);
+      if (section.subcategories) {
+        result = result.concat(getAllSections(section.subcategories));
+      }
+    });
+    return result;
+  };
 
   // Fetch estructura del formulario
   const { data: formStructure, isLoading, error } = useQuery<FormStructure>({
@@ -304,6 +414,16 @@ const FormularioEditPage: React.FC = () => {
         </Box>
 
         {/* Secciones del formulario */}
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setAddSectionModalOpen(true)}
+          >
+            Agregar Sección
+          </Button>
+        </Box>
+
         {formStructure.sections && formStructure.sections.length > 0 ? (
           <Box>
             {formStructure.sections.map((section) => (
@@ -311,14 +431,33 @@ const FormularioEditPage: React.FC = () => {
                 key={section.id}
                 section={section}
                 level={0}
+                projectTypeId={Number(projectTypeId)}
+                allSections={getAllSections(formStructure.sections)}
+                onSectionUpdated={() => {
+                  // Invalidar query para refrescar
+                  window.location.reload();
+                }}
               />
             ))}
           </Box>
         ) : (
           <Alert severity="info">
-            Este tipo de proyecto no tiene secciones configuradas. Agrega secciones desde el Excel o Django Admin.
+            Este tipo de proyecto no tiene secciones configuradas. Crea una nueva sección.
           </Alert>
         )}
+
+        {/* Modal para agregar nueva sección raíz */}
+        <EditFormParameterCategoryModal
+          open={addSectionModalOpen}
+          onClose={() => setAddSectionModalOpen(false)}
+          onSuccess={() => {
+            setAddSectionModalOpen(false);
+            window.location.reload();
+          }}
+          category={null}
+          projectTypeId={Number(projectTypeId)}
+          parentCategories={getAllSections(formStructure.sections)}
+        />
       </Box>
     </Container>
   );
