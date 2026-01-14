@@ -410,6 +410,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
         },
       };
       
+      // Actualizar display_config
       await axios.patch(
         `${API_URL}/api/parameters/form-parameter-categories/${section.id}/`,
         { display_config: newDisplayConfig },
@@ -421,11 +422,54 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
         }
       );
       
+      // Desplazar parámetros que están en filas >= targetRow
+      if (section.form_parameters) {
+        const paramsToMove = section.form_parameters.filter(param => (param.grid_row || 1) >= targetRow);
+        for (const param of paramsToMove) {
+          await axios.patch(
+            `${API_URL}/api/parameters/form-parameters/${param.id}/update_grid_position/`,
+            {
+              grid_row: (param.grid_row || 1) + 1,
+              grid_column: param.grid_column || 1,
+              grid_span: param.grid_span || 1,
+            },
+            {
+              headers: {
+                'Authorization': accessToken ? `Bearer ${accessToken}` : undefined,
+              },
+              withCredentials: true,
+            }
+          );
+        }
+      }
+      
+      // Desplazar celdas de texto que están en filas >= targetRow
+      if (section.grid_cells) {
+        const cellsToMove = section.grid_cells.filter(cell => cell.grid_row >= targetRow);
+        for (const cell of cellsToMove) {
+          await axios.patch(
+            `${API_URL}/api/parameters/form-grid-cells/${cell.id}/`,
+            {
+              grid_row: cell.grid_row + 1,
+              grid_column: cell.grid_column,
+              grid_span: cell.grid_span,
+              content: cell.content,
+            },
+            {
+              headers: {
+                'Authorization': accessToken ? `Bearer ${accessToken}` : undefined,
+              },
+              withCredentials: true,
+            }
+          );
+        }
+      }
+      
       onSectionUpdated();
     } catch (error) {
       console.error('Error al agregar fila antes:', error);
     }
-  }, [section.id, section.display_config, accessToken, onSectionUpdated]);
+  }, [section.id, section.display_config, section.form_parameters, section.grid_cells, accessToken, onSectionUpdated]);
   
   // Helper: Agregar fila después
   const addRowAfter = useCallback(async (targetRow: number) => {
@@ -457,6 +501,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
         },
       };
       
+      // Actualizar display_config
       await axios.patch(
         `${API_URL}/api/parameters/form-parameter-categories/${section.id}/`,
         { display_config: newDisplayConfig },
@@ -468,11 +513,54 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
         }
       );
       
+      // Desplazar parámetros que están en filas > targetRow
+      if (section.form_parameters) {
+        const paramsToMove = section.form_parameters.filter(param => (param.grid_row || 1) > targetRow);
+        for (const param of paramsToMove) {
+          await axios.patch(
+            `${API_URL}/api/parameters/form-parameters/${param.id}/update_grid_position/`,
+            {
+              grid_row: (param.grid_row || 1) + 1,
+              grid_column: param.grid_column || 1,
+              grid_span: param.grid_span || 1,
+            },
+            {
+              headers: {
+                'Authorization': accessToken ? `Bearer ${accessToken}` : undefined,
+              },
+              withCredentials: true,
+            }
+          );
+        }
+      }
+      
+      // Desplazar celdas de texto que están en filas > targetRow
+      if (section.grid_cells) {
+        const cellsToMove = section.grid_cells.filter(cell => cell.grid_row > targetRow);
+        for (const cell of cellsToMove) {
+          await axios.patch(
+            `${API_URL}/api/parameters/form-grid-cells/${cell.id}/`,
+            {
+              grid_row: cell.grid_row + 1,
+              grid_column: cell.grid_column,
+              grid_span: cell.grid_span,
+              content: cell.content,
+            },
+            {
+              headers: {
+                'Authorization': accessToken ? `Bearer ${accessToken}` : undefined,
+              },
+              withCredentials: true,
+            }
+          );
+        }
+      }
+      
       onSectionUpdated();
     } catch (error) {
       console.error('Error al agregar fila después:', error);
     }
-  }, [section.id, section.display_config, accessToken, onSectionUpdated]);
+  }, [section.id, section.display_config, section.form_parameters, section.grid_cells, accessToken, onSectionUpdated]);
   
   // Estados para modo admin
   const [activeId, setActiveId] = useState<string | null>(null);
