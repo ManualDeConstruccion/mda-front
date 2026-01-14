@@ -23,6 +23,10 @@ import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import DeleteIcon from '@mui/icons-material/Delete';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import TextFieldsIcon from '@mui/icons-material/TextFields';
+import SettingsIcon from '@mui/icons-material/Settings';
 import {
   DndContext,
   closestCenter,
@@ -62,6 +66,12 @@ interface FormParameterCategory {
   form_parameters?: FormParameter[];
   grid_cells?: FormGridCell[];
   subcategories?: FormParameterCategory[];
+  display_config?: {
+    layout_type?: string;
+    grid_config?: {
+      rows_columns?: Record<string, number>; // "1": 3, "2": 1, etc.
+    };
+  };
 }
 
 interface FormParameter {
@@ -114,7 +124,6 @@ interface GridCellProps {
   row: number;
   column: number;
   span: number;
-  maxColumns: number;
   isDragging?: boolean;
   onEdit?: (cell: FormParameter | FormGridCell) => void;
   onDelete?: (cell: FormParameter | FormGridCell) => void;
@@ -129,7 +138,6 @@ const GridCell: React.FC<GridCellProps> = ({
   row,
   column,
   span,
-  maxColumns,
   isDragging = false,
   onEdit,
   onDelete,
@@ -152,12 +160,20 @@ const GridCell: React.FC<GridCellProps> = ({
     gridColumn: `span ${span}`,
   };
 
+  // Type guard para parameter_definition
+  const getParameterDefinition = (param: FormParameter) => {
+    if (typeof param.parameter_definition === 'object' && param.parameter_definition !== null) {
+      return param.parameter_definition;
+    }
+    return null;
+  };
+
   const cellContent = isParameter
-    ? (cell as FormParameter).parameter_definition?.name || (cell as FormParameter).parameter_definition_name || 'Parámetro'
+    ? getParameterDefinition(cell as FormParameter)?.name || (cell as FormParameter).parameter_definition_name || 'Parámetro'
     : (cell as FormGridCell).content;
 
   const cellCode = isParameter
-    ? (cell as FormParameter).parameter_definition?.code || (cell as FormParameter).parameter_definition_code
+    ? getParameterDefinition(cell as FormParameter)?.code || (cell as FormParameter).parameter_definition_code
     : null;
 
   return (
@@ -296,30 +312,169 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
   const hasSubcategories = section.subcategories && section.subcategories.length > 0;
   const hasParameters = section.form_parameters && section.form_parameters.length > 0;
   
-  // Calcular número máximo de columnas usado inicialmente
-  const calculateInitialMaxColumns = () => {
+  // Helper: Obtener número de columnas para una fila desde display_config
+  const getColumnsForRow = useCallback((row: number): number => {
+    const rowsColumns = section.display_config?.grid_config?.rows_columns || {};
+    const rowKey = String(row);
+    if (rowsColumns[rowKey]) {
+      return rowsColumns[rowKey];
+    }
+    // Si no existe en display_config, calcular desde los elementos existentes
     let max = 1;
     if (hasParameters) {
       section.form_parameters?.forEach(param => {
-        const col = param.grid_column || 1;
-        const span = param.grid_span || 1;
-        if (col + span - 1 > max) {
-          max = col + span - 1;
+        if (param.grid_row === row) {
+          const col = param.grid_column || 1;
+          const span = param.grid_span || 1;
+          if (col + span - 1 > max) {
+            max = col + span - 1;
+          }
         }
       });
     }
     if (section.grid_cells) {
       section.grid_cells.forEach(cell => {
-        if (cell.grid_column + cell.grid_span - 1 > max) {
-          max = cell.grid_column + cell.grid_span - 1;
+        if (cell.grid_row === row) {
+          if (cell.grid_column + cell.grid_span - 1 > max) {
+            max = cell.grid_column + cell.grid_span - 1;
+          }
         }
       });
     }
     return Math.min(Math.max(max, 1), 5); // Entre 1 y 5
-  };
+  }, [section.display_config, section.form_parameters, section.grid_cells, hasParameters]);
+  
+  // Helper: Actualizar display_config
+  const updateDisplayConfig = useCallback(async (row: number, columns: number) => {
+    try {
+      const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+      const currentConfig = section.display_config || {};
+      const currentGridConfig = currentConfig.grid_config || {};
+      const currentRowsColumns = currentGridConfig.rows_columns || {};
+      
+      const newDisplayConfig = {
+        ...currentConfig,
+        grid_config: {
+          ...currentGridConfig,
+          rows_columns: {
+            ...currentRowsColumns,
+            [String(row)]: columns,
+          },
+        },
+      };
+      
+      await axios.patch(
+        `${API_URL}/api/parameters/form-parameter-categories/${section.id}/`,
+        { display_config: newDisplayConfig },
+        {
+          headers: {
+            'Authorization': accessToken ? `Bearer ${accessToken}` : undefined,
+          },
+          withCredentials: true,
+        }
+      );
+      
+      onSectionUpdated();
+    } catch (error) {
+      console.error('Error al actualizar display_config:', error);
+    }
+  }, [section.id, section.display_config, accessToken, onSectionUpdated]);
+  
+  // Helper: Agregar fila antes
+  const addRowBefore = useCallback(async (targetRow: number) => {
+    try {
+      const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+      const currentConfig = section.display_config || {};
+      const currentGridConfig = currentConfig.grid_config || {};
+      const currentRowsColumns = currentGridConfig.rows_columns || {};
+      
+      // Crear nuevo objeto rows_columns con las filas desplazadas
+      const newRowsColumns: Record<string, number> = {};
+      Object.keys(currentRowsColumns).forEach(key => {
+        const rowNum = Number(key);
+        if (rowNum >= targetRow) {
+          newRowsColumns[String(rowNum + 1)] = currentRowsColumns[key];
+        } else {
+          newRowsColumns[key] = currentRowsColumns[key];
+        }
+      });
+      
+      // Agregar nueva fila con 3 columnas por defecto
+      newRowsColumns[String(targetRow)] = 3;
+      
+      const newDisplayConfig = {
+        ...currentConfig,
+        grid_config: {
+          ...currentGridConfig,
+          rows_columns: newRowsColumns,
+        },
+      };
+      
+      await axios.patch(
+        `${API_URL}/api/parameters/form-parameter-categories/${section.id}/`,
+        { display_config: newDisplayConfig },
+        {
+          headers: {
+            'Authorization': accessToken ? `Bearer ${accessToken}` : undefined,
+          },
+          withCredentials: true,
+        }
+      );
+      
+      onSectionUpdated();
+    } catch (error) {
+      console.error('Error al agregar fila antes:', error);
+    }
+  }, [section.id, section.display_config, accessToken, onSectionUpdated]);
+  
+  // Helper: Agregar fila después
+  const addRowAfter = useCallback(async (targetRow: number) => {
+    try {
+      const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+      const currentConfig = section.display_config || {};
+      const currentGridConfig = currentConfig.grid_config || {};
+      const currentRowsColumns = currentGridConfig.rows_columns || {};
+      
+      // Crear nuevo objeto rows_columns con las filas desplazadas
+      const newRowsColumns: Record<string, number> = {};
+      Object.keys(currentRowsColumns).forEach(key => {
+        const rowNum = Number(key);
+        if (rowNum > targetRow) {
+          newRowsColumns[String(rowNum + 1)] = currentRowsColumns[key];
+        } else {
+          newRowsColumns[key] = currentRowsColumns[key];
+        }
+      });
+      
+      // Agregar nueva fila con 3 columnas por defecto
+      newRowsColumns[String(targetRow + 1)] = 3;
+      
+      const newDisplayConfig = {
+        ...currentConfig,
+        grid_config: {
+          ...currentGridConfig,
+          rows_columns: newRowsColumns,
+        },
+      };
+      
+      await axios.patch(
+        `${API_URL}/api/parameters/form-parameter-categories/${section.id}/`,
+        { display_config: newDisplayConfig },
+        {
+          headers: {
+            'Authorization': accessToken ? `Bearer ${accessToken}` : undefined,
+          },
+          withCredentials: true,
+        }
+      );
+      
+      onSectionUpdated();
+    } catch (error) {
+      console.error('Error al agregar fila después:', error);
+    }
+  }, [section.id, section.display_config, accessToken, onSectionUpdated]);
   
   // Estados para modo admin
-  const [maxColumns, setMaxColumns] = useState(calculateInitialMaxColumns);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [gridCells, setGridCells] = useState<FormGridCell[]>(section.grid_cells || []);
   const [addTextCellModalOpen, setAddTextCellModalOpen] = useState(false);
@@ -332,13 +487,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
     if (section.grid_cells) {
       setGridCells(section.grid_cells);
     }
-    // Recalcular maxColumns si es necesario
-    const newMax = calculateInitialMaxColumns();
-    if (newMax > maxColumns) {
-      setMaxColumns(newMax);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [section.grid_cells, section.form_parameters]);
+  }, [section.grid_cells]);
 
   // Sensores para drag and drop (solo modo admin)
   const sensors = useSensors(
@@ -368,13 +517,18 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
     return max;
   }, [section.form_parameters, gridCells, hasParameters]);
 
-  // Organizar celdas en grilla (modo admin)
+  // Organizar celdas en grilla (modo admin) - ahora usando columnas por fila
   const gridLayout = useMemo(() => {
-    const grid: (FormParameter | FormGridCell | null)[][] = [];
+    // Estructura: Record<row, Record<col, cell | null>>
+    const grid: Record<number, Record<number, FormParameter | FormGridCell | null>> = {};
     
-    // Inicializar grilla
+    // Inicializar grilla con columnas por fila
     for (let r = 1; r <= maxRow; r++) {
-      grid[r - 1] = new Array(maxColumns).fill(null);
+      const cols = getColumnsForRow(r);
+      grid[r] = {};
+      for (let c = 1; c <= cols; c++) {
+        grid[r][c] = null;
+      }
     }
     
     // Colocar parámetros
@@ -383,15 +537,13 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
         const row = param.grid_row || 1;
         const col = param.grid_column || 1;
         const span = param.grid_span || 1;
+        const maxCols = getColumnsForRow(row);
         
-        if (row <= maxRow && col <= maxColumns) {
-          // Solo marcar la primera columna con el objeto, las demás con un marcador
-          if (grid[row - 1]) {
-            grid[row - 1][col - 1] = param;
-            // Marcar las columnas adicionales como ocupadas (pero no duplicar el objeto)
-            for (let i = 1; i < span && col + i <= maxColumns; i++) {
-              grid[row - 1][col - 1 + i] = { __occupied: true } as any;
-            }
+        if (row <= maxRow && col <= maxCols) {
+          grid[row][col] = param;
+          // Marcar las columnas adicionales como ocupadas
+          for (let i = 1; i < span && col + i <= maxCols; i++) {
+            grid[row][col + i] = { __occupied: true } as any;
           }
         }
       });
@@ -402,20 +554,19 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
       const row = cell.grid_row;
       const col = cell.grid_column;
       const span = cell.grid_span;
+      const maxCols = getColumnsForRow(row);
       
-      if (row <= maxRow && col <= maxColumns) {
-        if (grid[row - 1]) {
-          grid[row - 1][col - 1] = cell;
-          // Marcar las columnas adicionales como ocupadas
-          for (let i = 1; i < span && col + i <= maxColumns; i++) {
-            grid[row - 1][col - 1 + i] = { __occupied: true } as any;
-          }
+      if (row <= maxRow && col <= maxCols) {
+        grid[row][col] = cell;
+        // Marcar las columnas adicionales como ocupadas
+        for (let i = 1; i < span && col + i <= maxCols; i++) {
+          grid[row][col + i] = { __occupied: true } as any;
         }
       }
     });
     
     return grid;
-  }, [section.form_parameters, gridCells, maxRow, maxColumns, hasParameters]);
+  }, [section.form_parameters, gridCells, maxRow, getColumnsForRow, hasParameters]);
 
   // Obtener todas las celdas (parámetros + texto) para drag and drop
   const allCells = useMemo(() => {
@@ -478,7 +629,8 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
     
     // Asegurar que la posición esté dentro de los límites
     newRow = Math.max(1, Math.min(newRow, maxRow + 1));
-    newCol = Math.max(1, Math.min(newCol, maxColumns));
+    const maxColsForRow = getColumnsForRow(newRow);
+    newCol = Math.max(1, Math.min(newCol, maxColsForRow));
     
     try {
       const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
@@ -566,53 +718,76 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
     }
   };
 
-  // Renderizar la grilla base (compartida por todos los modos)
+  // Renderizar la grilla base (compartida por todos los modos) - REESTRUCTURADO para columnas por fila
   const renderGrid = () => {
-    const gridContent = (
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: `repeat(${maxColumns}, 1fr)`,
-          gap: 2,
-          p: 2,
-          border: '1px solid',
-          borderColor: 'divider',
-          borderRadius: 1,
-          bgcolor: 'background.paper',
-        }}
-      >
-        {Array.from({ length: maxRow }, (_, rowIndex) => {
-          const row = rowIndex + 1;
-          return Array.from({ length: maxColumns }, (_, colIndex) => {
-            const col = colIndex + 1;
-            const cell = gridLayout[rowIndex]?.[colIndex];
-            
-            // Si la celda está ocupada por un span, no renderizar
-            if (cell && (cell as any).__occupied) {
-              return null;
-            }
-            
-            // Si hay una celda real en esta posición
-            if (cell && !(cell as any).__occupied) {
-              const isParameter = hasParameters && section.form_parameters?.some(p => p.id === (cell as FormParameter).id);
-              const actualCol = isParameter 
-                ? (cell as FormParameter).grid_column || 1
-                : (cell as FormGridCell).grid_column;
+    const rows = [];
+    
+    for (let r = 1; r <= maxRow; r++) {
+      const rowColumns = getColumnsForRow(r);
+      const rowCells = gridLayout[r] || {};
+      
+      rows.push(
+        <Box key={`row-${r}`} sx={{ mb: 2 }}>
+          {/* Controles de fila (solo en modo admin) */}
+          {mode === 'admin' && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+              <IconButton
+                size="small"
+                onClick={() => addRowBefore(r)}
+                title="Agregar fila antes"
+              >
+                <KeyboardArrowUpIcon fontSize="small" />
+              </IconButton>
+              <FormControl size="small" sx={{ minWidth: 100 }}>
+                <InputLabel>Columnas</InputLabel>
+                <Select
+                  value={rowColumns}
+                  label="Columnas"
+                  onChange={(e) => updateDisplayConfig(r, Number(e.target.value))}
+                >
+                  {[1, 2, 3, 4, 5].map(num => (
+                    <MenuItem key={num} value={num}>{num}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <IconButton
+                size="small"
+                onClick={() => addRowAfter(r)}
+                title="Agregar fila después"
+              >
+                <KeyboardArrowDownIcon fontSize="small" />
+              </IconButton>
+            </Box>
+          )}
+          
+          {/* Grilla de la fila */}
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: `repeat(${rowColumns}, 1fr)`,
+              gap: 2,
+            }}
+          >
+            {Array.from({ length: rowColumns }, (_, colIndex) => {
+              const col = colIndex + 1;
+              const cell = rowCells[col];
               
-              // Solo renderizar en la primera columna de cada celda
-              if (col === actualCol) {
-                const span = isParameter
-                  ? (cell as FormParameter).grid_span || 1
-                  : (cell as FormGridCell).grid_span;
+              // Si la celda está ocupada por un span, no renderizar
+              if (cell && (cell as any).__occupied) {
+                return null;
+              }
+              
+              // Si hay una celda real en esta posición
+              if (cell && !(cell as any).__occupied) {
+                const isParameter = hasParameters && section.form_parameters?.some(p => p.id === (cell as FormParameter).id);
                 
                 return (
                   <SortableGridCell
                     key={`${isParameter ? 'param' : 'text'}-${cell.id}`}
                     cell={cell}
-                    row={row}
+                    row={r}
                     column={col}
-                    span={span}
-                    maxColumns={maxColumns}
+                    span={isParameter ? (cell as FormParameter).grid_span || 1 : (cell as FormGridCell).grid_span}
                     isDragging={activeId === `cell-${isParameter ? 'param' : 'text'}-${cell.id}`}
                     onEdit={(c) => {
                       if (isParameter) {
@@ -655,44 +830,82 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
                       }
                     }}
                     mode={mode}
-                    isParameter={isParameter}
+                    isParameter={!!isParameter}
                     values={values}
                     onChange={onChange}
                   />
                 );
               }
+              
+              // Celda vacía
+              if (mode === 'admin') {
+                return (
+                  <Box
+                    key={`empty-${r}-${col}`}
+                    id={`empty-${r}-${col}`}
+                    data-cell-id={`empty-${r}-${col}`}
+                    data-row={r}
+                    data-column={col}
+                    sx={{
+                      minHeight: '80px',
+                      border: '2px dashed',
+                      borderColor: 'divider',
+                      borderRadius: 1,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 1,
+                      p: 1,
+                    }}
+                  >
+                    <Typography variant="caption" color="text.secondary" sx={{ mb: 1 }}>
+                      Soltar aquí
+                    </Typography>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={<TextFieldsIcon />}
+                      onClick={() => {
+                        setNewTextCell({ row: r, column: col, span: 1, content: '' });
+                        setAddTextCellModalOpen(true);
+                      }}
+                    >
+                      Agregar Texto
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={<SettingsIcon />}
+                      onClick={() => {
+                        setAddParameterModalOpen(true);
+                      }}
+                    >
+                      Agregar Parámetro
+                    </Button>
+                  </Box>
+                );
+              }
+              
+              // En modo vista/editable, no mostrar celdas vacías
               return null;
-            }
-            
-            // Celda vacía (solo mostrar en modo admin)
-            if (mode === 'admin') {
-              return (
-                <Box
-                  key={`empty-${row}-${col}`}
-                  data-cell-id={`empty-${row}-${col}`}
-                  data-row={row}
-                  data-column={col}
-                  sx={{
-                    minHeight: '80px',
-                    border: '2px dashed',
-                    borderColor: 'divider',
-                    borderRadius: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'text.secondary',
-                    fontSize: '0.75rem',
-                  }}
-                >
-                  Soltar aquí
-                </Box>
-              );
-            }
-            
-            // En modo vista/editable, no mostrar celdas vacías
-            return null;
-          });
-        })}
+            })}
+          </Box>
+        </Box>
+      );
+    }
+    
+    const gridContent = (
+      <Box
+        sx={{
+          p: 2,
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: 1,
+          bgcolor: 'background.paper',
+        }}
+      >
+        {rows}
       </Box>
     );
 
@@ -716,39 +929,41 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
           </SortableContext>
           
           <DragOverlay>
-            {activeId ? (
-              <Box
-                sx={{
-                  p: 2,
-                  bgcolor: 'background.paper',
-                  border: '2px solid',
-                  borderColor: 'primary.main',
-                  borderRadius: 1,
-                  boxShadow: 4,
-                  opacity: 0.9,
-                }}
-              >
-                {allCells.find(cell => {
-                  const cellId = `cell-${hasParameters && section.form_parameters?.some(p => p.id === (cell as FormParameter).id) ? 'param' : 'text'}-${cell.id}`;
-                  return cellId === activeId;
-                }) && (
-                  <Typography>
-                    {hasParameters && section.form_parameters?.some(p => p.id === (allCells.find(c => {
-                      const cid = `cell-${hasParameters && section.form_parameters?.some(p2 => p2.id === (c as FormParameter).id) ? 'param' : 'text'}-${c.id}`;
-                      return cid === activeId;
-                    }) as FormParameter)?.id) 
-                      ? (allCells.find(c => {
-                          const cid = `cell-${hasParameters && section.form_parameters?.some(p2 => p2.id === (c as FormParameter).id) ? 'param' : 'text'}-${c.id}`;
-                          return cid === activeId;
-                        }) as FormParameter)?.parameter_definition?.name
-                      : (allCells.find(c => {
-                          const cid = `cell-${hasParameters && section.form_parameters?.some(p2 => p2.id === (c as FormParameter).id) ? 'param' : 'text'}-${c.id}`;
-                          return cid === activeId;
-                        }) as FormGridCell)?.content}
-                  </Typography>
-                )}
-              </Box>
-            ) : null}
+            {activeId ? (() => {
+              const activeCell = allCells.find(cell => {
+                const cellId = `cell-${hasParameters && section.form_parameters?.some(p => p.id === (cell as FormParameter).id) ? 'param' : 'text'}-${cell.id}`;
+                return cellId === activeId;
+              });
+              
+              if (!activeCell) return null;
+              
+              const isParam = hasParameters && section.form_parameters?.some(p => p.id === (activeCell as FormParameter).id);
+              const content = isParam
+                ? (() => {
+                    const param = activeCell as FormParameter;
+                    const paramDef = typeof param.parameter_definition === 'object' && param.parameter_definition !== null
+                      ? param.parameter_definition
+                      : null;
+                    return paramDef?.name || param.parameter_definition_name || 'Parámetro';
+                  })()
+                : (activeCell as FormGridCell).content;
+              
+              return (
+                <Box
+                  sx={{
+                    p: 2,
+                    bgcolor: 'background.paper',
+                    border: '2px solid',
+                    borderColor: 'primary.main',
+                    borderRadius: 1,
+                    boxShadow: 4,
+                    opacity: 0.9,
+                  }}
+                >
+                  <Typography>{content}</Typography>
+                </Box>
+              );
+            })() : null}
           </DragOverlay>
         </DndContext>
       );
@@ -762,42 +977,6 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
   const renderContent = () => {
     return (
       <Box sx={{ mt: 2, ml: 6 }}>
-        {/* Controles solo en modo admin */}
-        {mode === 'admin' && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-            <FormControl size="small" sx={{ minWidth: 120 }}>
-              <InputLabel>Columnas</InputLabel>
-              <Select
-                value={maxColumns}
-                label="Columnas"
-                onChange={(e) => setMaxColumns(Number(e.target.value))}
-              >
-                {[1, 2, 3, 4, 5].map(num => (
-                  <MenuItem key={num} value={num}>{num}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<AddIcon />}
-              onClick={() => setAddTextCellModalOpen(true)}
-            >
-              Agregar Texto
-            </Button>
-            
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<AddIcon />}
-              onClick={() => setAddParameterModalOpen(true)}
-            >
-              Agregar Parámetro
-            </Button>
-          </Box>
-        )}
-
         {/* Grilla compartida por todos los modos */}
         {renderGrid()}
       </Box>
@@ -973,7 +1152,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
                   setNewTextCell({ ...newTextCell, column: val });
                 }
               }}
-              inputProps={{ min: 1, max: maxColumns }}
+              inputProps={{ min: 1, max: 5 }}
               fullWidth
             />
             <TextField
@@ -988,7 +1167,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
                   setNewTextCell({ ...newTextCell, span: val });
                 }
               }}
-              inputProps={{ min: 1, max: maxColumns }}
+              inputProps={{ min: 1, max: 5 }}
               fullWidth
             />
             <TextField
