@@ -14,6 +14,11 @@ import {
   Select,
   FormControl,
   InputLabel,
+  Tabs,
+  Tab,
+  Chip,
+  Typography,
+  Divider,
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
@@ -59,8 +64,20 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
   const [unit, setUnit] = useState('');
   const [helpText, setHelpText] = useState('');
   const [isActive, setIsActive] = useState(true);
+  const [isKeyCompliance, setIsKeyCompliance] = useState(false);
+  const [isCalculated, setIsCalculated] = useState(false);
+  const [includeInSnapshot, setIncludeInSnapshot] = useState(false);
+  const [validationRules, setValidationRules] = useState('');
+  const [calculationFormula, setCalculationFormula] = useState('');
+  const [calculationInputs, setCalculationInputs] = useState('');
+  const [calculationMethod, setCalculationMethod] = useState('');
+  const [snapshotSource, setSnapshotSource] = useState('none');
+  const [sourceField, setSourceField] = useState('');
+  const [updatePolicy, setUpdatePolicy] = useState('manual');
+  const [selectedRegulationArticles, setSelectedRegulationArticles] = useState<number[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [createCategoryModalOpen, setCreateCategoryModalOpen] = useState(false);
+  const [tabValue, setTabValue] = useState(0);
 
   // Fetch categorías
   const { data: categories } = useQuery<ParameterCategory[]>({
@@ -81,13 +98,60 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
     enabled: open && !!accessToken,
   });
 
+  // Fetch artículos normativos
+  const { data: regulationArticles, isLoading: isLoadingArticles, error: articlesError } = useQuery<any[]>({
+    queryKey: ['regulation-articles'],
+    queryFn: async () => {
+      const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+      try {
+        const response = await axios.get(
+          `${API_URL}/api/parameters/regulation-articles/?is_active=true`,
+          {
+            withCredentials: true,
+            headers: {
+              'Authorization': accessToken ? `Bearer ${accessToken}` : undefined,
+            },
+          }
+        );
+        return response.data;
+      } catch (error: any) {
+        console.error('Error fetching regulation articles:', error);
+        // Si el endpoint no existe o falla, retornar array vacío
+        return [];
+      }
+    },
+    enabled: open && !!accessToken,
+    retry: false,
+  });
+
   useEffect(() => {
     if (parameter) {
       setCode(parameter.code);
+      setFormPdfCode(parameter.form_pdf_code || '');
       setName(parameter.name);
+      setDescription(parameter.description || '');
       setCategory(parameter.category || null);
       setDataType(parameter.data_type);
       setUnit(parameter.unit || '');
+      setHelpText(parameter.help_text || '');
+      setIsActive(parameter.is_active !== undefined ? parameter.is_active : true);
+      setIsKeyCompliance(parameter.is_key_compliance || false);
+      setIsCalculated(parameter.is_calculated || false);
+      setIncludeInSnapshot(parameter.include_in_snapshot || false);
+      setValidationRules(parameter.validation_rules ? JSON.stringify(parameter.validation_rules, null, 2) : '');
+      setCalculationFormula(parameter.calculation_formula || '');
+      setCalculationInputs(parameter.calculation_inputs ? JSON.stringify(parameter.calculation_inputs, null, 2) : '');
+      setCalculationMethod(parameter.calculation_method || '');
+      setSnapshotSource(parameter.snapshot_source || 'none');
+      setSourceField(parameter.source_field || '');
+      setUpdatePolicy(parameter.update_policy || 'manual');
+      // regulation_articles viene como array de IDs o objetos con id
+      if (parameter.regulation_articles) {
+        const articleIds = parameter.regulation_articles.map((art: any) => typeof art === 'number' ? art : art.id);
+        setSelectedRegulationArticles(articleIds);
+      } else {
+        setSelectedRegulationArticles([]);
+      }
     } else {
       setCode('');
       setFormPdfCode('');
@@ -98,6 +162,18 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
       setUnit('');
       setHelpText('');
       setIsActive(true);
+      setIsKeyCompliance(false);
+      setIsCalculated(false);
+      setIncludeInSnapshot(false);
+      setValidationRules('');
+      setCalculationFormula('');
+      setCalculationInputs('');
+      setCalculationMethod('');
+      setSnapshotSource('none');
+      setSourceField('');
+      setUpdatePolicy('manual');
+      setSelectedRegulationArticles([]);
+      setTabValue(0);
     }
   }, [parameter, open]);
 
@@ -132,7 +208,26 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
         return response.data;
       }
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
+      // Actualizar regulation_articles si hay cambios (ManyToMany requiere actualización separada)
+      if (selectedRegulationArticles.length > 0 || parameter) {
+        try {
+          const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+          await axios.patch(
+            `${API_URL}/api/parameters/parameter-definitions/${data.id}/`,
+            { regulation_articles: selectedRegulationArticles },
+            {
+              withCredentials: true,
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`,
+              },
+            }
+          );
+        } catch (err) {
+          console.error('Error al actualizar artículos normativos:', err);
+        }
+      }
       queryClient.invalidateQueries({ queryKey: ['parameter-definitions-grouped'] });
       queryClient.invalidateQueries({ queryKey: ['parameter-definitions'] });
       onSuccess(data);
@@ -150,7 +245,32 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
       return;
     }
 
-    createMutation.mutate({
+    // Validar JSON fields
+    let parsedValidationRules = {};
+    if (validationRules.trim()) {
+      try {
+        parsedValidationRules = JSON.parse(validationRules);
+      } catch (e) {
+        setError('Reglas de validación deben ser un JSON válido');
+        return;
+      }
+    }
+
+    let parsedCalculationInputs: string[] = [];
+    if (calculationInputs.trim()) {
+      try {
+        parsedCalculationInputs = JSON.parse(calculationInputs);
+        if (!Array.isArray(parsedCalculationInputs)) {
+          setError('Parámetros de entrada deben ser un array JSON válido');
+          return;
+        }
+      } catch (e) {
+        setError('Parámetros de entrada deben ser un array JSON válido');
+        return;
+      }
+    }
+
+    const mutationData: any = {
       code: code.trim(),
       form_pdf_code: formPdfCode.trim() || '',
       name: name.trim(),
@@ -160,22 +280,44 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
       unit: unit.trim() || '',
       help_text: helpText.trim() || '',
       is_active: isActive,
-    });
+      is_key_compliance: isKeyCompliance,
+      is_calculated: isCalculated,
+      include_in_snapshot: includeInSnapshot,
+      validation_rules: parsedValidationRules,
+      calculation_formula: calculationFormula.trim() || '',
+      calculation_inputs: parsedCalculationInputs,
+      calculation_method: calculationMethod.trim() || '',
+      snapshot_source: snapshotSource,
+      source_field: sourceField.trim() || '',
+      update_policy: updatePolicy,
+    };
+
+    // regulation_articles se manejan después de crear/actualizar ya que es ManyToMany
+    createMutation.mutate(mutationData);
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
         {parameter ? 'Editar Parámetro' : 'Nuevo Parámetro'}
       </DialogTitle>
-      <DialogContent>
+      <DialogContent sx={{ minHeight: 500 }}>
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {error}
           </Alert>
         )}
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+        <Tabs value={tabValue} onChange={(_, newValue) => setTabValue(newValue)} sx={{ mb: 2 }}>
+          <Tab label="Información Básica" />
+          <Tab label="Validación y Cálculo" />
+          <Tab label="Snapshot y Políticas" />
+          <Tab label="Referencias Normativas" />
+        </Tabs>
+
+        {/* Tab 1: Información Básica */}
+        {tabValue === 0 && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <TextField
             label="Código"
             value={code}
@@ -183,7 +325,7 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
             required
             fullWidth
             disabled={!!parameter}
-            helperText={parameter ? 'El código no puede cambiarse' : 'Código único del parámetro'}
+            helperText={parameter ? 'El código no puede cambiarse' : 'Código único del parámetro (ej: "carga_ocupacion_total")'}
           />
 
           <TextField
@@ -200,6 +342,7 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
             onChange={(e) => setName(e.target.value)}
             required
             fullWidth
+            helperText="Nombre descriptivo del parámetro"
           />
 
           <TextField
@@ -209,6 +352,7 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
             multiline
             rows={3}
             fullWidth
+            helperText="Descripción detallada del parámetro"
           />
 
           <FormControl fullWidth>
@@ -225,6 +369,9 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
                 </MenuItem>
               ))}
             </Select>
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, ml: 1.75 }}>
+              Categoría administrativa para organizar parámetros en formularios
+            </Typography>
           </FormControl>
 
           <Button
@@ -249,6 +396,9 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
               <MenuItem value="text">Texto</MenuItem>
               <MenuItem value="date">Fecha</MenuItem>
             </Select>
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, ml: 1.75 }}>
+              Tipo de dato que almacena este parámetro
+            </Typography>
           </FormControl>
 
           <TextField
@@ -256,7 +406,7 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
             value={unit}
             onChange={(e) => setUnit(e.target.value)}
             fullWidth
-            helperText="Unidad de medida (ej: 'm²', 'personas', '%')"
+            helperText='Unidad de medida (ej: "m", "m²", "personas", "%")'
           />
 
           <TextField
@@ -266,18 +416,241 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
             multiline
             rows={2}
             fullWidth
+            helperText="Texto de ayuda para el usuario al ingresar este parámetro"
           />
 
-          <FormControlLabel
-            control={
-              <Switch
-                checked={isActive}
-                onChange={(e) => setIsActive(e.target.checked)}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={isActive}
+                    onChange={(e) => setIsActive(e.target.checked)}
+                  />
+                }
+                label="Activo"
               />
-            }
-            label="Activo"
-          />
-        </Box>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={isKeyCompliance}
+                    onChange={(e) => setIsKeyCompliance(e.target.checked)}
+                  />
+                }
+                label="Parámetro Crítico"
+              />
+              <Typography variant="caption" color="text.secondary" sx={{ ml: 4.5, mt: -0.5 }}>
+                Indica si es un parámetro crítico para cumplimiento normativo (DOM)
+              </Typography>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={isCalculated}
+                    onChange={(e) => setIsCalculated(e.target.checked)}
+                  />
+                }
+                label="Es Calculado"
+              />
+              <Typography variant="caption" color="text.secondary" sx={{ ml: 4.5, mt: -0.5 }}>
+                Indica si este parámetro se calcula automáticamente
+              </Typography>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={includeInSnapshot}
+                    onChange={(e) => setIncludeInSnapshot(e.target.checked)}
+                  />
+                }
+                label="Incluir en Snapshot"
+              />
+              <Typography variant="caption" color="text.secondary" sx={{ ml: 4.5, mt: -0.5 }}>
+                Si es True, este parámetro se incluye en snapshots del proyecto. Solo parámetros críticos que afectan cálculos normativos deben estar en True.
+              </Typography>
+            </Box>
+          </Box>
+        )}
+
+        {/* Tab 2: Validación y Cálculo */}
+        {tabValue === 1 && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Typography variant="h6" sx={{ mb: 1 }}>Validación</Typography>
+            <TextField
+              label="Reglas de Validación"
+              value={validationRules}
+              onChange={(e) => setValidationRules(e.target.value)}
+              multiline
+              rows={4}
+              fullWidth
+              helperText='Reglas de validación en formato JSON (ej: {"min": 0, "max": 100})'
+              placeholder='{"min": 0, "max": 100}'
+            />
+
+            <Divider sx={{ my: 2 }} />
+
+            <Typography variant="h6" sx={{ mb: 1 }}>Cálculo Automático</Typography>
+            <Alert severity="info" sx={{ mb: 2 }}>
+              Estos campos solo aplican si "Es Calculado" está activado.
+            </Alert>
+
+            <TextField
+              label="Fórmula de Cálculo"
+              value={calculationFormula}
+              onChange={(e) => setCalculationFormula(e.target.value)}
+              multiline
+              rows={3}
+              fullWidth
+              helperText='Fórmula para calcular este parámetro automáticamente (ej: "superficie / factor_ocupacion")'
+              placeholder='superficie / factor_ocupacion'
+            />
+
+            <TextField
+              label="Parámetros de Entrada"
+              value={calculationInputs}
+              onChange={(e) => setCalculationInputs(e.target.value)}
+              multiline
+              rows={3}
+              fullWidth
+              helperText='Lista de códigos de parámetros necesarios para el cálculo: ["superficie_construida", "factor_ocupacion"]'
+              placeholder='["superficie_construida", "factor_ocupacion"]'
+            />
+
+            <TextField
+              label="Método de Cálculo"
+              value={calculationMethod}
+              onChange={(e) => setCalculationMethod(e.target.value)}
+              fullWidth
+              helperText='Nombre del método Python que ejecuta el cálculo (ej: "calculate_occupancy_load"). Si está vacío, usa calculation_formula'
+              placeholder='calculate_occupancy_load'
+            />
+          </Box>
+        )}
+
+        {/* Tab 3: Snapshot y Políticas */}
+        {tabValue === 2 && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Typography variant="h6" sx={{ mb: 1 }}>Configuración de Snapshot</Typography>
+
+            <FormControl fullWidth>
+              <InputLabel>Tipo de Snapshot</InputLabel>
+              <Select
+                value={snapshotSource}
+                onChange={(e) => setSnapshotSource(e.target.value)}
+                label="Tipo de Snapshot"
+              >
+                <MenuItem value="none">Sin snapshot</MenuItem>
+                <MenuItem value="property">Snapshot desde Property</MenuItem>
+                <MenuItem value="user">Snapshot desde User</MenuItem>
+                <MenuItem value="manual">Snapshot manual</MenuItem>
+              </Select>
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, ml: 1.75 }}>
+                Define si este parámetro debe capturar snapshot desde un modelo externo
+              </Typography>
+            </FormControl>
+
+            {snapshotSource !== 'none' && (
+              <TextField
+                label="Campo Fuente"
+                value={sourceField}
+                onChange={(e) => setSourceField(e.target.value)}
+                fullWidth
+                helperText='Campo del modelo fuente para snapshot (ej: "rol_number", "sector", "address")'
+                placeholder='rol_number'
+              />
+            )}
+
+            <FormControl fullWidth>
+              <InputLabel>Política de Actualización</InputLabel>
+              <Select
+                value={updatePolicy}
+                onChange={(e) => setUpdatePolicy(e.target.value)}
+                label="Política de Actualización"
+              >
+                <MenuItem value="manual">Actualización Manual</MenuItem>
+                <MenuItem value="auto">Actualización Automática</MenuItem>
+                <MenuItem value="prompt">Preguntar al Usuario</MenuItem>
+              </Select>
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, ml: 1.75 }}>
+                Cómo manejar actualizaciones cuando el valor fuente cambia
+              </Typography>
+            </FormControl>
+          </Box>
+        )}
+
+        {/* Tab 4: Referencias Normativas */}
+        {tabValue === 3 && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Typography variant="h6" sx={{ mb: 0.5 }}>Artículos Normativos</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Artículos de normativa que definen o regulan este parámetro
+            </Typography>
+
+            {isLoadingArticles ? (
+              <Alert severity="info">
+                Cargando artículos normativos...
+              </Alert>
+            ) : articlesError ? (
+              <Alert severity="warning">
+                No se pudieron cargar los artículos normativos. Verifica que el endpoint esté disponible.
+              </Alert>
+            ) : regulationArticles && regulationArticles.length > 0 ? (
+              <Box sx={{ maxHeight: 400, overflow: 'auto', border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1 }}>
+                {regulationArticles.map((article: any) => (
+                  <FormControlLabel
+                    key={article.id}
+                    control={
+                      <Switch
+                        checked={selectedRegulationArticles.includes(article.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedRegulationArticles([...selectedRegulationArticles, article.id]);
+                          } else {
+                            setSelectedRegulationArticles(selectedRegulationArticles.filter(id => id !== article.id));
+                          }
+                        }}
+                      />
+                    }
+                    label={
+                      <Box>
+                        <Typography variant="body2" fontWeight="medium">
+                          {article.code || article.name}
+                        </Typography>
+                        {article.name && article.code !== article.name && (
+                          <Typography variant="caption" color="text.secondary">
+                            {article.name}
+                          </Typography>
+                        )}
+                      </Box>
+                    }
+                    sx={{ display: 'flex', mb: 1, alignItems: 'flex-start' }}
+                  />
+                ))}
+              </Box>
+            ) : (
+              <Alert severity="info">
+                No hay artículos normativos disponibles. Debes crear artículos normativos primero.
+              </Alert>
+            )}
+
+            {selectedRegulationArticles.length > 0 && (
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>Artículos seleccionados:</Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                  {selectedRegulationArticles.map(articleId => {
+                    const article = regulationArticles?.find((a: any) => a.id === articleId);
+                    return article ? (
+                      <Chip
+                        key={articleId}
+                        label={article.code || article.name}
+                        onDelete={() => {
+                          setSelectedRegulationArticles(selectedRegulationArticles.filter(id => id !== articleId));
+                        }}
+                      />
+                    ) : null;
+                  })}
+                </Box>
+              </Box>
+            )}
+          </Box>
+        )}
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancelar</Button>
