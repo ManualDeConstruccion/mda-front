@@ -35,6 +35,7 @@ import ReportConfigurationForm from './pages/ReportConfiguration/ReportConfigura
 import ReportConfigurationPage from './pages/ReportConfiguration/ReportConfigurationPage';
 import PermisosPage from './pages/Admin/PermisosPage';
 import FormulariosPage from './pages/Admin/FormulariosPage';
+import ParametersPage from './pages/Admin/ParametersPage';
 import FormularioEditPage from './pages/Admin/FormularioEditPage';
 
 /** ────────────────────────────────────────────────────────────────────────────
@@ -143,6 +144,7 @@ const App: React.FC = () => {
                     <Route path="/admin/permisos" element={<PermisosPage />} />
                     <Route path="/admin/formularios" element={<FormulariosPage />} />
                     <Route path="/admin/formularios/:projectTypeId" element={<FormularioEditPage />} />
+                    <Route path="/admin/parametros" element={<ParametersPage />} />
                   </Route>
 
                   {/* fallback */}
