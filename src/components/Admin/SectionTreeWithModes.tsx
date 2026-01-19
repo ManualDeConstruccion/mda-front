@@ -92,6 +92,13 @@ export interface FormParameter {
   parameter_definition_code?: string;
 }
 
+export interface FormGridCellStyle {
+  textAlign?: 'left' | 'center' | 'right';
+  backgroundColor?: 'lightblue' | 'transparent';
+  fontWeight?: 'normal' | 'bold';
+  cellType?: 'normal' | 'title';
+}
+
 export interface FormGridCell {
   id: number;
   category: number;
@@ -99,8 +106,7 @@ export interface FormGridCell {
   grid_column: number;
   grid_span: number;
   content: string;
-  style?: any;
-  order: number;
+  style?: FormGridCellStyle | any;
   is_active: boolean;
 }
 
@@ -174,19 +180,36 @@ const GridCell: React.FC<GridCellProps> = ({
     ? getParameterDefinition(cell as FormParameter)?.code || (cell as FormParameter).parameter_definition_code
     : null;
 
+  // Determinar el color de fondo para celdas de texto
+  const getBackgroundColor = () => {
+    if (isParameter) {
+      return 'background.default';
+    }
+    // Para celdas de texto, verificar si tienen fondo celeste definido en style
+    const cellStyle = (cell as FormGridCell).style || {};
+    const backgroundColor = cellStyle.backgroundColor || 'transparent';
+    
+    if (backgroundColor === 'lightblue') {
+      return 'rgba(135, 206, 250, 0.3)'; // Celeste claro
+    }
+    // Si no tiene fondo celeste, no aplicar fondo
+    return 'transparent';
+  };
+
+  // Determinar si es tipo título
+  const isTitleType = !isParameter && ((cell as FormGridCell).style || {}).cellType === 'title';
+
   return (
     <Box
       ref={mode === 'admin' ? sortable.setNodeRef : undefined}
       style={style}
       {...(mode === 'admin' ? sortable.attributes : {})}
       sx={{
-        p: 1.5,
-        border: '1px solid',
+        p: isTitleType ? { py: 3, px: 1.5 } : 1.5,
+        border: isTitleType ? 'none' : '1px solid',
         borderColor: isDragging ? 'primary.main' : 'divider',
         borderRadius: 1,
-        bgcolor: isParameter ? 'background.default' : (theme) => theme.palette.mode === 'light' 
-          ? 'rgba(33, 149, 243, 0.22)' // Celeste muy suave en modo claro
-          : 'rgba(144, 202, 249, 0.08)', // Celeste muy suave en modo oscuro
+        bgcolor: getBackgroundColor(),
         position: 'relative',
         minHeight: '80px',
         display: 'flex',
@@ -243,16 +266,28 @@ const GridCell: React.FC<GridCellProps> = ({
             )}
           </>
         ) : (
-          <Typography 
-            variant="body2" 
-            color="text.secondary"
-            sx={{ 
-              whiteSpace: 'pre-wrap',
-              fontStyle: mode === 'view' ? 'normal' : 'italic',
-            }}
-          >
-            {cellContent}
-          </Typography>
+          (() => {
+            // Obtener estilos de la celda de texto
+            const cellStyle = (cell as FormGridCell).style || {};
+            const textAlign = cellStyle.textAlign || 'left';
+            const fontWeight = cellStyle.fontWeight || 'normal';
+            
+            return (
+              <Typography 
+                variant="body2" 
+                color="text.secondary"
+                sx={{ 
+                  whiteSpace: 'pre-wrap',
+                  fontStyle: mode === 'view' ? 'normal' : 'italic',
+                  textAlign: textAlign,
+                  fontWeight: fontWeight,
+                  width: '100%',
+                }}
+              >
+                {cellContent}
+              </Typography>
+            );
+          })()
         )}
       </Box>
 

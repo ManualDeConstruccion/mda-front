@@ -37,6 +37,9 @@ interface FormParameter {
   order: number;
   is_required: boolean;
   is_visible: boolean;
+  grid_row?: number;
+  grid_column?: number;
+  grid_span?: number;
   parameter_definition_name?: string;
   parameter_definition_code?: string;
 }
@@ -95,6 +98,9 @@ const EditFormParameterModal: React.FC<EditFormParameterModalProps> = ({
   const [order, setOrder] = useState(0);
   const [isRequired, setIsRequired] = useState(true);
   const [isVisible, setIsVisible] = useState(true);
+  const [gridRow, setGridRow] = useState(1);
+  const [gridColumn, setGridColumn] = useState(1);
+  const [gridSpan, setGridSpan] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [createCategoryModalOpen, setCreateCategoryModalOpen] = useState(false);
 
@@ -199,6 +205,9 @@ const EditFormParameterModal: React.FC<EditFormParameterModalProps> = ({
       setOrder(parameter.order);
       setIsRequired(parameter.is_required);
       setIsVisible(parameter.is_visible);
+      setGridRow(parameter.grid_row || 1);
+      setGridColumn(parameter.grid_column || 1);
+      setGridSpan(parameter.grid_span || 1);
     }
   }, [parameter, open]);
 
@@ -304,6 +313,9 @@ const EditFormParameterModal: React.FC<EditFormParameterModalProps> = ({
         order,
         is_required: isRequired,
         is_visible: isVisible,
+        grid_row: gridRow,
+        grid_column: gridColumn,
+        grid_span: gridSpan,
       });
 
       // Actualizar ParameterDefinition
@@ -393,33 +405,33 @@ const EditFormParameterModal: React.FC<EditFormParameterModalProps> = ({
               </Alert>
 
               <TextField
-                label="Orden"
+                label="Fila"
                 type="number"
-                value={order}
-                onChange={(e) => setOrder(Number(e.target.value))}
+                value={gridRow}
+                onChange={(e) => setGridRow(Number(e.target.value))}
                 fullWidth
-                inputProps={{ min: 0 }}
-                helperText="Orden del parámetro dentro de la sección"
+                inputProps={{ min: 1 }}
+                required
               />
 
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={isRequired}
-                    onChange={(e) => setIsRequired(e.target.checked)}
-                  />
-                }
-                label="Requerido"
+              <TextField
+                label="Columna"
+                type="number"
+                value={gridColumn}
+                onChange={(e) => setGridColumn(Number(e.target.value))}
+                fullWidth
+                inputProps={{ min: 1, max: 8 }}
+                required
               />
 
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={isVisible}
-                    onChange={(e) => setIsVisible(e.target.checked)}
-                  />
-                }
-                label="Visible"
+              <TextField
+                label="Ancho (columnas)"
+                type="number"
+                value={gridSpan}
+                onChange={(e) => setGridSpan(Number(e.target.value))}
+                fullWidth
+                inputProps={{ min: 1, max: 8 }}
+                required
               />
             </Box>
           ) : (
