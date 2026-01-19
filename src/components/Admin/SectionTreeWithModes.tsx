@@ -792,16 +792,19 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
         const maxCols = getColumnsForRow(row);
         
         if (row <= maxRow && col <= maxCols) {
-          grid[row][col] = param;
-          // Marcar las columnas adicionales como ocupadas
-          for (let i = 1; i < span && col + i <= maxCols; i++) {
-            grid[row][col + i] = { __occupied: true } as any;
+          // Solo colocar si la posición está libre o si es el mismo parámetro
+          if (!grid[row][col] || (grid[row][col] as any).__isParameter === true) {
+            grid[row][col] = { ...param, __isParameter: true } as any;
+            // Marcar las columnas adicionales como ocupadas
+            for (let i = 1; i < span && col + i <= maxCols; i++) {
+              grid[row][col + i] = { __occupied: true } as any;
+            }
           }
         }
       });
     }
     
-    // Colocar celdas de texto
+    // Colocar celdas de texto (tienen prioridad si hay conflicto - se sobrescriben)
     gridCells.forEach(cell => {
       const row = cell.grid_row;
       const col = cell.grid_column;
@@ -809,7 +812,9 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
       const maxCols = getColumnsForRow(row);
       
       if (row <= maxRow && col <= maxCols) {
-        grid[row][col] = cell;
+        // Las celdas de texto pueden sobrescribir parámetros si están en la misma posición
+        // Esto puede pasar por errores de datos, pero preferimos mostrar el texto
+        grid[row][col] = { ...cell, __isParameter: false } as any;
         // Marcar las columnas adicionales como ocupadas
         for (let i = 1; i < span && col + i <= maxCols; i++) {
           grid[row][col + i] = { __occupied: true } as any;
@@ -819,6 +824,15 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
     
     return grid;
   }, [section.form_parameters, gridCells, maxRow, getColumnsForRow, hasParameters]);
+
+  // Helper: Determinar si una celda es un parámetro basándose en sus propiedades
+  const isCellParameter = useCallback((cell: FormParameter | FormGridCell): boolean => {
+    // FormParameter tiene 'parameter_definition', FormGridCell tiene 'content'
+    const hasParameterDefinition = 'parameter_definition' in cell;
+    const hasContent = 'content' in cell && typeof (cell as FormGridCell).content === 'string';
+    // Si tiene content, es una celda de texto. Si tiene parameter_definition y no content, es un parámetro.
+    return hasParameterDefinition && !hasContent;
+  }, []);
 
   // Obtener todas las celdas (parámetros + texto) para drag and drop
   const allCells = useMemo(() => {
@@ -847,7 +861,8 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
     
     // Obtener información de la celda arrastrada
     const activeCell = allCells.find(cell => {
-      const cellId = `cell-${hasParameters && section.form_parameters?.some(p => p.id === (cell as FormParameter).id) ? 'param' : 'text'}-${cell.id}`;
+      const isParam = isCellParameter(cell);
+      const cellId = `cell-${isParam ? 'param' : 'text'}-${cell.id}`;
       return cellId === active.id;
     });
     
@@ -860,14 +875,14 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
     let newCol = 1;
     
     const overCell = allCells.find(cell => {
-      const isParam = hasParameters && section.form_parameters?.some(p => p.id === (cell as FormParameter).id);
+      const isParam = isCellParameter(cell);
       const cellId = `cell-${isParam ? 'param' : 'text'}-${cell.id}`;
       return cellId === over.id;
     });
     
     if (overCell) {
       // Si se soltó sobre otra celda, usar su posición
-      const isParam = hasParameters && section.form_parameters?.some(p => p.id === (overCell as FormParameter).id);
+      const isParam = isCellParameter(overCell);
       newRow = isParam ? (overCell as FormParameter).grid_row || 1 : (overCell as FormGridCell).grid_row;
       newCol = isParam ? (overCell as FormParameter).grid_column || 1 : (overCell as FormGridCell).grid_column;
     } else if (over.id.toString().startsWith('empty-')) {
@@ -887,7 +902,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
     try {
       const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
       
-      const isParameter = hasParameters && section.form_parameters?.some(p => p.id === (activeCell as FormParameter).id);
+      const isParameter = isCellParameter(activeCell);
       
       if (isParameter) {
         // Es un parámetro
@@ -1048,7 +1063,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
         >
           <SortableContext
             items={allCells.map(cell => {
-              const isParam = hasParameters && section.form_parameters?.some(p => p.id === (cell as FormParameter).id);
+              const isParam = isCellParameter(cell);
               return `cell-${isParam ? 'param' : 'text'}-${cell.id}`;
             })}
             strategy={rectSortingStrategy}
@@ -1059,13 +1074,14 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
           <DragOverlay>
             {activeId ? (() => {
               const activeCell = allCells.find(cell => {
-                const cellId = `cell-${hasParameters && section.form_parameters?.some(p => p.id === (cell as FormParameter).id) ? 'param' : 'text'}-${cell.id}`;
+                const isParam = isCellParameter(cell);
+                const cellId = `cell-${isParam ? 'param' : 'text'}-${cell.id}`;
                 return cellId === activeId;
               });
               
               if (!activeCell) return null;
               
-              const isParam = hasParameters && section.form_parameters?.some(p => p.id === (activeCell as FormParameter).id);
+              const isParam = isCellParameter(activeCell);
               const content = isParam
                 ? (() => {
                     const param = activeCell as FormParameter;

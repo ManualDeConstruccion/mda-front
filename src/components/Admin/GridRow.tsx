@@ -137,7 +137,13 @@ const GridRow: React.FC<GridRowProps> = React.memo(({
           
           // Si hay una celda real en esta posición
           if (cell && !(cell as any).__occupied) {
-            const isParameter = hasParameters && section.form_parameters?.some(p => p.id === (cell as FormParameter).id);
+            // Determinar si es parámetro o celda de texto usando propiedades específicas
+            // FormParameter tiene 'parameter_definition', FormGridCell tiene 'content'
+            const hasParameterDefinition = 'parameter_definition' in cell;
+            const hasContent = 'content' in cell && typeof (cell as FormGridCell).content === 'string';
+            // Si tiene content, es una celda de texto. Si tiene parameter_definition, es un parámetro.
+            // Preferir content sobre parameter_definition para evitar confusión
+            const isParameter = hasParameterDefinition && !hasContent;
             
             return (
               <SortableGridCell
