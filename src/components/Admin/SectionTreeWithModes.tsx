@@ -6,12 +6,7 @@ import {
   IconButton,
   Chip,
   Tooltip,
-  TextField,
   Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   MenuItem,
   Select,
   FormControl,
@@ -50,11 +45,13 @@ import { useAuth } from '../../context/AuthContext';
 import EditFormParameterCategoryModal from './EditFormParameterCategoryModal';
 import AddFormParameterModal from './AddFormParameterModal';
 import EditFormParameterModal from './EditFormParameterModal';
+import AddEditFormGridCellModal from './AddEditFormGridCellModal';
+import GridRow from './GridRow';
 
 // Tipos
-type SectionTreeMode = 'view' | 'editable' | 'admin';
+export type SectionTreeMode = 'view' | 'editable' | 'admin';
 
-interface FormParameterCategory {
+export interface FormParameterCategory {
   id: number;
   code: string;
   number: string;
@@ -74,7 +71,7 @@ interface FormParameterCategory {
   };
 }
 
-interface FormParameter {
+export interface FormParameter {
   id: number;
   category: number;
   parameter_definition: number | {
@@ -94,7 +91,7 @@ interface FormParameter {
   parameter_definition_code?: string;
 }
 
-interface FormGridCell {
+export interface FormGridCell {
   id: number;
   category: number;
   grid_row: number;
@@ -119,7 +116,7 @@ interface SectionTreeWithModesProps {
 }
 
 // Componente para celda de grilla (compartido por todos los modos)
-interface GridCellProps {
+export interface GridCellProps {
   cell: FormParameter | FormGridCell;
   row: number;
   column: number;
@@ -186,7 +183,9 @@ const GridCell: React.FC<GridCellProps> = ({
         border: '1px solid',
         borderColor: isDragging ? 'primary.main' : 'divider',
         borderRadius: 1,
-        bgcolor: isParameter ? 'background.default' : 'info.light',
+        bgcolor: isParameter ? 'background.default' : (theme) => theme.palette.mode === 'light' 
+          ? 'rgba(33, 149, 243, 0.22)' // Celeste muy suave en modo claro
+          : 'rgba(144, 202, 249, 0.08)', // Celeste muy suave en modo oscuro
         position: 'relative',
         minHeight: '80px',
         display: 'flex',
@@ -290,6 +289,9 @@ const GridCell: React.FC<GridCellProps> = ({
 // Alias para compatibilidad
 const SortableGridCell = GridCell;
 
+// Exportar GridCell y sus tipos para uso en otros componentes
+export { GridCell, SortableGridCell };
+
 // Componente principal
 const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
   section,
@@ -303,7 +305,29 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
   onChange,
 }) => {
   const { accessToken } = useAuth();
-  const [isExpanded, setIsExpanded] = useState(level === 0);
+  
+  // Persistir estado de expansión usando sessionStorage para evitar que se cierre al recargar
+  const storageKey = `section-expanded-${section.id}`;
+  const getInitialExpandedState = () => {
+    try {
+      const stored = sessionStorage.getItem(storageKey);
+      return stored !== null ? stored === 'true' : level === 0;
+    } catch {
+      return level === 0;
+    }
+  };
+  
+  const [isExpanded, setIsExpanded] = useState(getInitialExpandedState);
+  
+  // Guardar estado de expansión cuando cambia
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(storageKey, String(isExpanded));
+    } catch {
+      // Ignorar errores de sessionStorage
+    }
+  }, [isExpanded, storageKey]);
+  
   const [editCategoryModalOpen, setEditCategoryModalOpen] = useState(false);
   const [addParameterModalOpen, setAddParameterModalOpen] = useState(false);
   const [editParameterModalOpen, setEditParameterModalOpen] = useState(false);
@@ -562,11 +586,137 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
     }
   }, [section.id, section.display_config, section.form_parameters, section.grid_cells, accessToken, onSectionUpdated]);
   
+  // Helper: Eliminar fila
+  const deleteRow = useCallback(async (targetRow: number) => {
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar la fila ${targetRow}? Esto eliminará todos los elementos de esa fila.`)) {
+      return;
+    }
+
+    try {
+      const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+      const currentConfig = section.display_config || {};
+      const currentGridConfig = currentConfig.grid_config || {};
+      const currentRowsColumns = currentGridConfig.rows_columns || {};
+      
+      // Eliminar parámetros y celdas de texto de la fila
+      const paramsToDelete = section.form_parameters?.filter(param => (param.grid_row || 1) === targetRow) || [];
+      const cellsToDelete = section.grid_cells?.filter(cell => cell.grid_row === targetRow) || [];
+      
+      // Eliminar parámetros
+      for (const param of paramsToDelete) {
+        await axios.delete(
+          `${API_URL}/api/parameters/form-parameters/${param.id}/`,
+          {
+            headers: {
+              'Authorization': accessToken ? `Bearer ${accessToken}` : undefined,
+            },
+            withCredentials: true,
+          }
+        );
+      }
+      
+      // Eliminar celdas de texto
+      for (const cell of cellsToDelete) {
+        await axios.delete(
+          `${API_URL}/api/parameters/form-grid-cells/${cell.id}/`,
+          {
+            headers: {
+              'Authorization': accessToken ? `Bearer ${accessToken}` : undefined,
+            },
+            withCredentials: true,
+          }
+        );
+      }
+      
+      // Crear nuevo objeto rows_columns con las filas desplazadas hacia arriba
+      const newRowsColumns: Record<string, number> = {};
+      Object.keys(currentRowsColumns).forEach(key => {
+        const rowNum = Number(key);
+        if (rowNum < targetRow) {
+          // Filas anteriores se mantienen igual
+          newRowsColumns[key] = currentRowsColumns[key];
+        } else if (rowNum > targetRow) {
+          // Filas posteriores se mueven una posición hacia arriba
+          newRowsColumns[String(rowNum - 1)] = currentRowsColumns[key];
+        }
+        // La fila targetRow se elimina (no se agrega al nuevo objeto)
+      });
+      
+      // Desplazar parámetros que están en filas > targetRow
+      if (section.form_parameters) {
+        const paramsToMove = section.form_parameters.filter(param => (param.grid_row || 1) > targetRow);
+        for (const param of paramsToMove) {
+          await axios.patch(
+            `${API_URL}/api/parameters/form-parameters/${param.id}/update_grid_position/`,
+            {
+              grid_row: (param.grid_row || 1) - 1,
+              grid_column: param.grid_column || 1,
+              grid_span: param.grid_span || 1,
+            },
+            {
+              headers: {
+                'Authorization': accessToken ? `Bearer ${accessToken}` : undefined,
+              },
+              withCredentials: true,
+            }
+          );
+        }
+      }
+      
+      // Desplazar celdas de texto que están en filas > targetRow
+      if (section.grid_cells) {
+        const cellsToMove = section.grid_cells.filter(cell => cell.grid_row > targetRow);
+        for (const cell of cellsToMove) {
+          await axios.patch(
+            `${API_URL}/api/parameters/form-grid-cells/${cell.id}/`,
+            {
+              grid_row: cell.grid_row - 1,
+              grid_column: cell.grid_column,
+              grid_span: cell.grid_span,
+              content: cell.content,
+            },
+            {
+              headers: {
+                'Authorization': accessToken ? `Bearer ${accessToken}` : undefined,
+              },
+              withCredentials: true,
+            }
+          );
+        }
+      }
+      
+      // Actualizar display_config
+      const newDisplayConfig = {
+        ...currentConfig,
+        grid_config: {
+          ...currentGridConfig,
+          rows_columns: newRowsColumns,
+        },
+      };
+      
+      await axios.patch(
+        `${API_URL}/api/parameters/form-parameter-categories/${section.id}/`,
+        { display_config: newDisplayConfig },
+        {
+          headers: {
+            'Authorization': accessToken ? `Bearer ${accessToken}` : undefined,
+          },
+          withCredentials: true,
+        }
+      );
+      
+      onSectionUpdated();
+    } catch (error) {
+      console.error('Error al eliminar fila:', error);
+      alert('Error al eliminar la fila. Por favor, inténtalo de nuevo.');
+    }
+  }, [section.id, section.display_config, section.form_parameters, section.grid_cells, accessToken, onSectionUpdated]);
+  
   // Estados para modo admin
   const [activeId, setActiveId] = useState<string | null>(null);
   const [gridCells, setGridCells] = useState<FormGridCell[]>(section.grid_cells || []);
   const [addTextCellModalOpen, setAddTextCellModalOpen] = useState(false);
-  const [newTextCell, setNewTextCell] = useState({ row: 1, column: 1, span: 1, content: '' });
+  const [textCellInitialData, setTextCellInitialData] = useState<{ row: number; column: number; span: number; content: string } | null>(null);
   const [editingTextCell, setEditingTextCell] = useState<FormGridCell | null>(null);
   const hasGridCells = gridCells.length > 0;
   
@@ -590,6 +740,17 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
   // Calcular número máximo de filas necesarias
   const maxRow = useMemo(() => {
     let max = 1;
+    
+    // Primero verificar las filas definidas en display_config
+    const rowsColumns = section.display_config?.grid_config?.rows_columns || {};
+    Object.keys(rowsColumns).forEach(key => {
+      const rowNum = Number(key);
+      if (rowNum > max) {
+        max = rowNum;
+      }
+    });
+    
+    // Luego verificar parámetros
     if (hasParameters) {
       section.form_parameters?.forEach(param => {
         if (param.grid_row && param.grid_row > max) {
@@ -597,13 +758,16 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
         }
       });
     }
+    
+    // Finalmente verificar celdas de texto
     gridCells.forEach(cell => {
       if (cell.grid_row > max) {
         max = cell.grid_row;
       }
     });
+    
     return max;
-  }, [section.form_parameters, gridCells, hasParameters]);
+  }, [section.form_parameters, section.display_config, gridCells, hasParameters]);
 
   // Organizar celdas en grilla (modo admin) - ahora usando columnas por fila
   const gridLayout = useMemo(() => {
@@ -768,43 +932,59 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
     }
   };
 
-  // Agregar nueva fila (modo admin)
-  const handleAddRow = () => {
-    // Las filas se agregan automáticamente cuando se colocan elementos en ellas
-    // Este handler puede usarse para otras acciones si es necesario
+  // Handler para abrir modal de agregar celda de texto
+  const handleOpenAddTextCellModal = (row: number, column: number) => {
+    setTextCellInitialData({ row, column, span: 1, content: '' });
+    setEditingTextCell(null);
+    setAddTextCellModalOpen(true);
   };
 
-  // Agregar celda de texto (modo admin)
-  const handleAddTextCell = async () => {
+  // Handler para abrir modal de editar celda de texto
+  const handleOpenEditTextCellModal = (cell: FormGridCell) => {
+    setEditingTextCell(cell);
+    setTextCellInitialData(null);
+    setAddTextCellModalOpen(true);
+  };
+
+  // Handler para cerrar modal de celda de texto
+  const handleCloseTextCellModal = () => {
+    setAddTextCellModalOpen(false);
+    setEditingTextCell(null);
+    setTextCellInitialData(null);
+  };
+
+  // Handler para eliminar celda
+  const handleDeleteCell = useCallback(async (cell: FormParameter | FormGridCell, isParameter: boolean) => {
     try {
       const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
       
-      await axios.post(
-        `${API_URL}/api/parameters/form-grid-cells/`,
-        {
-          category: section.id,
-          grid_row: newTextCell.row,
-          grid_column: newTextCell.column,
-          grid_span: newTextCell.span,
-          content: newTextCell.content,
-          order: 0,
-          is_active: true,
-        },
-        {
-          headers: {
-            'Authorization': accessToken ? `Bearer ${accessToken}` : undefined,
-          },
-          withCredentials: true,
-        }
-      );
+      if (isParameter) {
+        await axios.delete(
+          `${API_URL}/api/parameters/form-parameters/${cell.id}/`,
+          {
+            headers: {
+              'Authorization': accessToken ? `Bearer ${accessToken}` : undefined,
+            },
+            withCredentials: true,
+          }
+        );
+      } else {
+        await axios.delete(
+          `${API_URL}/api/parameters/form-grid-cells/${cell.id}/`,
+          {
+            headers: {
+              'Authorization': accessToken ? `Bearer ${accessToken}` : undefined,
+            },
+            withCredentials: true,
+          }
+        );
+      }
       
-      setAddTextCellModalOpen(false);
-      setNewTextCell({ row: 1, column: 1, span: 1, content: '' });
       onSectionUpdated();
     } catch (error) {
-      console.error('Error al crear celda de texto:', error);
+      console.error('Error al eliminar:', error);
     }
-  };
+  }, [accessToken, onSectionUpdated]);
 
   // Renderizar la grilla base (compartida por todos los modos) - REESTRUCTURADO para columnas por fila
   const renderGrid = () => {
@@ -815,171 +995,31 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
       const rowCells = gridLayout[r] || {};
       
       rows.push(
-        <Box key={`row-${r}`} sx={{ mb: 2 }}>
-          {/* Controles de fila (solo en modo admin) */}
-          {mode === 'admin' && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <IconButton
-                size="small"
-                onClick={() => addRowBefore(r)}
-                title="Agregar fila antes"
-              >
-                <KeyboardArrowUpIcon fontSize="small" />
-              </IconButton>
-              <FormControl size="small" sx={{ minWidth: 100 }}>
-                <InputLabel>Columnas</InputLabel>
-                <Select
-                  value={rowColumns}
-                  label="Columnas"
-                  onChange={(e) => updateDisplayConfig(r, Number(e.target.value))}
-                >
-                  {[1, 2, 3, 4, 5].map(num => (
-                    <MenuItem key={num} value={num}>{num}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <IconButton
-                size="small"
-                onClick={() => addRowAfter(r)}
-                title="Agregar fila después"
-              >
-                <KeyboardArrowDownIcon fontSize="small" />
-              </IconButton>
-            </Box>
-          )}
-          
-          {/* Grilla de la fila */}
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: `repeat(${rowColumns}, 1fr)`,
-              gap: 2,
-            }}
-          >
-            {Array.from({ length: rowColumns }, (_, colIndex) => {
-              const col = colIndex + 1;
-              const cell = rowCells[col];
-              
-              // Si la celda está ocupada por un span, no renderizar
-              if (cell && (cell as any).__occupied) {
-                return null;
-              }
-              
-              // Si hay una celda real en esta posición
-              if (cell && !(cell as any).__occupied) {
-                const isParameter = hasParameters && section.form_parameters?.some(p => p.id === (cell as FormParameter).id);
-                
-                return (
-                  <SortableGridCell
-                    key={`${isParameter ? 'param' : 'text'}-${cell.id}`}
-                    cell={cell}
-                    row={r}
-                    column={col}
-                    span={isParameter ? (cell as FormParameter).grid_span || 1 : (cell as FormGridCell).grid_span}
-                    isDragging={activeId === `cell-${isParameter ? 'param' : 'text'}-${cell.id}`}
-                    onEdit={(c) => {
-                      if (isParameter) {
-                        setSelectedParameter(c as FormParameter);
-                        setEditParameterModalOpen(true);
-                      } else {
-                        setEditingTextCell(c as FormGridCell);
-                        setAddTextCellModalOpen(true);
-                      }
-                    }}
-                    onDelete={async (c) => {
-                      try {
-                        const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
-                        
-                        if (isParameter) {
-                          await axios.delete(
-                            `${API_URL}/api/parameters/form-parameters/${c.id}/`,
-                            {
-                              headers: {
-                                'Authorization': accessToken ? `Bearer ${accessToken}` : undefined,
-                              },
-                              withCredentials: true,
-                            }
-                          );
-                        } else {
-                          await axios.delete(
-                            `${API_URL}/api/parameters/form-grid-cells/${c.id}/`,
-                            {
-                              headers: {
-                                'Authorization': accessToken ? `Bearer ${accessToken}` : undefined,
-                              },
-                              withCredentials: true,
-                            }
-                          );
-                        }
-                        
-                        onSectionUpdated();
-                      } catch (error) {
-                        console.error('Error al eliminar:', error);
-                      }
-                    }}
-                    mode={mode}
-                    isParameter={!!isParameter}
-                    values={values}
-                    onChange={onChange}
-                  />
-                );
-              }
-              
-              // Celda vacía
-              if (mode === 'admin') {
-                return (
-                  <Box
-                    key={`empty-${r}-${col}`}
-                    id={`empty-${r}-${col}`}
-                    data-cell-id={`empty-${r}-${col}`}
-                    data-row={r}
-                    data-column={col}
-                    sx={{
-                      minHeight: '80px',
-                      border: '2px dashed',
-                      borderColor: 'divider',
-                      borderRadius: 1,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 1,
-                      p: 1,
-                    }}
-                  >
-                    <Typography variant="caption" color="text.secondary" sx={{ mb: 1 }}>
-                      Soltar aquí
-                    </Typography>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      startIcon={<TextFieldsIcon />}
-                      onClick={() => {
-                        setNewTextCell({ row: r, column: col, span: 1, content: '' });
-                        setAddTextCellModalOpen(true);
-                      }}
-                    >
-                      Agregar Texto
-                    </Button>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      startIcon={<SettingsIcon />}
-                      onClick={() => {
-                        setAddParameterModalOpen(true);
-                      }}
-                    >
-                      Agregar Parámetro
-                    </Button>
-                  </Box>
-                );
-              }
-              
-              // En modo vista/editable, no mostrar celdas vacías
-              return null;
-            })}
-          </Box>
-        </Box>
+        <GridRow
+          key={`row-${r}`}
+          row={r}
+          rowColumns={rowColumns}
+          rowCells={rowCells}
+          mode={mode}
+          maxRow={maxRow}
+          activeId={activeId || ''}
+          hasParameters={!!hasParameters}
+          section={section}
+          onAddRowBefore={addRowBefore}
+          onAddRowAfter={addRowAfter}
+          onDeleteRow={deleteRow}
+          onUpdateDisplayConfig={updateDisplayConfig}
+          onEditParameter={(param: FormParameter) => {
+            setSelectedParameter(param);
+            setEditParameterModalOpen(true);
+          }}
+          onEditTextCell={(cell: FormGridCell) => handleOpenEditTextCellModal(cell)}
+          onDeleteCell={handleDeleteCell}
+          onAddTextCell={handleOpenAddTextCellModal}
+          onAddParameter={() => setAddParameterModalOpen(true)}
+          values={values}
+          onChange={onChange}
+        />
       );
     }
     
@@ -1064,7 +1104,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
   // Renderizar según el modo
   const renderContent = () => {
     return (
-      <Box sx={{ mt: 2, ml: 6 }}>
+      <Box sx={{ mt: 2 }}>
         {/* Grilla compartida por todos los modos */}
         {renderGrid()}
       </Box>
@@ -1198,130 +1238,15 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
       />
 
       {/* Modal para agregar/editar celda de texto */}
-      <Dialog
+      <AddEditFormGridCellModal
         open={addTextCellModalOpen}
-        onClose={() => {
-          setAddTextCellModalOpen(false);
-          setEditingTextCell(null);
-          setNewTextCell({ row: 1, column: 1, span: 1, content: '' });
-        }}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          {editingTextCell ? 'Editar Celda de Texto' : 'Agregar Celda de Texto'}
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-            <TextField
-              label="Fila"
-              type="number"
-              value={editingTextCell?.grid_row || newTextCell.row}
-              onChange={(e) => {
-                const val = Number(e.target.value);
-                if (editingTextCell) {
-                  setEditingTextCell({ ...editingTextCell, grid_row: val });
-                } else {
-                  setNewTextCell({ ...newTextCell, row: val });
-                }
-              }}
-              inputProps={{ min: 1, max: maxRow + 10 }}
-              fullWidth
-            />
-            <TextField
-              label="Columna"
-              type="number"
-              value={editingTextCell?.grid_column || newTextCell.column}
-              onChange={(e) => {
-                const val = Number(e.target.value);
-                if (editingTextCell) {
-                  setEditingTextCell({ ...editingTextCell, grid_column: val });
-                } else {
-                  setNewTextCell({ ...newTextCell, column: val });
-                }
-              }}
-              inputProps={{ min: 1, max: 5 }}
-              fullWidth
-            />
-            <TextField
-              label="Ancho (columnas)"
-              type="number"
-              value={editingTextCell?.grid_span || newTextCell.span}
-              onChange={(e) => {
-                const val = Number(e.target.value);
-                if (editingTextCell) {
-                  setEditingTextCell({ ...editingTextCell, grid_span: val });
-                } else {
-                  setNewTextCell({ ...newTextCell, span: val });
-                }
-              }}
-              inputProps={{ min: 1, max: 5 }}
-              fullWidth
-            />
-            <TextField
-              label="Contenido"
-              multiline
-              rows={4}
-              value={editingTextCell?.content || newTextCell.content}
-              onChange={(e) => {
-                if (editingTextCell) {
-                  setEditingTextCell({ ...editingTextCell, content: e.target.value });
-                } else {
-                  setNewTextCell({ ...newTextCell, content: e.target.value });
-                }
-              }}
-              fullWidth
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => {
-              setAddTextCellModalOpen(false);
-              setEditingTextCell(null);
-              setNewTextCell({ row: 1, column: 1, span: 1, content: '' });
-            }}
-          >
-            Cancelar
-          </Button>
-          <Button
-            onClick={async () => {
-              if (editingTextCell) {
-                try {
-                  const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
-                  
-                  await axios.patch(
-                    `${API_URL}/api/parameters/form-grid-cells/${editingTextCell.id}/`,
-                    {
-                      grid_row: editingTextCell.grid_row,
-                      grid_column: editingTextCell.grid_column,
-                      grid_span: editingTextCell.grid_span,
-                      content: editingTextCell.content,
-                    },
-                    {
-                      headers: {
-                        'Authorization': accessToken ? `Bearer ${accessToken}` : undefined,
-                      },
-                      withCredentials: true,
-                    }
-                  );
-                  
-                  setAddTextCellModalOpen(false);
-                  setEditingTextCell(null);
-                  onSectionUpdated();
-                } catch (error) {
-                  console.error('Error al actualizar celda de texto:', error);
-                }
-              } else {
-                await handleAddTextCell();
-              }
-            }}
-            variant="contained"
-          >
-            {editingTextCell ? 'Guardar' : 'Agregar'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onClose={handleCloseTextCellModal}
+        onSuccess={onSectionUpdated}
+        categoryId={section.id}
+        maxRow={maxRow}
+        initialData={textCellInitialData}
+        editingCell={editingTextCell}
+      />
     </Box>
   );
 };
