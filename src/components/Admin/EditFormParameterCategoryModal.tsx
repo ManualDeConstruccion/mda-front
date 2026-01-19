@@ -10,10 +10,20 @@ import {
   Switch,
   Box,
   Alert,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Typography,
 } from '@mui/material';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+
+interface FormType {
+  id: number;
+  name: string;
+}
 
 interface FormParameterCategory {
   id: number;
@@ -24,6 +34,8 @@ interface FormParameterCategory {
   parent?: number | null;
   order: number;
   is_active: boolean;
+  form_type?: number | FormType | null;
+  form_type_name?: string | null;
 }
 
 interface EditFormParameterCategoryModalProps {
@@ -33,6 +45,8 @@ interface EditFormParameterCategoryModalProps {
   category: FormParameterCategory | null;
   projectTypeId: number;
   parentCategories?: FormParameterCategory[];
+  defaultParentId?: number; // ID de la categoría padre por defecto (para crear subcategorías)
+  blockFormTypeChange?: boolean; // Bloquear cambio de form_type si ya tiene uno
 }
 
 const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalProps> = ({
@@ -42,6 +56,8 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
   category,
   projectTypeId,
   parentCategories = [],
+  defaultParentId,
+  blockFormTypeChange = false,
 }) => {
   const { accessToken } = useAuth();
   const queryClient = useQueryClient();
@@ -52,7 +68,33 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
   const [parent, setParent] = useState<number | null>(null);
   const [order, setOrder] = useState(0);
   const [isActive, setIsActive] = useState(true);
+  const [formType, setFormType] = useState<number | null>(null);
+  const [formTypes, setFormTypes] = useState<FormType[]>([]);
   const [error, setError] = useState<string | null>(null);
+
+  // Obtener tipos de formulario
+  useEffect(() => {
+    const fetchFormTypes = async () => {
+      try {
+        const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+        const response = await axios.get(
+          `${API_URL}/api/parameters/form-types/`,
+          {
+            headers: {
+              'Authorization': accessToken ? `Bearer ${accessToken}` : undefined,
+            },
+            withCredentials: true,
+          }
+        );
+        setFormTypes(response.data);
+      } catch (error) {
+        console.error('Error al obtener tipos de formulario:', error);
+      }
+    };
+    if (open) {
+      fetchFormTypes();
+    }
+  }, [open, accessToken]);
 
   useEffect(() => {
     if (category) {
@@ -63,17 +105,25 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
       setParent(category.parent || null);
       setOrder(category.order);
       setIsActive(category.is_active);
+      // Establecer form_type
+      if (category.form_type) {
+        const formTypeId = typeof category.form_type === 'object' ? category.form_type.id : category.form_type;
+        setFormType(formTypeId);
+      } else {
+        setFormType(null);
+      }
     } else {
       // Reset para crear nuevo
       setCode('');
       setNumber('');
       setName('');
       setDescription('');
-      setParent(null);
+      setParent(defaultParentId || null); // Usar defaultParentId si está disponible
       setOrder(0);
       setIsActive(true);
+      setFormType(null);
     }
-  }, [category, open]);
+  }, [category, open, defaultParentId]);
 
   const updateMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -123,7 +173,7 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
       return;
     }
 
-    updateMutation.mutate({
+    const mutationData: any = {
       code: code.trim(),
       number: number.trim(),
       name: name.trim(),
@@ -131,7 +181,16 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
       parent: parent || null,
       order,
       is_active: isActive,
-    });
+    };
+    
+    // Solo incluir form_type si no está bloqueado o si es una nueva categoría
+    if (!blockFormTypeChange || !category) {
+      if (formType) {
+        mutationData.form_type = formType;
+      }
+    }
+
+    updateMutation.mutate(mutationData);
   };
 
   // Filtrar categorías padre válidas (excluir la actual y sus descendientes)
@@ -142,7 +201,7 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>
-        {category ? 'Editar Sección' : 'Nueva Sección'}
+        {category ? 'Editar Sección' : (defaultParentId ? 'Nueva Subsección' : 'Nueva Sección')}
       </DialogTitle>
       <DialogContent>
         {error && (
@@ -205,6 +264,35 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
                 </option>
               ))}
             </TextField>
+          )}
+
+          {/* Selector de tipo de formulario (solo si no está bloqueado o es nueva categoría) */}
+          {(!blockFormTypeChange || !category) && (
+            <FormControl fullWidth>
+              <InputLabel>Tipo de Formulario</InputLabel>
+              <Select
+                value={formType || ''}
+                label="Tipo de Formulario"
+                onChange={(e) => setFormType(e.target.value ? Number(e.target.value) : null)}
+                disabled={blockFormTypeChange && !!category}
+              >
+                <MenuItem value="">
+                  <em>Ninguno (usar grilla por defecto)</em>
+                </MenuItem>
+                {formTypes.map((type) => (
+                  <MenuItem key={type.id} value={type.id}>
+                    {type.name}
+                  </MenuItem>
+                ))}
+              </Select>
+              {blockFormTypeChange && category && (
+                <Box sx={{ mt: 0.5 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    El tipo no puede cambiarse una vez establecido
+                  </Typography>
+                </Box>
+              )}
+            </FormControl>
           )}
 
           <TextField

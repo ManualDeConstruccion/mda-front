@@ -53,11 +53,20 @@ import ParameterInput from './ParameterInput';
 // Tipos
 export type SectionTreeMode = 'view' | 'editable' | 'admin';
 
+export interface FormType {
+  id: number;
+  name: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface FormParameterCategory {
   id: number;
   code: string;
   number: string;
   name: string;
+  form_type?: number | FormType | null;
+  form_type_name?: string | null;
   description?: string;
   parent?: number | null;
   order: number;
@@ -521,9 +530,48 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
   const [parameterInitialGridPosition, setParameterInitialGridPosition] = useState<{ row: number; column: number } | null>(null);
   const [editParameterModalOpen, setEditParameterModalOpen] = useState(false);
   const [selectedParameter, setSelectedParameter] = useState<FormParameter | null>(null);
+  const [selectTypeModalOpen, setSelectTypeModalOpen] = useState(false);
+  const [formTypes, setFormTypes] = useState<FormType[]>([]);
+  const [creatingSubcategory, setCreatingSubcategory] = useState(false);
+  
+  // Obtener tipos de formulario desde la API
+  useEffect(() => {
+    const fetchFormTypes = async () => {
+      if (mode !== 'admin') return;
+      try {
+        const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+        const response = await axios.get(
+          `${API_URL}/api/parameters/form-types/`,
+          {
+            headers: {
+              'Authorization': accessToken ? `Bearer ${accessToken}` : undefined,
+            },
+            withCredentials: true,
+          }
+        );
+        setFormTypes(response.data);
+      } catch (error) {
+        console.error('Error al obtener tipos de formulario:', error);
+      }
+    };
+    fetchFormTypes();
+  }, [mode, accessToken]);
   
   const hasSubcategories = section.subcategories && section.subcategories.length > 0;
   const hasParameters = section.form_parameters && section.form_parameters.length > 0;
+  
+  // Determinar si la sección usa la interfaz de grilla (solo para tipo "general" explícitamente)
+  const formTypeName = typeof section.form_type === 'object' 
+    ? section.form_type?.name 
+    : (section.form_type_name || null);
+  // Normalizar: si es cadena vacía, tratarla como null
+  const normalizedFormTypeName = (formTypeName === '' || formTypeName === null || formTypeName === undefined) ? null : formTypeName;
+  // Solo mostrar grilla si el tipo es explícitamente "general", no si es undefined/null
+  const useGridInterface = normalizedFormTypeName === 'general';
+  
+  // Verificar si form_type es realmente undefined/null (no solo falsy)
+  // IMPORTANTE: Si es tipo "general", NO es undefined, así que no mostrar selector
+  const isFormTypeUndefined = normalizedFormTypeName === null || normalizedFormTypeName === undefined || normalizedFormTypeName === '';
   
   // Helper: Obtener número de columnas para una fila desde display_config
   const getColumnsForRow = useCallback((row: number): number => {
@@ -1354,6 +1402,18 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
 
   // Renderizar según el modo
   const renderContent = () => {
+    // Si no usa interfaz de grilla y está en modo admin, mostrar mensaje
+    // Pero solo si tiene un tipo definido (no mostrar mensaje si es null/undefined/vacío)
+    if (mode === 'admin' && !useGridInterface && normalizedFormTypeName) {
+      return (
+        <Box sx={{ mt: 2, p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
+          <Typography variant="body2" color="text.secondary">
+            Esta sección usa el tipo "{normalizedFormTypeName}". La interfaz personalizada para este tipo aún no está implementada.
+          </Typography>
+        </Box>
+      );
+    }
+    
     return (
       <Box sx={{ mt: 2 }}>
         {/* Grilla compartida por todos los modos */}
@@ -1382,7 +1442,8 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-          {(hasSubcategories || hasParameters || hasGridCells) && (
+          {/* Botón de expandir/colapsar - Mostrar siempre en modo admin, o si tiene contenido */}
+          {(mode === 'admin' || hasSubcategories || hasParameters || hasGridCells) && (
             <IconButton
               size="small"
               onClick={async () => {
@@ -1399,7 +1460,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
               {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
             </IconButton>
           )}
-          {!(hasSubcategories || hasParameters || hasGridCells) && <Box sx={{ width: 40, mr: 1 }} />}
+          {mode !== 'admin' && !(hasSubcategories || hasParameters || hasGridCells) && <Box sx={{ width: 40, mr: 1 }} />}
           
           <Typography variant="h6" sx={{ flex: 1 }}>
             {section.number} - {section.name}
@@ -1470,10 +1531,42 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
               <Tooltip title="Editar sección">
                 <IconButton
                   size="small"
-                  onClick={() => setEditCategoryModalOpen(true)}
+                  onClick={() => {
+                    setCreatingSubcategory(false); // Asegurar que no estamos creando subcategoría
+                    setEditCategoryModalOpen(true);
+                  }}
                   sx={{ mr: 0.5 }}
                 >
                   <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Eliminar sección">
+                <IconButton
+                  size="small"
+                  onClick={async () => {
+                    if (window.confirm(`¿Estás seguro de que deseas eliminar la sección "${section.name}"? Esta acción no se puede deshacer.`)) {
+                      try {
+                        const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+                        await axios.delete(
+                          `${API_URL}/api/parameters/form-parameter-categories/${section.id}/`,
+                          {
+                            headers: {
+                              'Authorization': accessToken ? `Bearer ${accessToken}` : undefined,
+                            },
+                            withCredentials: true,
+                          }
+                        );
+                        onSectionUpdated();
+                      } catch (error) {
+                        console.error('Error al eliminar sección:', error);
+                        alert('Error al eliminar la sección. Asegúrate de que no tenga subcategorías o parámetros asociados.');
+                      }
+                    }
+                  }}
+                  sx={{ mr: 0.5 }}
+                  color="error"
+                >
+                  <DeleteIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
             </>
@@ -1487,7 +1580,69 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
         )}
 
         <Collapse in={isExpanded}>
-          {renderContent()}
+          {/* Selector de tipo cuando la sección está vacía (modo admin) - Mostrar SOLO si form_type es undefined/null Y NO es tipo "general" */}
+          {mode === 'admin' && !hasParameters && !hasSubcategories && !hasGridCells && isFormTypeUndefined && !useGridInterface && (
+            <Box sx={{ mt: 2, ml: 0 }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2, bgcolor: 'background.default', borderRadius: 1, border: '1px dashed', borderColor: 'divider' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  Esta sección está vacía. Elige cómo configurarla:
+                </Typography>
+                <FormControl size="small" sx={{ minWidth: 200 }}>
+                  <InputLabel>Seleccionar Tipo de Categoría</InputLabel>
+                  <Select
+                    value=""
+                    label="Seleccionar Tipo de Categoría"
+                    onChange={async (e) => {
+                      const formTypeId = Number(e.target.value);
+                      if (formTypeId) {
+                        try {
+                          const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+                          await axios.patch(
+                            `${API_URL}/api/parameters/form-parameter-categories/${section.id}/`,
+                            { form_type: formTypeId },
+                            {
+                              headers: {
+                                'Authorization': accessToken ? `Bearer ${accessToken}` : undefined,
+                              },
+                              withCredentials: true,
+                            }
+                          );
+                          onSectionUpdated();
+                        } catch (error) {
+                          console.error('Error al actualizar tipo de formulario:', error);
+                          alert('Error al actualizar el tipo de formulario');
+                        }
+                      }
+                    }}
+                  >
+                    {formTypes.map((type) => (
+                      <MenuItem key={type.id} value={type.id}>
+                        {type.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+            </Box>
+          )}
+          
+          {/* Mostrar información del tipo si ya está seleccionado (solo si no es "general" o si tiene contenido) */}
+          {mode === 'admin' && normalizedFormTypeName && normalizedFormTypeName !== 'general' && (
+            <Box sx={{ mt: 2, mb: 2, ml: 0 }}>
+              <Box sx={{ p: 1, bgcolor: 'background.default', borderRadius: 1 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Tipo: {normalizedFormTypeName}
+                  <span> - La interfaz personalizada para este tipo aún no está implementada</span>
+                </Typography>
+              </Box>
+            </Box>
+          )}
+          
+          {/* Renderizar contenido: SOLO si usa grilla (tipo "general") o si tiene contenido */}
+          {/* Si es tipo "general", siempre mostrar la grilla, incluso si está vacía */}
+          {useGridInterface || hasParameters || hasSubcategories || hasGridCells ? (
+            renderContent()
+          ) : null}
 
           {/* Subcategorías */}
           {hasSubcategories && (
@@ -1514,10 +1669,27 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
             </Box>
           )}
 
-          {!hasParameters && !hasSubcategories && !hasGridCells && (
+          {/* Mensaje para modo no-admin cuando está vacía */}
+          {mode !== 'admin' && !hasParameters && !hasSubcategories && !hasGridCells && (
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1, ml: 6 }}>
               Esta sección no tiene parámetros configurados.
             </Typography>
+          )}
+
+          {/* Botón para crear subsección - Siempre visible en modo admin, al final */}
+          {mode === 'admin' && (
+            <Box sx={{ mt: 2, ml: 0 }}>
+              <Button
+                variant="outlined"
+                startIcon={<AddIcon />}
+                onClick={() => {
+                  setCreatingSubcategory(true);
+                  setEditCategoryModalOpen(true);
+                }}
+              >
+                Crear Subsección
+              </Button>
+            </Box>
           )}
         </Collapse>
       </Box>
@@ -1525,11 +1697,19 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
       {/* Modales */}
       <EditFormParameterCategoryModal
         open={editCategoryModalOpen}
-        onClose={() => setEditCategoryModalOpen(false)}
-        onSuccess={onSectionUpdated}
-        category={section}
+        onClose={() => {
+          setEditCategoryModalOpen(false);
+          setCreatingSubcategory(false);
+        }}
+        onSuccess={() => {
+          onSectionUpdated();
+          setCreatingSubcategory(false);
+        }}
+        category={creatingSubcategory ? null : section} // null para crear subcategoría, section para editar
         projectTypeId={projectTypeId}
         parentCategories={allSections}
+        defaultParentId={creatingSubcategory ? section.id : undefined} // Establecer esta sección como padre solo al crear subcategoría
+        blockFormTypeChange={!!section.form_type && !creatingSubcategory} // Bloquear cambio si ya tiene tipo y no estamos creando subcategoría
       />
 
         <AddFormParameterModal
