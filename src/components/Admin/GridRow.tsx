@@ -101,7 +101,7 @@ const GridRow: React.FC<GridRowProps> = React.memo(({
               label="Columnas"
               onChange={(e) => onUpdateDisplayConfig(row, Number(e.target.value))}
             >
-              {[1, 2, 3, 4, 5].map(num => (
+              {[1, 2, 3, 4, 5, 6, 7, 8].map(num => (
                 <MenuItem key={num} value={num}>{num}</MenuItem>
               ))}
             </Select>

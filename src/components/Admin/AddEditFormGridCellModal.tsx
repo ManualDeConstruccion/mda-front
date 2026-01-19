@@ -19,7 +19,6 @@ interface FormGridCell {
   grid_span: number;
   content: string;
   style?: any;
-  order: number;
   is_active: boolean;
 }
 
@@ -118,7 +117,6 @@ const AddEditFormGridCellModal: React.FC<AddEditFormGridCellModalProps> = ({
             grid_column: column,
             grid_span: span,
             content: content.trim(),
-            order: 0,
             is_active: true,
           },
           {

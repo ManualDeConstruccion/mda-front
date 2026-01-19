@@ -31,6 +31,7 @@ import {
   useSensors,
   DragEndEvent,
   DragStartEvent,
+  DragOverEvent,
   DragOverlay,
 } from '@dnd-kit/core';
 import {
@@ -715,6 +716,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
   
   // Estados para modo admin
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeRow, setActiveRow] = useState<number | null>(null);
   const [gridCells, setGridCells] = useState<FormGridCell[]>(section.grid_cells || []);
   const [addTextCellModalOpen, setAddTextCellModalOpen] = useState(false);
   const [textCellInitialData, setTextCellInitialData] = useState<{ row: number; column: number; span: number; content: string } | null>(null);
@@ -851,12 +853,36 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
 
   // Handlers para drag and drop (modo admin)
   const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string);
+    const activeIdStr = event.active.id as string;
+    setActiveId(activeIdStr);
+    
+    // Obtener la fila de la celda que se está arrastrando
+    const activeCell = allCells.find(cell => {
+      const isParam = isCellParameter(cell);
+      const cellId = `cell-${isParam ? 'param' : 'text'}-${cell.id}`;
+      return cellId === activeIdStr;
+    });
+    
+    if (activeCell) {
+      const isParam = isCellParameter(activeCell);
+      const row = isParam 
+        ? (activeCell as FormParameter).grid_row || 1 
+        : (activeCell as FormGridCell).grid_row;
+      setActiveRow(row);
+    }
+  };
+
+  const handleDragOver = (event: DragOverEvent) => {
+    // Este handler permite dar feedback visual, pero la validación real
+    // se hace en handleDragEnd para prevenir el movimiento entre filas
+    // En dnd-kit, no podemos "bloquear" el drop aquí directamente,
+    // pero podemos usar esto para cambios visuales si es necesario
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveId(null);
+    setActiveRow(null);
     
     if (!over || active.id === over.id || mode !== 'admin') return;
     
@@ -868,6 +894,12 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
     });
     
     if (!activeCell) return;
+    
+    // Obtener la fila original de la celda arrastrada
+    const isParameter = isCellParameter(activeCell);
+    const originalRow = isParameter 
+      ? (activeCell as FormParameter).grid_row || 1 
+      : (activeCell as FormGridCell).grid_row;
     
     // Obtener información del drop target
     // Si over.id es una celda existente, usar su posición
@@ -893,6 +925,12 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
         newRow = Number(match[1]);
         newCol = Number(match[2]);
       }
+    }
+    
+    // Restricción: solo permitir movimiento dentro de la misma fila
+    if (newRow !== originalRow) {
+      // No permitir mover celdas entre filas diferentes
+      return;
     }
     
     // Asegurar que la posición esté dentro de los límites
@@ -1063,6 +1101,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
         >
           <SortableContext
