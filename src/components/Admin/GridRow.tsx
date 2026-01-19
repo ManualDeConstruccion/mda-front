@@ -42,7 +42,7 @@ interface GridRowProps {
   onEditTextCell: (cell: FormGridCell) => void;
   onDeleteCell: (cell: FormParameter | FormGridCell, isParameter: boolean) => Promise<void>;
   onAddTextCell: (row: number, column: number) => void;
-  onAddParameter: () => void;
+  onAddParameter: (row: number, column: number) => void;
   values?: Record<string, any>;
   onChange?: (code: string, value: any) => void;
 }
@@ -203,7 +203,7 @@ const GridRow: React.FC<GridRowProps> = React.memo(({
                   size="small"
                   variant="outlined"
                   startIcon={<SettingsIcon />}
-                  onClick={onAddParameter}
+                  onClick={() => onAddParameter(row, col)}
                 >
                   Agregar Parámetro
                 </Button>

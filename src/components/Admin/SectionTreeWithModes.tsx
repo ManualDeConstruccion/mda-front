@@ -330,6 +330,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
   
   const [editCategoryModalOpen, setEditCategoryModalOpen] = useState(false);
   const [addParameterModalOpen, setAddParameterModalOpen] = useState(false);
+  const [parameterInitialGridPosition, setParameterInitialGridPosition] = useState<{ row: number; column: number } | null>(null);
   const [editParameterModalOpen, setEditParameterModalOpen] = useState(false);
   const [selectedParameter, setSelectedParameter] = useState<FormParameter | null>(null);
   
@@ -1031,7 +1032,10 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
           onEditTextCell={(cell: FormGridCell) => handleOpenEditTextCellModal(cell)}
           onDeleteCell={handleDeleteCell}
           onAddTextCell={handleOpenAddTextCellModal}
-          onAddParameter={() => setAddParameterModalOpen(true)}
+          onAddParameter={(row, column) => {
+            setParameterInitialGridPosition({ row, column });
+            setAddParameterModalOpen(true);
+          }}
           values={values}
           onChange={onChange}
         />
@@ -1234,13 +1238,17 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
         parentCategories={allSections}
       />
 
-      <AddFormParameterModal
-        open={addParameterModalOpen}
-        onClose={() => setAddParameterModalOpen(false)}
-        onSuccess={onSectionUpdated}
-        categoryId={section.id}
-        projectTypeId={projectTypeId}
-      />
+        <AddFormParameterModal
+          open={addParameterModalOpen}
+          onClose={() => {
+            setAddParameterModalOpen(false);
+            setParameterInitialGridPosition(null);
+          }}
+          onSuccess={onSectionUpdated}
+          categoryId={section.id}
+          projectTypeId={projectTypeId}
+          initialGridPosition={parameterInitialGridPosition}
+        />
 
       <EditFormParameterModal
         open={editParameterModalOpen}

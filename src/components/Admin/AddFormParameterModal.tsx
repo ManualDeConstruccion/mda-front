@@ -42,6 +42,7 @@ interface AddFormParameterModalProps {
   onSuccess: () => void;
   categoryId: number;
   projectTypeId: number;
+  initialGridPosition?: { row: number; column: number } | null;
 }
 
 const AddFormParameterModal: React.FC<AddFormParameterModalProps> = ({
@@ -50,6 +51,7 @@ const AddFormParameterModal: React.FC<AddFormParameterModalProps> = ({
   onSuccess,
   categoryId,
   projectTypeId,
+  initialGridPosition,
 }) => {
   const { accessToken } = useAuth();
   const queryClient = useQueryClient();
@@ -151,6 +153,11 @@ const AddFormParameterModal: React.FC<AddFormParameterModalProps> = ({
         order,
         is_required: isRequired,
         is_visible: isVisible,
+        ...(initialGridPosition && {
+          grid_row: initialGridPosition.row,
+          grid_column: initialGridPosition.column,
+          grid_span: 1, // Por defecto span 1, se puede editar después
+        }),
       });
     } else {
       // Crear nuevo - esto se manejará en el modal de creación
@@ -166,6 +173,11 @@ const AddFormParameterModal: React.FC<AddFormParameterModalProps> = ({
       order,
       is_required: isRequired,
       is_visible: isVisible,
+      ...(initialGridPosition && {
+        grid_row: initialGridPosition.row,
+        grid_column: initialGridPosition.column,
+        grid_span: 1, // Por defecto span 1, se puede editar después
+      }),
     });
     setCreateParamModalOpen(false);
     queryClient.invalidateQueries({ queryKey: ['parameter-definitions-grouped'] });
