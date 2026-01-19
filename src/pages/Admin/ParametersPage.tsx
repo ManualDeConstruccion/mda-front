@@ -28,11 +28,15 @@ import {
   Grid,
   Pagination,
   Divider,
+  Switch,
+  FormControlLabel,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
+import DownloadIcon from '@mui/icons-material/Download';
+import UploadIcon from '@mui/icons-material/Upload';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
@@ -88,6 +92,12 @@ const ParametersPage: React.FC = () => {
   // Estados del modal
   const [modalOpen, setModalOpen] = useState(false);
   const [editingParameter, setEditingParameter] = useState<ParameterDefinition | null>(null);
+  
+  // Estados para importar/exportar
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importOptions, setImportOptions] = useState({ useId: false, update: true, dryRun: false });
+  const [importing, setImporting] = useState(false);
 
   // Fetch parámetros
   const { data: parameters, isLoading, error } = useQuery<ParameterDefinition[]>({
@@ -292,6 +302,90 @@ const ParametersPage: React.FC = () => {
     handleModalClose();
   };
 
+  const handleExport = async () => {
+    try {
+      const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+      const includeInactive = filterIsActive === '' || filterIsActive === true;
+      
+      const response = await axios.get(
+        `${API_URL}/api/parameters/parameter-definitions/export-excel/?include_inactive=${includeInactive}`,
+        {
+          responseType: 'blob',
+          withCredentials: true,
+          headers: {
+            'Authorization': accessToken ? `Bearer ${accessToken}` : undefined,
+          },
+        }
+      );
+      
+      // Crear URL del blob y descargar
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `parameter_definitions_${new Date().toISOString().split('T')[0]}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error al exportar:', error);
+      alert('Error al exportar el archivo. Por favor, intenta nuevamente.');
+    }
+  };
+
+  const handleImport = async () => {
+    if (!importFile) {
+      alert('Por favor selecciona un archivo');
+      return;
+    }
+
+    setImporting(true);
+    try {
+      const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+      const formData = new FormData();
+      formData.append('file', importFile);
+      formData.append('use_id', importOptions.useId.toString());
+      formData.append('update', importOptions.update.toString());
+      formData.append('dry_run', importOptions.dryRun.toString());
+      
+      const response = await axios.post(
+        `${API_URL}/api/parameters/parameter-definitions/import-excel/`,
+        formData,
+        {
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            'Authorization': accessToken ? `Bearer ${accessToken}` : undefined,
+          },
+        }
+      );
+      
+      const stats = response.data.stats;
+      const message = importOptions.dryRun
+        ? `[DRY RUN] Se procesarían: ${stats.created} creados, ${stats.updated} actualizados, ${stats.deleted} eliminados, ${stats.skipped} omitidos`
+        : `Importación completada: ${stats.created} creados, ${stats.updated} actualizados, ${stats.deleted} eliminados, ${stats.skipped} omitidos`;
+      
+      if (stats.errors && stats.errors.length > 0) {
+        alert(`${message}\n\nErrores:\n${stats.errors.slice(0, 10).join('\n')}${stats.errors.length > 10 ? `\n... y ${stats.errors.length - 10} más` : ''}`);
+      } else {
+        alert(message);
+      }
+      
+      if (!importOptions.dryRun) {
+        queryClient.invalidateQueries({ queryKey: ['parameter-definitions-all'] });
+        queryClient.invalidateQueries({ queryKey: ['parameter-definitions-grouped'] });
+      }
+      
+      setImportDialogOpen(false);
+      setImportFile(null);
+    } catch (error: any) {
+      console.error('Error al importar:', error);
+      alert(`Error al importar: ${error.response?.data?.error || error.message}`);
+    } finally {
+      setImporting(false);
+    }
+  };
+
   // Resetear página cuando cambian los filtros
   React.useEffect(() => {
     setPage(1);
@@ -331,13 +425,29 @@ const ParametersPage: React.FC = () => {
               Gestiona todas las definiciones de parámetros del sistema.
             </Typography>
           </Box>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleCreate}
-          >
-            Nuevo Parámetro
-          </Button>
+          <Stack direction="row" spacing={2}>
+            <Button
+              variant="outlined"
+              startIcon={<DownloadIcon />}
+              onClick={handleExport}
+            >
+              Exportar Excel
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<UploadIcon />}
+              onClick={() => setImportDialogOpen(true)}
+            >
+              Importar Excel
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleCreate}
+            >
+              Nuevo Parámetro
+            </Button>
+          </Stack>
         </Box>
 
         {/* Búsqueda y Filtros */}
@@ -579,6 +689,68 @@ const ParametersPage: React.FC = () => {
           onSuccess={handleModalSuccess}
           parameter={editingParameter}
         />
+
+        {/* Modal para importar */}
+        <Dialog open={importDialogOpen} onClose={() => setImportDialogOpen(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>Importar Parámetros desde Excel</DialogTitle>
+          <DialogContent>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+              <input
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                style={{ marginBottom: '16px' }}
+              />
+              
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={importOptions.useId}
+                    onChange={(e) => setImportOptions({ ...importOptions, useId: e.target.checked })}
+                  />
+                }
+                label="Usar columna ID para actualizar registros"
+              />
+              
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={importOptions.update}
+                    onChange={(e) => setImportOptions({ ...importOptions, update: e.target.checked })}
+                  />
+                }
+                label="Actualizar registros existentes (por código)"
+              />
+              
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={importOptions.dryRun}
+                    onChange={(e) => setImportOptions({ ...importOptions, dryRun: e.target.checked })}
+                  />
+                }
+                label="Modo Dry-Run (simular sin guardar cambios)"
+              />
+              
+              <Alert severity="info" sx={{ mt: 2 }}>
+                El archivo Excel debe contener una hoja llamada "ParameterDefinition" con las columnas requeridas.
+              </Alert>
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setImportDialogOpen(false)} disabled={importing}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleImport}
+              variant="contained"
+              disabled={!importFile || importing}
+              startIcon={<UploadIcon />}
+            >
+              {importing ? 'Importando...' : 'Importar'}
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     </Container>
   );
