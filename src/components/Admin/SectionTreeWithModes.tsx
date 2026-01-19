@@ -121,6 +121,11 @@ interface SectionTreeWithModesProps {
   subprojectId?: number; // Para modo editable (usuario final)
   values?: Record<string, any>; // Valores actuales del formulario (modo editable)
   onChange?: (code: string, value: any) => void; // Callback para cambios (modo editable)
+  onSectionExpand?: (sectionId: number) => Promise<void>; // Callback cuando se expande una sección (para cargar valores)
+  activeSectionId?: number; // ID de la sección que debe estar expandida por defecto
+  sectionMode?: 'view' | 'editable'; // Modo específico para esta sección (solo para usuario final)
+  onSectionModeChange?: (sectionId: number, mode: 'view' | 'editable') => void; // Callback cuando cambia el modo de la sección
+  getSectionMode?: (sectionId: number) => 'view' | 'editable' | undefined; // Función para obtener el modo de cualquier sección (para subcategorías)
 }
 
 // Componente para celda de grilla (compartido por todos los modos)
@@ -419,6 +424,11 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
   subprojectId,
   values: externalValues = {},
   onChange: externalOnChange,
+  onSectionExpand,
+  activeSectionId,
+  sectionMode: propSectionMode,
+  onSectionModeChange,
+  getSectionMode,
 }) => {
   const { accessToken } = useAuth();
   
@@ -444,18 +454,58 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
   const onChange = externalOnChange || handleLocalChange;
   const values = externalOnChange ? externalValues : localValues;
   
+  // Determinar el modo efectivo: usar sectionMode si está definido, sino usar mode
+  // sectionMode solo aplica cuando no estamos en modo admin y hay subprojectId (usuario final)
+  // Si sectionMode está definido (no undefined), usarlo. Si no, intentar obtenerlo con getSectionMode, sino usar mode.
+  const resolvedSectionMode = propSectionMode !== undefined 
+    ? propSectionMode 
+    : (getSectionMode ? getSectionMode(section.id) : undefined);
+  
+  const effectiveMode: SectionTreeMode = (mode !== 'admin' && subprojectId && resolvedSectionMode !== undefined) 
+    ? resolvedSectionMode 
+    : mode;
+  
+  // Debug: verificar que effectiveMode se calcula correctamente
+  useEffect(() => {
+    if (mode !== 'admin' && subprojectId) {
+      console.log(`[SectionTreeWithModes] Section ${section.id}: mode=${mode}, propSectionMode=${propSectionMode} (${typeof propSectionMode}), effectiveMode=${effectiveMode}`);
+    }
+  }, [mode, propSectionMode, effectiveMode, section.id, subprojectId]);
+  
   // Persistir estado de expansión usando sessionStorage para evitar que se cierre al recargar
   const storageKey = `section-expanded-${section.id}`;
   const getInitialExpandedState = () => {
+    // Si hay una sección activa definida, esa debe estar expandida (solo para la primera vez)
+    if (activeSectionId !== undefined && section.id === activeSectionId) {
+      return true;
+    }
+    
+    // Todas las categorías empiezan colapsadas por defecto
+    // Solo se expande manualmente o si está guardada en sessionStorage
     try {
       const stored = sessionStorage.getItem(storageKey);
-      return stored !== null ? stored === 'true' : level === 0;
+      return stored === 'true';
     } catch {
-      return level === 0;
+      return false;
     }
   };
   
   const [isExpanded, setIsExpanded] = useState(getInitialExpandedState);
+  
+  // Si hay activeSectionId y coincide con esta sección, expandirla (solo si no estaba ya guardada)
+  useEffect(() => {
+    if (activeSectionId !== undefined && section.id === activeSectionId) {
+      // Solo expandir si no hay estado guardado en sessionStorage
+      try {
+        const stored = sessionStorage.getItem(storageKey);
+        if (stored === null) {
+          setIsExpanded(true);
+        }
+      } catch {
+        setIsExpanded(true);
+      }
+    }
+  }, [activeSectionId, section.id, storageKey]);
   
   // Guardar estado de expansión cuando cambia
   useEffect(() => {
@@ -1178,7 +1228,8 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
   }, [accessToken, onSectionUpdated]);
 
   // Renderizar la grilla base (compartida por todos los modos) - REESTRUCTURADO para columnas por fila
-  const renderGrid = () => {
+  // Usar useMemo para recalcular cuando cambia effectiveMode u otros dependencias
+  const gridRows = useMemo(() => {
     const rows = [];
     
     for (let r = 1; r <= maxRow; r++) {
@@ -1187,11 +1238,11 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
       
       rows.push(
         <GridRow
-          key={`row-${r}`}
+          key={`row-${r}-${effectiveMode}`} // Incluir effectiveMode en la key para forzar re-render
           row={r}
           rowColumns={rowColumns}
           rowCells={rowCells}
-          mode={mode}
+          mode={effectiveMode}
           maxRow={maxRow}
           activeId={activeId || ''}
           hasParameters={!!hasParameters}
@@ -1217,6 +1268,10 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
       );
     }
     
+    return rows;
+  }, [effectiveMode, maxRow, gridLayout, activeId, hasParameters, section, values, onChange, addRowBefore, addRowAfter, deleteRow, updateDisplayConfig, handleDeleteCell, getColumnsForRow]);
+  
+  const renderGrid = () => {
     const gridContent = (
       <Box
         sx={{
@@ -1227,7 +1282,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
           bgcolor: 'background.paper',
         }}
       >
-        {rows}
+        {gridRows}
       </Box>
     );
 
@@ -1330,7 +1385,15 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
           {(hasSubcategories || hasParameters || hasGridCells) && (
             <IconButton
               size="small"
-              onClick={() => setIsExpanded(!isExpanded)}
+              onClick={async () => {
+                const newExpanded = !isExpanded;
+                setIsExpanded(newExpanded);
+                
+                // Si se está expandiendo y hay callback, cargar valores y notificar al padre
+                if (newExpanded && onSectionExpand) {
+                  await onSectionExpand(section.id);
+                }
+              }}
               sx={{ mr: 1 }}
             >
               {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
@@ -1343,13 +1406,63 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
           </Typography>
           
           {hasParameters && (
-            <Chip
-              label={`${section.form_parameters?.length} parámetros`}
-              size="small"
-              color="primary"
-              variant="outlined"
-              sx={{ mr: 1 }}
-            />
+            <>
+              <Chip
+                label={`${section.form_parameters?.length} parámetros`}
+                size="small"
+                color="primary"
+                variant="outlined"
+                sx={{ mr: 1 }}
+              />
+              
+              {/* Selector de modo Vista/Editable para categorías con parámetros (solo modo usuario final) */}
+              {mode !== 'admin' && subprojectId && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0, mr: 1 }}>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      console.log(`[SectionTreeWithModes] Button clicked for section ${section.id}, setting to view`);
+                      onSectionModeChange && onSectionModeChange(section.id, 'view');
+                    }}
+                    style={{
+                      padding: '0.25rem 0.75rem',
+                      fontSize: '0.75rem',
+                      backgroundColor: effectiveMode === 'view' ? '#1976d2' : '#e0e0e0',
+                      color: effectiveMode === 'view' ? 'white' : 'black',
+                      border: 'none',
+                      borderRadius: '4px 0 0 4px',
+                      cursor: 'pointer',
+                      fontWeight: effectiveMode === 'view' ? 'bold' : 'normal',
+                      transition: 'background-color 0.2s',
+                    }}
+                  >
+                    Vista
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      console.log(`[SectionTreeWithModes] Button clicked for section ${section.id}, setting to editable`);
+                      onSectionModeChange && onSectionModeChange(section.id, 'editable');
+                    }}
+                    style={{
+                      padding: '0.25rem 0.75rem',
+                      fontSize: '0.75rem',
+                      backgroundColor: effectiveMode === 'editable' ? '#1976d2' : '#e0e0e0',
+                      color: effectiveMode === 'editable' ? 'white' : 'black',
+                      border: 'none',
+                      borderRadius: '0 4px 4px 0',
+                      cursor: 'pointer',
+                      fontWeight: effectiveMode === 'editable' ? 'bold' : 'normal',
+                      transition: 'background-color 0.2s',
+                    }}
+                  >
+                    Editable
+                  </button>
+                </Box>
+              )}
+            </>
           )}
 
           {mode === 'admin' && (
@@ -1391,6 +1504,11 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
                   subprojectId={subprojectId}
                   values={values}
                   onChange={onChange}
+                  onSectionExpand={onSectionExpand}
+                  activeSectionId={activeSectionId}
+                  sectionMode={getSectionMode ? getSectionMode(subcategory.id) : undefined}
+                  onSectionModeChange={onSectionModeChange}
+                  getSectionMode={getSectionMode}
                 />
               ))}
             </Box>
