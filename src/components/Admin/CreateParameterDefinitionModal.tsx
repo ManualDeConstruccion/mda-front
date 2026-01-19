@@ -125,13 +125,18 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
   });
 
   useEffect(() => {
+    if (!open) {
+      // Resetear cuando se cierra el modal
+      return;
+    }
+    
     if (parameter) {
-      setCode(parameter.code);
+      setCode(parameter.code || '');
       setFormPdfCode(parameter.form_pdf_code || '');
-      setName(parameter.name);
+      setName(parameter.name || '');
       setDescription(parameter.description || '');
       setCategory(parameter.category || null);
-      setDataType(parameter.data_type);
+      setDataType(parameter.data_type || 'text');
       setUnit(parameter.unit || '');
       setHelpText(parameter.help_text || '');
       setIsActive(parameter.is_active !== undefined ? parameter.is_active : true);
@@ -153,6 +158,7 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
         setSelectedRegulationArticles([]);
       }
     } else {
+      // Resetear todo cuando se crea un nuevo parámetro
       setCode('');
       setFormPdfCode('');
       setName('');
@@ -210,7 +216,27 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
     },
     onSuccess: async (data) => {
       // Actualizar regulation_articles si hay cambios (ManyToMany requiere actualización separada)
-      if (selectedRegulationArticles.length > 0 || parameter) {
+      // Solo actualizar si estamos creando un nuevo parámetro y hay artículos seleccionados
+      // o si estamos editando y hay cambios
+      if (!parameter && selectedRegulationArticles.length > 0) {
+        try {
+          const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+          await axios.patch(
+            `${API_URL}/api/parameters/parameter-definitions/${data.id}/`,
+            { regulation_articles: selectedRegulationArticles },
+            {
+              withCredentials: true,
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`,
+              },
+            }
+          );
+        } catch (err) {
+          console.error('Error al actualizar artículos normativos:', err);
+        }
+      } else if (parameter && selectedRegulationArticles.length >= 0) {
+        // Al editar, también actualizar regulation_articles
         try {
           const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
           await axios.patch(
@@ -230,6 +256,7 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
       }
       queryClient.invalidateQueries({ queryKey: ['parameter-definitions-grouped'] });
       queryClient.invalidateQueries({ queryKey: ['parameter-definitions'] });
+      queryClient.invalidateQueries({ queryKey: ['parameter-definitions-all'] });
       onSuccess(data);
       onClose();
     },
@@ -240,8 +267,17 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
 
   const handleSubmit = () => {
     setError(null);
-    if (!code.trim() || !name.trim()) {
+    
+    // Validar que el código no esté vacío
+    const trimmedCode = code.trim();
+    if (!trimmedCode || !name.trim()) {
       setError('Código y nombre son requeridos');
+      return;
+    }
+    
+    // Validar formato del código (debe ser alfanumérico con guiones bajos)
+    if (!/^[a-z][a-z0-9_]*$/.test(trimmedCode)) {
+      setError('El código debe comenzar con una letra y solo puede contener letras minúsculas, números y guiones bajos');
       return;
     }
 
@@ -271,7 +307,7 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
     }
 
     const mutationData: any = {
-      code: code.trim(),
+      code: trimmedCode,
       form_pdf_code: formPdfCode.trim() || '',
       name: name.trim(),
       description: description.trim() || '',
@@ -293,6 +329,8 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
     };
 
     // regulation_articles se manejan después de crear/actualizar ya que es ManyToMany
+    // Debug: verificar que el código se está incluyendo
+    console.log('Enviando mutationData:', { ...mutationData, code: mutationData.code || 'VACÍO' });
     createMutation.mutate(mutationData);
   };
 
