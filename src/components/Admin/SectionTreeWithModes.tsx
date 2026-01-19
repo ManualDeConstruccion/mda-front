@@ -48,6 +48,7 @@ import AddFormParameterModal from './AddFormParameterModal';
 import EditFormParameterModal from './EditFormParameterModal';
 import AddEditFormGridCellModal from './AddEditFormGridCellModal';
 import GridRow from './GridRow';
+import ParameterInput from './ParameterInput';
 
 // Tipos
 export type SectionTreeMode = 'view' | 'editable' | 'admin';
@@ -180,6 +181,14 @@ const GridCell: React.FC<GridCellProps> = ({
     ? getParameterDefinition(cell as FormParameter)?.code || (cell as FormParameter).parameter_definition_code
     : null;
 
+  // Obtener data_type y unit del parameter_definition para modo editable/vista
+  const paramDef = isParameter ? getParameterDefinition(cell as FormParameter) : null;
+  const dataType = paramDef?.data_type || 'text';
+  const unit = paramDef?.unit;
+  
+  // Obtener is_required del FormParameter
+  const isRequired = isParameter ? (cell as FormParameter).is_required : false;
+
   // Determinar el color de fondo para celdas de texto
   const getBackgroundColor = () => {
     if (isParameter) {
@@ -239,31 +248,102 @@ const GridCell: React.FC<GridCellProps> = ({
         </Box>
       )}
       
-      <Box sx={{ flex: 1, ml: mode === 'admin' ? 4 : 0 }}>
+      <Box sx={{ 
+        flex: 1, 
+        ml: mode === 'admin' ? 4 : 0,
+        display: 'flex',
+        flexDirection: 'column',
+        ...(mode === 'view' && isParameter ? {
+          justifyContent: 'center',
+          alignItems: 'center',
+        } : {})
+      }}>
         {isParameter ? (
           <>
-            <Typography variant="body2" fontWeight="medium" sx={{ mb: 0.5 }}>
-              {cellContent}
-            </Typography>
-            {cellCode && (
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                Código: {cellCode}
-              </Typography>
-            )}
-            {/* En modo editable, aquí iría el campo de entrada */}
-            {mode === 'editable' && cellCode && (
-              <Box sx={{ mt: 1 }}>
-                <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                  Campo editable - En desarrollo
+            {/* En modo admin y editable, mostrar nombre y código */}
+            {(mode === 'admin' || mode === 'editable') && (
+              <>
+                <Typography variant="body2" fontWeight="medium" sx={{ mb: 0.5 }}>
+                  {cellContent}
                 </Typography>
-              </Box>
+                {cellCode && mode === 'admin' && (
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                    Código: {cellCode}
+                  </Typography>
+                )}
+              </>
             )}
-            {/* En modo vista, mostrar solo el valor si existe */}
-            {mode === 'view' && cellCode && values && values[cellCode] !== undefined && (
-              <Typography variant="body2" sx={{ mt: 1, fontWeight: 'medium' }}>
-                {String(values[cellCode])}
-              </Typography>
-            )}
+            {/* En modo editable, mostrar el input correspondiente */}
+            {mode === 'editable' && cellCode && paramDef && onChange && (() => {
+              const handleChange = onChange; // Capturar onChange para evitar error de TypeScript
+              return (
+                <Box sx={{ mt: 1 }}>
+                  <ParameterInput
+                    dataType={dataType as any}
+                    value={values?.[cellCode]}
+                    onChange={(newValue) => {
+                      handleChange(cellCode, newValue);
+                    }}
+                    label={undefined} // Ya se muestra el nombre arriba
+                    unit={unit}
+                    required={isRequired}
+                    disabled={false}
+                  />
+                </Box>
+              );
+            })()}
+            {/* En modo vista, mostrar solo el valor formateado, grande y centrado */}
+            {mode === 'view' && cellCode && (() => {
+              const value = values?.[cellCode];
+              let displayValue = '';
+              
+              if (value === null || value === undefined) {
+                displayValue = '-';
+              } else {
+                switch (dataType) {
+                  case 'decimal':
+                    displayValue = typeof value === 'number' 
+                      ? value.toFixed(2) 
+                      : String(value);
+                    if (unit) displayValue += ` ${unit}`;
+                    break;
+                  case 'integer':
+                    displayValue = String(value);
+                    if (unit) displayValue += ` ${unit}`;
+                    break;
+                  case 'boolean':
+                    displayValue = value ? 'Sí' : 'No';
+                    break;
+                  case 'date':
+                    try {
+                      const date = new Date(value);
+                      displayValue = date.toLocaleDateString('es-ES', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                      });
+                    } catch {
+                      displayValue = String(value);
+                    }
+                    break;
+                  default:
+                    displayValue = String(value);
+                }
+              }
+              
+              return (
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    fontWeight: 'medium',
+                    textAlign: 'center',
+                    width: '100%',
+                  }}
+                >
+                  {displayValue}
+                </Typography>
+              );
+            })()}
           </>
         ) : (
           (() => {
@@ -337,10 +417,32 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
   onSectionUpdated,
   mode = 'view',
   subprojectId,
-  values = {},
-  onChange,
+  values: externalValues = {},
+  onChange: externalOnChange,
 }) => {
   const { accessToken } = useAuth();
+  
+  // Estado local para valores cuando no hay onChange externo (modo admin)
+  const [localValues, setLocalValues] = useState<Record<string, any>>(externalValues);
+  
+  // Sincronizar valores locales con valores externos cuando cambian
+  useEffect(() => {
+    if (externalValues && Object.keys(externalValues).length > 0) {
+      setLocalValues(externalValues);
+    }
+  }, [externalValues]);
+  
+  // Handler local para cambios cuando no hay onChange externo
+  const handleLocalChange = useCallback((code: string, value: any) => {
+    setLocalValues(prev => ({
+      ...prev,
+      [code]: value,
+    }));
+  }, []);
+  
+  // Usar onChange externo si existe, sino usar el local
+  const onChange = externalOnChange || handleLocalChange;
+  const values = externalOnChange ? externalValues : localValues;
   
   // Persistir estado de expansión usando sessionStorage para evitar que se cierre al recargar
   const storageKey = `section-expanded-${section.id}`;
