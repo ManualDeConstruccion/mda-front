@@ -279,7 +279,7 @@
   color: white;
 
   &:hover:not(:disabled) {
-    background-color: darken($primary-color, 10%);
+    background-color: color.adjust($primary-color, $lightness: -10%);
   }
 
   &:disabled {
@@ -684,8 +684,8 @@
   font-family: inherit;
 
   &:hover:not(:disabled) {
-    background-color: darken($primary-color, 10%) !important;
-    background: darken($primary-color, 10%) !important;
+    background-color: color.adjust($primary-color, $lightness: -10%) !important;
+    background: color.adjust($primary-color, $lightness: -10%) !important;
     color: white !important;
   }
 

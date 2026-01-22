@@ -1,5 +1,6 @@
 // src/components/FloorEditor/FloorsTab.module.scss
 
+@use 'sass:color';
 @use '../../styles/variables' as *;
 
 .container {
@@ -57,8 +58,8 @@
   font-family: inherit;
 
   &:hover {
-    background-color: darken($primary-color, 10%) !important;
-    background: darken($primary-color, 10%) !important;
+    background-color: color.adjust($primary-color, $lightness: -10%) !important;
+    background: color.adjust($primary-color, $lightness: -10%) !important;
     color: white !important;
   }
 
@@ -262,7 +263,7 @@
   color: white;
 
   &:hover:not(:disabled) {
-    background-color: darken($error-color, 10%);
+    background-color: color.adjust($error-color, $lightness: -10%);
   }
 }
 
@@ -271,7 +272,7 @@
   color: white;
 
   &:hover:not(:disabled) {
-    background-color: darken($success-color, 10%);
+    background-color: color.adjust($success-color, $lightness: -10%);
   }
 }
 
@@ -437,7 +438,7 @@
   color: white;
 
   &:hover:not(:disabled) {
-    background-color: darken($text-secondary, 10%);
+    background-color: color.adjust($text-secondary, $lightness: -10%);
   }
 }
 
@@ -446,7 +447,7 @@
   color: white;
 
   &:hover:not(:disabled) {
-    background-color: darken($success-color, 10%);
+    background-color: color.adjust($success-color, $lightness: -10%);
   }
 }
 
@@ -586,14 +587,14 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 
   thead {
-    background: linear-gradient(135deg, $primary-color 0%, darken($primary-color, 5%) 100%);
+    background: linear-gradient(135deg, $primary-color 0%, color.adjust($primary-color, $lightness: -5%) 100%);
 
     th {
       padding: $spacing-md $spacing-lg;
       text-align: left;
       font-weight: 600;
       color: white;
-      border-bottom: 2px solid darken($primary-color, 10%);
+      border-bottom: 2px solid color.adjust($primary-color, $lightness: -10%);
       font-size: $font-size-base;
 
       &:nth-child(2) {
@@ -646,7 +647,7 @@
   }
 
   &:hover {
-    border-color: darken($border-color, 10%);
+    border-color: color.adjust($border-color, $lightness: -10%);
   }
 }
 
