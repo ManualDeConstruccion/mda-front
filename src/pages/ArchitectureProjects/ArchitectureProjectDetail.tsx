@@ -1,13 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useProjectNodes } from '../../hooks/useProjectNodes';
 import { ProjectNode, TypeCode } from '../../types/project_nodes.types';
-
-const API_URL = import.meta.env.VITE_API_URL?.replace(/\/$/, '') || '';
-import styles from './ArchitectureProjectDetail.module.scss';
-import ListadoDeAntecedentes from './ListadoDeAntecedentes';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Home as HomeIcon,
   AttachMoney as BudgetIcon,
@@ -29,10 +25,13 @@ import SurfacesTab from '../../components/SurfacesTab/SurfacesTab';
 import { PropertyData, CIPData, OwnerData, ArchitectData, ProfessionalsData } from '../../types/property.types';
 import { ProjectProvider } from '../../context/ProjectContext';
 import ProjectVersionSelector from '../../components/ProjectVersionSelector/ProjectVersionSelector';
-import { useFormParameters } from '../../hooks/useFormParameters';
-import { DynamicFormSection } from '../../components/DynamicFormSection/DynamicFormSection';
+import SectionTreeWithModes from '../../components/Admin/SectionTreeWithModes';
+import type { FormParameterCategory } from '../../components/Admin/SectionTreeWithModes';
+import { api } from '../../services/api';
+import styles from './ArchitectureProjectDetail.module.scss';
+import ListadoDeAntecedentes from './ListadoDeAntecedentes';
 
-type TabType = 'propiedad' | 'cip' | 'propietario' | 'arquitecto' | 'profesionales' | 'superficies' | 'formulario';
+type TabType = 'propiedad' | 'cip' | 'propietario' | 'arquitecto' | 'profesionales' | 'superficies' ;
 
 const ArchitectureProjectDetail: React.FC = () => {
   const { projectId, architectureId } = useParams<{ projectId: string; architectureId: string }>();
@@ -41,6 +40,8 @@ const ArchitectureProjectDetail: React.FC = () => {
 
   const [activeStageId, setActiveStageId] = useState<number | string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('propiedad');
+  const [generatingPDF, setGeneratingPDF] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
   
   // Etapa fija para la maqueta
   const fixedStage = {
@@ -197,34 +198,204 @@ const ArchitectureProjectDetail: React.FC = () => {
     normas: false
   });
 
-  // Estados para generación de PDF
-  const [generatingPDF, setGeneratingPDF] = useState(false);
-  const [pdfError, setPdfError] = useState<string | null>(null);
+  // Estados para formulario dinámico
+  const [formValues, setFormValues] = useState<Record<string, Record<string, any>>>({}); // { categoryId: { paramCode: value } }
+  // Modo por sección: { sectionId: 'view' | 'editable' }
+  const [sectionModes, setSectionModes] = useState<Record<number, 'view' | 'editable'>>({});
+  const queryClient = useQueryClient();
+  const location = useLocation();
+  
+  // Debug: verificar cuando cambia sectionModes
+  useEffect(() => {
+    console.log(`[ArchitectureProjectDetail] sectionModes changed:`, sectionModes);
+  }, [sectionModes]);
+
+  // Estado para mantener la sección activa (expandida)
+  const [activeSectionId, setActiveSectionId] = useState<number | undefined>(undefined);
+
+  // Obtener activeSectionId del hash de la URL si existe (ej: #section-1)
+  useEffect(() => {
+    if (location.hash) {
+      const sectionIdFromHash = parseInt(location.hash.replace('#section-', ''), 10);
+      if (!isNaN(sectionIdFromHash)) {
+        setActiveSectionId(sectionIdFromHash);
+      }
+    }
+  }, [location.hash]);
+  
+  // Handler para cambiar el modo de una sección específica
+  const handleSectionModeChange = useCallback((sectionId: number, mode: 'view' | 'editable') => {
+    console.log(`Changing section ${sectionId} (type: ${typeof sectionId}) mode to ${mode}`);
+    setSectionModes(prev => {
+      // Si el modo es 'view', eliminarlo del estado (para usar el modo base)
+      // Si el modo es 'editable', agregarlo al estado
+      // Asegurar que usamos el mismo tipo de clave (number) siempre
+      const newModes = mode === 'view' 
+        ? (() => {
+            const updated = { ...prev };
+            delete updated[sectionId];
+            // También eliminar si está como string (por si acaso)
+            const updatedAny = updated as Record<string | number, 'view' | 'editable'>;
+            delete updatedAny[String(sectionId)];
+            return updated;
+          })()
+        : {
+            ...prev,
+            [sectionId]: mode, // Asegurar que siempre usamos number como clave
+          };
+      console.log(`New sectionModes:`, newModes);
+      console.log(`New sectionModes keys:`, Object.keys(newModes));
+      console.log(`Section ${sectionId} mode in newModes[${sectionId}]:`, newModes[sectionId]);
+      const newModesAny = newModes as Record<string | number, 'view' | 'editable'>;
+      console.log(`Section ${sectionId} mode in newModes['${sectionId}']:`, newModesAny[String(sectionId)]);
+      return newModes;
+    });
+  }, []);
+
+  const { projects: architectureProjects, deleteProject } = useProjectNodes<ProjectNode>({ type: 'architecture_subproject' });
+  const architectureProject = architectureProjects?.find(p => p.id === Number(architectureId));
+  
+  // Obtener project_type_id del architectureProject
+  // Necesitamos hacer fetch del nodo completo para obtener architecture_project_type
+  const { data: fullArchitectureProject, error: projectError, isLoading: isLoadingProject } = useQuery<ProjectNode & { architecture_project_type?: number }>({
+    queryKey: ['architecture-project', architectureId],
+    queryFn: async () => {
+      if (!architectureId) return null;
+      const response = await api.get(`projects/project-nodes/${architectureId}/`);
+      return response.data;
+    },
+    enabled: !!architectureId && !!accessToken,
+  });
+  
+  // Log errores cuando ocurran
+  useEffect(() => {
+    if (projectError) {
+      console.error('Error loading architecture project:', projectError);
+    }
+  }, [projectError]);
+  
+  // Obtener el project_type_id - puede venir como número (ID) o como objeto con id
+  const projectTypeId = 
+    typeof (fullArchitectureProject as any)?.architecture_project_type === 'number'
+      ? (fullArchitectureProject as any)?.architecture_project_type
+      : typeof (fullArchitectureProject as any)?.architecture_project_type === 'object' && (fullArchitectureProject as any)?.architecture_project_type?.id
+      ? (fullArchitectureProject as any)?.architecture_project_type.id
+      : (fullArchitectureProject as any)?.architecture_project_type || null;
+
+  // Función para obtener todas las secciones de forma plana
+  const getAllSections = useCallback((sections: FormParameterCategory[]): FormParameterCategory[] => {
+    let result: FormParameterCategory[] = [];
+    sections.forEach((section) => {
+      result.push(section);
+      if (section.subcategories) {
+        result = result.concat(getAllSections(section.subcategories));
+      }
+    });
+    return result;
+  }, []);
+
+  // Interface para la estructura del formulario
+  interface FormStructure {
+    project_type: {
+      id: number;
+      code: string;
+      name: string;
+      description?: string;
+      category?: {
+        id: number;
+        code: string;
+        name: string;
+        full_path: string;
+      };
+    };
+    sections: FormParameterCategory[];
+  }
+
+  // Cargar estructura del formulario
+  const { data: formStructure, isLoading: isLoadingForm, error: formStructureError } = useQuery<FormStructure>({
+    queryKey: ['form-structure', projectTypeId],
+    queryFn: async () => {
+      if (!projectTypeId) throw new Error('No project type ID');
+      const response = await api.get(`architecture/architecture-project-types/${projectTypeId}/form_structure/`);
+      return response.data;
+    },
+    enabled: !!projectTypeId && !!accessToken && !!architectureId,
+  });
+  
+  // Log errores cuando ocurran
+  useEffect(() => {
+    if (formStructureError) {
+      console.error('Error loading form structure:', formStructureError);
+      console.error('Project Type ID:', projectTypeId);
+      console.error('Architecture ID:', architectureId);
+    }
+  }, [formStructureError, projectTypeId, architectureId]);
+
+  // Cargar valores de una categoría (lazy loading cuando se expande)
+  const loadCategoryValues = useCallback(async (categoryId: number) => {
+    if (!architectureId) return;
+    
+    // Si ya tenemos los valores en el estado, no cargar de nuevo
+    if (formValues[categoryId]) {
+      return formValues[categoryId];
+    }
+
+    try {
+      const response = await api.get(
+        `parameters/node-parameters/by-category/${categoryId}/?subproject_id=${architectureId}`
+      );
+      
+      const values = response.data.values || {};
+      setFormValues(prev => ({
+        ...prev,
+        [categoryId]: values,
+      }));
+      return values;
+    } catch (error) {
+      console.error(`Error loading values for category ${categoryId}:`, error);
+      return {};
+    }
+  }, [architectureId, accessToken]);
+
+  // Mutation para actualizar un valor
+  const updateValueMutation = useMutation({
+    mutationFn: async ({ parameterCode, value }: { parameterCode: string; value: any }) => {
+      if (!architectureId) throw new Error('No architecture ID');
+      const response = await api.post(
+        `parameters/node-parameters/update-value/`,
+        {
+          subproject_id: Number(architectureId),
+          parameter_code: parameterCode,
+          value: value,
+        }
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      // Los valores se actualizan localmente, no necesitamos invalidar queries
+    },
+  });
+
+  // Handler para cambios de valores
+  const handleParameterChange = useCallback((categoryId: number, parameterCode: string, value: any) => {
+    // Actualizar estado local inmediatamente
+    setFormValues(prev => ({
+      ...prev,
+      [categoryId]: {
+        ...(prev[categoryId] || {}),
+        [parameterCode]: value,
+      },
+    }));
+
+    // Guardar en el backend
+    updateValueMutation.mutate({ parameterCode, value });
+  }, [updateValueMutation]);
 
   // Get all stages for the selector
   const { projects: stages, reorderNodes, createProject, updateProject } = useProjectNodes<ProjectNode>({ parent: Number(architectureId), type: 'stage' });
 
   // Ordenar los stages por el campo order
   const sortedStages = stages ? [...stages].sort((a, b) => a.order - b.order) : [];
-
-
-
-  const { projects: architectureProjects, deleteProject } = useProjectNodes<ProjectNode>({ type: 'architecture_subproject' });
-  const architectureProject = architectureProjects?.find(p => p.id === Number(architectureId));
-
-  // Hook para parámetros del formulario dinámico
-  const {
-    formStructure,
-    isLoading: isLoadingFormData,
-    saveParameter,
-    isSaving: isSavingParameter,
-    getParameterValue,
-    getSectionCompleteness,
-  } = useFormParameters({
-    architectureProjectTypeId: architectureProject?.architecture_project_type as number | undefined,
-    projectNodeId: Number(projectId), // El nodo padre "project" donde viven los parámetros
-    enabled: !!architectureProject && !!projectId,
-  });
 
   const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
   // Estados para crear/eliminar/editar etapas
@@ -334,15 +505,11 @@ const ArchitectureProjectDetail: React.FC = () => {
 
     try {
       // Llamar al endpoint de generación de PDF
-      const response = await axios.post(
-        `${API_URL}/api/formpdf/templates/generate/${architectureId}/`,
+      const response = await api.post(
+        `formpdf/templates/generate/${architectureId}/`,
         {},
         {
           responseType: 'blob', // Importante para recibir el PDF
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`,
-          },
         }
       );
 
@@ -494,14 +661,7 @@ const ArchitectureProjectDetail: React.FC = () => {
                       onClick={() => setActiveTab('superficies')}
                     >
                       Superficies
-                    </button>
-                    <button
-                      className={`${styles.tab} ${activeTab === 'formulario' ? styles.active : ''}`}
-                      onClick={() => setActiveTab('formulario')}
-                    >
-                      Formulario
-                    </button>
-              
+                    </button>              
                   </div>
 
                   <div className={styles.tabContent}>
@@ -560,67 +720,6 @@ const ArchitectureProjectDetail: React.FC = () => {
                         <SurfacesTab projectNodeId={Number(architectureId)} />
                       </div>
                     )}
-                    {activeTab === 'formulario' && (
-                      <div className={styles.tabPane}>
-                        {isLoadingFormData ? (
-                          <div className={styles.loading}>
-                            <p>Cargando formulario...</p>
-                          </div>
-                        ) : formStructure ? (
-                          <div className={styles.formStructureContainer}>
-                            <div className={styles.formHeader}>
-                              <h3>Formulario de Parámetros</h3>
-                              <p className={styles.formDescription}>
-                                Complete los siguientes campos para el proyecto <strong>{architectureProject.name}</strong>
-                              </p>
-                              {/* DEBUG: Mostrar información de la estructura */}
-                              <div style={{ background: '#f0f0f0', padding: '10px', marginTop: '10px', fontSize: '12px' }}>
-                                <strong>Debug Info:</strong>
-                                <div>Total secciones: {formStructure.sections?.length || 0}</div>
-                                <div>Tipo de proyecto: {formStructure.project_type?.name}</div>
-                                {formStructure.sections?.map(s => (
-                                  <div key={s.id} style={{ marginLeft: '10px' }}>
-                                    <div>- {s.name}: {s.form_parameters?.length || 0} parámetros (visible: {s.is_active ? 'sí' : 'no'})</div>
-                                    {s.subcategories && s.subcategories.length > 0 && (
-                                      <div style={{ marginLeft: '20px' }}>
-                                        <strong>Subsecciones:</strong>
-                                        {s.subcategories.map((sub: any) => (
-                                          <div key={sub.id}>
-                                            * {sub.name}: {sub.form_parameters?.length || 0} parámetros
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                            {formStructure.sections.map((section) => (
-                              <DynamicFormSection
-                                key={section.id}
-                                section={section}
-                                getParameterValue={getParameterValue}
-                                onParameterChange={(code, value, dataType) => {
-                                  saveParameter({
-                                    definition: code,
-                                    value,
-                                    dataType: dataType as 'decimal' | 'integer' | 'boolean' | 'text' | 'date',
-                                  });
-                                }}
-                                isSaving={isSavingParameter}
-                                disabled={false}
-                                showCompleteness={true}
-                                completeness={getSectionCompleteness(section.id)}
-                              />
-                            ))}
-                          </div>
-                        ) : (
-                          <div className={styles.noFormData}>
-                            <p>No hay estructura de formulario disponible para este tipo de proyecto.</p>
-                          </div>
-                        )}
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -668,373 +767,163 @@ const ArchitectureProjectDetail: React.FC = () => {
           <>
             {activeStageId === 'fixed-2-1-1' ? (
               <div className={styles.fixedStageContent}>
-                <h3>Formulario 2-1.1 - Obra Nueva: Aprobación de Anteproyecto de Obras de Edificación</h3>
-                
-                {/* Sección: Características del Proyecto */}
-                <div className={styles.formSection}>
-                  <div 
-                    className={styles.sectionHeader}
-                    onClick={() => toggleSection('caracteristicas')}
-                  >
-                    <h4>Características del Proyecto</h4>
-                    <button className={styles.toggleButton}>
-                      {expandedSections.caracteristicas ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                    </button>
+                {isLoadingProject || isLoadingForm ? (
+                  <div>Cargando formulario...</div>
+                ) : projectError ? (
+                  <div style={{ color: 'red', padding: '1rem' }}>
+                    <strong>Error al cargar el proyecto:</strong>
+                    <pre style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
+                      {projectError instanceof Error ? projectError.message : JSON.stringify(projectError, null, 2)}
+                    </pre>
+                    <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
+                      Architecture ID: {architectureId}<br />
+                      Project Type ID: {projectTypeId || 'No disponible'}
+                    </p>
                   </div>
-                  
-                  {expandedSections.caracteristicas && (
-                    <div className={styles.sectionContent}>
-                      <div className={styles.formGrid}>
-                        <div className={styles.formGroup}>
-                          <label>Carga Ocupacional</label>
-                          <input type="text" placeholder="Ingrese carga ocupacional" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Densidad de Ocupación</label>
-                          <input type="text" placeholder="Ingrese densidad de ocupación" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Crecimiento Urbano</label>
-                          <select>
-                            <option value="">Seleccione</option>
-                            <option value="si">Sí</option>
-                            <option value="no">No</option>
-                          </select>
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Densificación/Extensión</label>
-                          <input type="text" placeholder="Ingrese información" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Uso Público</label>
-                          <select>
-                            <option value="">Seleccione</option>
-                            <option value="todo">Todo</option>
-                            <option value="parte">Parte</option>
-                            <option value="no">No</option>
-                          </select>
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Etapas Art. 9</label>
-                          <input type="text" placeholder="Ingrese información" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Etapas Ejecutadas</label>
-                          <input type="text" placeholder="Ingrese información" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Etapas por Ejecutar</label>
-                          <input type="text" placeholder="Ingrese información" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Loteo DFL 2</label>
-                          <select>
-                            <option value="">Seleccione</option>
-                            <option value="si">Sí</option>
-                            <option value="no">No</option>
-                          </select>
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Proyecto Cantidad de Etapas</label>
-                          <input type="number" placeholder="Ingrese cantidad" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Proyecto Etapa</label>
-                          <select>
-                            <option value="">Seleccione</option>
-                            <option value="si">Sí</option>
-                            <option value="no">No</option>
-                          </select>
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Proyecto Mitigación IMIV</label>
-                          <input type="text" placeholder="Ingrese información" />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Sección: Superficies */}
-                <div className={styles.formSection}>
-                  <div 
-                    className={styles.sectionHeader}
-                    onClick={() => toggleSection('superficies')}
-                  >
-                    <h4>Superficies</h4>
-                    <button className={styles.toggleButton}>
-                      {expandedSections.superficies ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                    </button>
+                ) : !projectTypeId ? (
+                  <div style={{ padding: '1rem' }}>
+                    <p>Este proyecto no tiene un tipo de proyecto arquitectónico configurado.</p>
+                    <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '0.5rem' }}>
+                      Architecture ID: {architectureId}
+                    </p>
                   </div>
-                  
-                  {expandedSections.superficies && (
-                    <div className={styles.sectionContent}>
-                      <div className={styles.formGrid}>
-                        <div className={styles.formGroup}>
-                          <label>Superficie Edificada Sobre Común</label>
-                          <input type="number" placeholder="m²" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Superficie Edificada Sobre Total</label>
-                          <input type="number" placeholder="m²" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Superficie Edificada Sobre Útil</label>
-                          <input type="number" placeholder="m²" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Superficie Edificada Sub Común</label>
-                          <input type="number" placeholder="m²" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Superficie Edificada Sub Total</label>
-                          <input type="number" placeholder="m²" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Superficie Edificada Sub Útil</label>
-                          <input type="number" placeholder="m²" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Superficie Edificada Total Común</label>
-                          <input type="number" placeholder="m²" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Superficie Edificada Total Total</label>
-                          <input type="number" placeholder="m²" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Superficie Edificada Total Útil</label>
-                          <input type="number" placeholder="m²" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Actividad</label>
-                          <input type="text" placeholder="Ingrese actividad" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Aumenta Superficie</label>
-                          <select>
-                            <option value="">Seleccione</option>
-                            <option value="si">Sí</option>
-                            <option value="no">No</option>
-                          </select>
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Aumenta Superficie (metros)</label>
-                          <input type="number" placeholder="m²" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Disminuye Superficie</label>
-                          <select>
-                            <option value="">Seleccione</option>
-                            <option value="si">Sí</option>
-                            <option value="no">No</option>
-                          </select>
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Disminuye Superficie (metros)</label>
-                          <input type="number" placeholder="m²" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Mantiene Superficie</label>
-                          <select>
-                            <option value="">Seleccione</option>
-                            <option value="si">Sí</option>
-                            <option value="no">No</option>
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Sección: Normas Urbanísticas */}
-                <div className={styles.formSection}>
-                  <div 
-                    className={styles.sectionHeader}
-                    onClick={() => toggleSection('normas')}
-                  >
-                    <h4>Normas Urbanísticas</h4>
-                    <button className={styles.toggleButton}>
-                      {expandedSections.normas ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                    </button>
+                ) : formStructureError ? (
+                  <div style={{ color: 'red', padding: '1rem' }}>
+                    <strong>Error al cargar la estructura del formulario:</strong>
+                    <pre style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
+                      {formStructureError instanceof Error ? formStructureError.message : JSON.stringify(formStructureError, null, 2)}
+                    </pre>
+                    <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
+                      Project Type ID: {projectTypeId}
+                    </p>
                   </div>
-                  
-                  {expandedSections.normas && (
-                    <div className={styles.sectionContent}>
-                      <div className={styles.formGrid}>
-                        <div className={styles.formGroup}>
-                          <label>Adosamiento Permitido</label>
-                          <input type="text" placeholder="Ingrese información" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Adosamiento Proyectado</label>
-                          <input type="text" placeholder="Ingrese información" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Altura Permitida</label>
-                          <input type="text" placeholder="Ingrese altura" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Altura Proyectada</label>
-                          <input type="text" placeholder="Ingrese altura" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Antejardín Permitido</label>
-                          <input type="text" placeholder="Ingrese información" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Antejardín Proyectado</label>
-                          <input type="text" placeholder="Ingrese información" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Cantidad Descontada Estacionamiento</label>
-                          <input type="number" placeholder="Ingrese cantidad" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Coeficiente Constructivo Permitido</label>
-                          <input type="number" placeholder="Ingrese coeficiente" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Coeficiente Constructivo Proyectado</label>
-                          <input type="number" placeholder="Ingrese coeficiente" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Coeficiente Ocupación Pisos Sup. Permitido</label>
-                          <input type="number" placeholder="Ingrese coeficiente" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Coeficiente Ocupación Pisos Sup. Proyectado</label>
-                          <input type="number" placeholder="Ingrese coeficiente" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Coeficiente Ocupación Suelo Permitido</label>
-                          <input type="number" placeholder="Ingrese coeficiente" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Coeficiente Ocupación Suelo Proyectado</label>
-                          <input type="number" placeholder="Ingrese coeficiente" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Densidad Permitida</label>
-                          <input type="number" placeholder="Ingrese densidad" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Densidad Proyectada</label>
-                          <input type="number" placeholder="Ingrese densidad" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Desc. Estacionamiento</label>
-                          <select>
-                            <option value="">Seleccione</option>
-                            <option value="si">Sí</option>
-                            <option value="no">No</option>
-                          </select>
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Distanciamiento Permitido</label>
-                          <input type="text" placeholder="Ingrese distanciamiento" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Distanciamiento Proyectado</label>
-                          <input type="text" placeholder="Ingrese distanciamiento" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Estacionamiento Auto Permitido</label>
-                          <input type="number" placeholder="Ingrese cantidad" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Estacionamiento Auto Proyectado</label>
-                          <input type="number" placeholder="Ingrese cantidad" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Estacionamiento Bicicleta Permitido</label>
-                          <input type="number" placeholder="Ingrese cantidad" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Estacionamiento Bicicleta Proyectado</label>
-                          <input type="number" placeholder="Ingrese cantidad" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Estacionamiento Discapacitados Permitido</label>
-                          <input type="number" placeholder="Ingrese cantidad" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Estacionamiento Discapacitados Proyectado</label>
-                          <input type="number" placeholder="Ingrese cantidad" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Estacionamiento Otros</label>
-                          <input type="text" placeholder="Ingrese información" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Estacionamiento Otros Permitido</label>
-                          <input type="number" placeholder="Ingrese cantidad" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Estacionamiento Otros Proyectado</label>
-                          <input type="number" placeholder="Ingrese cantidad" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Nuevas Normas</label>
-                          <select>
-                            <option value="">Seleccione</option>
-                            <option value="si">Sí</option>
-                            <option value="no">No</option>
-                          </select>
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Predio Área Riesgo</label>
-                          <select>
-                            <option value="">Seleccione</option>
-                            <option value="si">Sí</option>
-                            <option value="parcial">Parcial</option>
-                            <option value="no">No</option>
-                          </select>
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Rasante Permitida</label>
-                          <input type="text" placeholder="Ingrese rasante" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Rasante Proyectada</label>
-                          <input type="text" placeholder="Ingrese rasante" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Sistema Agrupación Permitido</label>
-                          <input type="text" placeholder="Ingrese información" />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label>Sistema Agrupación Proyectado</label>
-                          <input type="text" placeholder="Ingrese información" />
-                        </div>
+                ) : formStructure && projectTypeId ? (
+                  <>
+                    {/* Formulario dinámico */}
+                    {formStructure?.sections && formStructure.sections.length > 0 ? (
+                      <div>
+                        {(() => {
+                          console.log(`[ArchitectureProjectDetail] Total sections to render:`, formStructure.sections.length);
+                          console.log(`[ArchitectureProjectDetail] Section IDs:`, formStructure.sections.map(s => s.id));
+                          return null;
+                        })()}
+                        {formStructure.sections.map((section: FormParameterCategory) => {
+                          // Función recursiva para obtener todos los valores de una sección y sus subcategorías
+                          const getAllSectionValues = (sec: FormParameterCategory): Record<string, any> => {
+                            const values: Record<string, any> = {};
+                            
+                            // Agregar valores de esta sección
+                            if (formValues[sec.id]) {
+                              Object.assign(values, formValues[sec.id]);
+                            }
+                            
+                            // Agregar valores de subcategorías recursivamente
+                            if (sec.subcategories) {
+                              sec.subcategories.forEach(sub => {
+                                Object.assign(values, getAllSectionValues(sub));
+                              });
+                            }
+                            
+                            return values;
+                          };
+                          
+                          const sectionValues = getAllSectionValues(section);
+                          // Leer el modo actual directamente de sectionModes cada vez que se renderiza
+                          // IMPORTANTE: Las keys de objetos en JavaScript son siempre strings cuando usas Object.keys()
+                          // pero puedes acceder con números también. Intentar primero con string.
+                          const sectionId = section.id;
+                          const sectionModesAny = sectionModes as Record<string | number, 'view' | 'editable'>;
+                          // Intentar primero con string (como aparece en Object.keys), luego con número
+                          const currentSectionMode = sectionModesAny[String(sectionId)] || sectionModesAny[sectionId];
+                          
+                          // Debug: verificar qué secciones existen y cuál tiene parámetros
+                          const hasParams = section.form_parameters && section.form_parameters.length > 0;
+                          console.log(`[ArchitectureProjectDetail] Rendering Section ${sectionId} (hasParams: ${hasParams}): sectionModes keys=`, Object.keys(sectionModes), `sectionModes['${String(sectionId)}']=`, sectionModesAny[String(sectionId)], `sectionModes[${sectionId}]=`, sectionModesAny[sectionId], `currentSectionMode=`, currentSectionMode);
+                          
+                          return (
+                            <SectionTreeWithModes
+                              key={`section-${section.id}`} // Usar solo el ID, no el modo (para mantener el estado del componente)
+                              section={section}
+                              level={0}
+                              projectTypeId={projectTypeId!}
+                              allSections={getAllSections(formStructure?.sections || [])}
+                              onSectionUpdated={() => {
+                                // Recargar estructura si es necesario
+                                queryClient.invalidateQueries({ queryKey: ['form-structure', projectTypeId] });
+                              }}
+                              mode="view" // Modo base, cada sección tiene su propio modo
+                              subprojectId={Number(architectureId)}
+                              values={sectionValues}
+                              onChange={(code: string, value: any) => {
+                                handleParameterChange(section.id, code, value);
+                              }}
+                              onSectionExpand={async (sectionId: number) => {
+                                // Cargar valores cuando se expande una sección
+                                await loadCategoryValues(sectionId);
+                                // También cargar valores de subcategorías
+                                const getAllSubcategoryIds = (sec: FormParameterCategory): number[] => {
+                                  const ids = [sec.id];
+                                  if (sec.subcategories) {
+                                    sec.subcategories.forEach(sub => {
+                                      ids.push(...getAllSubcategoryIds(sub));
+                                    });
+                                  }
+                                  return ids;
+                                };
+                                const allIds = getAllSubcategoryIds(section);
+                                await Promise.all(allIds.map(id => loadCategoryValues(id)));
+                              }}
+                              activeSectionId={activeSectionId}
+                              sectionMode={currentSectionMode} // Modo específico de esta sección (undefined = usar modo base)
+                              onSectionModeChange={handleSectionModeChange} // Callback para cambiar el modo
+                              getSectionMode={(sectionId: number) => {
+                                // Función para obtener el modo de cualquier sección (para subcategorías)
+                                const sectionModesAny = sectionModes as Record<string | number, 'view' | 'editable'>;
+                                return sectionModesAny[String(sectionId)] || sectionModesAny[sectionId];
+                              }}
+                            />
+                          );
+                        })}
                       </div>
-                    </div>
-                  )}
-                </div>
+                    ) : (
+                      <div>No hay secciones configuradas para este tipo de proyecto.</div>
+                    )}
 
-                {/* Botones de acción */}
-                <div className={styles.formActions}>
-                  <button 
-                    className={styles.saveButton}
-                    onClick={() => console.log('Guardar formulario - funcionalidad pendiente')}
-                  >
-                    Guardar Formulario
-                  </button>
-                  
-                  <button 
-                    className={styles.pdfButton}
-                    onClick={handleGeneratePDF}
-                    disabled={generatingPDF}
-                  >
-                    <PdfIcon style={{ marginRight: '8px' }} />
-                    {generatingPDF ? 'Generando PDF...' : 'Generar Formulario en PDF'}
-                  </button>
-                </div>
-                
-                {/* Mensaje de error del PDF */}
-                {pdfError && (
-                  <div className={styles.pdfError}>
-                    {pdfError}
+                    {/* Botones de acción */}
+                    <div className={styles.formActions}>
+                      <button 
+                        className={styles.saveButton}
+                        onClick={() => console.log('Guardar formulario - funcionalidad pendiente')}
+                      >
+                        Guardar Formulario
+                      </button>
+                      
+                      <button 
+                        className={styles.pdfButton}
+                        onClick={handleGeneratePDF}
+                        disabled={generatingPDF}
+                      >
+                        <PdfIcon style={{ marginRight: '8px' }} />
+                        {generatingPDF ? 'Generando PDF...' : 'Generar Formulario en PDF'}
+                      </button>
+                    </div>
+                    
+                    {/* Mensaje de error del PDF */}
+                    {pdfError && (
+                      <div className={styles.pdfError}>
+                        {pdfError}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div style={{ padding: '1rem' }}>
+                    <p>No se pudo cargar la estructura del formulario.</p>
+                    <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '0.5rem' }}>
+                      Architecture ID: {architectureId}<br />
+                      Project Type ID: {projectTypeId || 'No disponible'}<br />
+                      Loading Project: {isLoadingProject ? 'Sí' : 'No'}<br />
+                      Loading Form: {isLoadingForm ? 'Sí' : 'No'}
+                    </p>
                   </div>
                 )}
               </div>

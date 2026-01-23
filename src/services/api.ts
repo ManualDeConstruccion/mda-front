@@ -1,7 +1,8 @@
 import axios, { InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL;
-const API_VERSION = import.meta.env.VITE_API_VERSION;
+// Configuración de la API
+// Si no se define VITE_API_URL, usar http://localhost:8000 por defecto
+const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
 
 // Función para obtener el token CSRF
 const getCookie = (name: string): string | null => {
@@ -17,7 +18,7 @@ axios.defaults.xsrfCookieName = 'mdc_csrftoken';
 axios.defaults.xsrfHeaderName = 'X-CSRFToken';
 
 export const api = axios.create({
-  baseURL: `${API_URL}/api/${API_VERSION}`,
+  baseURL: `${API_URL}/api`,
   headers: {
     'Content-Type': 'application/json',
   },
