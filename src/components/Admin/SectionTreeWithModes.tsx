@@ -976,7 +976,18 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
   );
 
   // Calcular número máximo de filas necesarias
+  // Si no hay contenido (parámetros ni celdas de texto), retornar 0 para no mostrar filas vacías
   const maxRow = useMemo(() => {
+    // Si no hay contenido, no mostrar filas
+    if (!hasParameters && !hasGridCells) {
+      // Solo mostrar filas si hay filas definidas en display_config
+      const rowsColumns = section.display_config?.grid_config?.rows_columns || {};
+      const hasDefinedRows = Object.keys(rowsColumns).length > 0;
+      if (!hasDefinedRows) {
+        return 0; // No mostrar filas vacías
+      }
+    }
+    
     let max = 1;
     
     // Primero verificar las filas definidas en display_config
@@ -1005,7 +1016,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
     });
     
     return max;
-  }, [section.form_parameters, section.display_config, gridCells, hasParameters]);
+  }, [section.form_parameters, section.display_config, gridCells, hasParameters, hasGridCells]);
 
   // Organizar celdas en grilla (modo admin) - ahora usando columnas por fila
   const gridLayout = useMemo(() => {
@@ -1280,6 +1291,11 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
   const gridRows = useMemo(() => {
     const rows = [];
     
+    // Si maxRow es 0, no renderizar ninguna fila (categoría vacía sin contenido)
+    if (maxRow === 0) {
+      return rows;
+    }
+    
     for (let r = 1; r <= maxRow; r++) {
       const rowColumns = getColumnsForRow(r);
       const rowCells = gridLayout[r] || {};
@@ -1320,6 +1336,65 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
   }, [effectiveMode, maxRow, gridLayout, activeId, hasParameters, section, values, onChange, addRowBefore, addRowAfter, deleteRow, updateDisplayConfig, handleDeleteCell, getColumnsForRow]);
   
   const renderGrid = () => {
+    // Si no hay filas (categoría vacía) y es tipo "general", mostrar botón para agregar primera fila
+    if (maxRow === 0 && mode === 'admin' && useGridInterface) {
+      return (
+        <Box
+          sx={{
+            p: 2,
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: 1,
+            bgcolor: 'background.paper',
+            textAlign: 'center',
+          }}
+        >
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Esta sección está vacía. Agrega la primera fila para comenzar.
+          </Typography>
+          <Button
+            variant="outlined"
+            startIcon={<AddIcon />}
+            onClick={async () => {
+              // Crear la primera fila directamente en display_config
+              try {
+                const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+                const currentConfig = section.display_config || {};
+                const currentGridConfig = currentConfig.grid_config || {};
+                
+                const newDisplayConfig = {
+                  ...currentConfig,
+                  grid_config: {
+                    ...currentGridConfig,
+                    rows_columns: {
+                      '1': 3, // Primera fila con 3 columnas por defecto
+                    },
+                  },
+                };
+                
+                await axios.patch(
+                  `${API_URL}/api/parameters/form-parameter-categories/${section.id}/`,
+                  { display_config: newDisplayConfig },
+                  {
+                    headers: {
+                      'Authorization': accessToken ? `Bearer ${accessToken}` : undefined,
+                    },
+                    withCredentials: true,
+                  }
+                );
+                
+                onSectionUpdated();
+              } catch (error) {
+                console.error('Error al agregar primera fila:', error);
+              }
+            }}
+          >
+            Agregar Primera Fila
+          </Button>
+        </Box>
+      );
+    }
+    
     const gridContent = (
       <Box
         sx={{
