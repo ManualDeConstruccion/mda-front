@@ -68,6 +68,28 @@ const GridRow: React.FC<GridRowProps> = React.memo(({
   values,
   onChange,
 }) => {
+  // Verificar si la fila tiene contenido (solo en modo vista)
+  const hasRowContent = React.useMemo(() => {
+    if (mode === 'admin') {
+      // En modo admin, siempre mostrar la fila
+      return true;
+    }
+    
+    // En modo vista/editable, verificar si hay al menos una celda con contenido
+    for (let col = 1; col <= rowColumns; col++) {
+      const cell = rowCells[col];
+      if (cell && !(cell as any).__occupied) {
+        return true;
+      }
+    }
+    return false;
+  }, [mode, rowCells, rowColumns]);
+  
+  // En modo vista, si la fila no tiene contenido, no renderizar nada
+  if (mode === 'view' && !hasRowContent) {
+    return null;
+  }
+  
   return (
     <Box sx={{ mb: 2 }}>
       {/* Controles de fila (solo en modo admin) */}
