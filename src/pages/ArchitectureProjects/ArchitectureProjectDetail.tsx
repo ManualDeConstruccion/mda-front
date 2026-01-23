@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import axios from 'axios';
+import { useAuth } from '../../context/AuthContext';
 import { useProjectNodes } from '../../hooks/useProjectNodes';
 import { ProjectNode, TypeCode } from '../../types/project_nodes.types';
+
+const API_URL = import.meta.env.VITE_API_URL?.replace(/\/$/, '') || '';
 import styles from './ArchitectureProjectDetail.module.scss';
 import ListadoDeAntecedentes from './ListadoDeAntecedentes';
 import {
@@ -12,7 +16,8 @@ import {
   Delete as DeleteIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
-  Add as AddIcon
+  Add as AddIcon,
+  PictureAsPdf as PdfIcon
 } from '@mui/icons-material';
 import DeleteConfirmationModal from '../../components/common/DeleteConfirmationModal';
 import PropertyTab from '../../components/ProjectTabs/PropertyTab';
@@ -24,12 +29,15 @@ import SurfacesTab from '../../components/SurfacesTab/SurfacesTab';
 import { PropertyData, CIPData, OwnerData, ArchitectData, ProfessionalsData } from '../../types/property.types';
 import { ProjectProvider } from '../../context/ProjectContext';
 import ProjectVersionSelector from '../../components/ProjectVersionSelector/ProjectVersionSelector';
+import { useFormParameters } from '../../hooks/useFormParameters';
+import { DynamicFormSection } from '../../components/DynamicFormSection/DynamicFormSection';
 
-type TabType = 'propiedad' | 'cip' | 'propietario' | 'arquitecto' | 'profesionales' | 'superficies';
+type TabType = 'propiedad' | 'cip' | 'propietario' | 'arquitecto' | 'profesionales' | 'superficies' | 'formulario';
 
 const ArchitectureProjectDetail: React.FC = () => {
   const { projectId, architectureId } = useParams<{ projectId: string; architectureId: string }>();
   const navigate = useNavigate();
+  const { accessToken } = useAuth();
 
   const [activeStageId, setActiveStageId] = useState<number | string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('propiedad');
@@ -189,6 +197,10 @@ const ArchitectureProjectDetail: React.FC = () => {
     normas: false
   });
 
+  // Estados para generación de PDF
+  const [generatingPDF, setGeneratingPDF] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
+
   // Get all stages for the selector
   const { projects: stages, reorderNodes, createProject, updateProject } = useProjectNodes<ProjectNode>({ parent: Number(architectureId), type: 'stage' });
 
@@ -199,6 +211,20 @@ const ArchitectureProjectDetail: React.FC = () => {
 
   const { projects: architectureProjects, deleteProject } = useProjectNodes<ProjectNode>({ type: 'architecture_subproject' });
   const architectureProject = architectureProjects?.find(p => p.id === Number(architectureId));
+
+  // Hook para parámetros del formulario dinámico
+  const {
+    formStructure,
+    isLoading: isLoadingFormData,
+    saveParameter,
+    isSaving: isSavingParameter,
+    getParameterValue,
+    getSectionCompleteness,
+  } = useFormParameters({
+    architectureProjectTypeId: architectureProject?.architecture_project_type as number | undefined,
+    projectNodeId: Number(projectId), // El nodo padre "project" donde viven los parámetros
+    enabled: !!architectureProject && !!projectId,
+  });
 
   const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
   // Estados para crear/eliminar/editar etapas
@@ -295,6 +321,75 @@ const ArchitectureProjectDetail: React.FC = () => {
     setIsAddStageModalOpen(false);
     setNewStageName('');
     setStageError(null);
+  };
+
+  const handleGeneratePDF = async () => {
+    if (!architectureId) {
+      setPdfError('No se ha especificado un proyecto de arquitectura');
+      return;
+    }
+
+    setGeneratingPDF(true);
+    setPdfError(null);
+
+    try {
+      // Llamar al endpoint de generación de PDF
+      const response = await axios.post(
+        `${API_URL}/api/formpdf/templates/generate/${architectureId}/`,
+        {},
+        {
+          responseType: 'blob', // Importante para recibir el PDF
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      // Crear blob del PDF
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+
+      // Crear link temporal y hacer click para descargar
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `formulario_${architectureProject?.name || 'proyecto'}_${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      console.log('PDF generado y descargado exitosamente');
+    } catch (error: any) {
+      console.error('Error generando PDF:', error);
+      
+      // Extraer mensaje de error del backend
+      let errorMessage = 'Error al generar el PDF. Por favor intente nuevamente.';
+      
+      if (error.response?.data) {
+        // Si el error viene como blob, necesitamos parsearlo
+        if (error.response.data instanceof Blob) {
+          try {
+            const text = await error.response.data.text();
+            const errorData = JSON.parse(text);
+            errorMessage = errorData.error || errorData.detail || errorMessage;
+          } catch {
+            errorMessage = 'Error al procesar la respuesta del servidor';
+          }
+        } else if (typeof error.response.data === 'object') {
+          errorMessage = error.response.data.error || error.response.data.detail || errorMessage;
+        }
+      }
+      
+      setPdfError(errorMessage);
+      
+      // Mostrar alerta al usuario
+      alert(`Error: ${errorMessage}`);
+    } finally {
+      setGeneratingPDF(false);
+    }
   };
 
   if (!architectureId || !architectureProject) {
@@ -400,6 +495,12 @@ const ArchitectureProjectDetail: React.FC = () => {
                     >
                       Superficies
                     </button>
+                    <button
+                      className={`${styles.tab} ${activeTab === 'formulario' ? styles.active : ''}`}
+                      onClick={() => setActiveTab('formulario')}
+                    >
+                      Formulario
+                    </button>
               
                   </div>
 
@@ -457,6 +558,67 @@ const ArchitectureProjectDetail: React.FC = () => {
                     {activeTab === 'superficies' && (
                       <div className={styles.tabPane}>
                         <SurfacesTab projectNodeId={Number(architectureId)} />
+                      </div>
+                    )}
+                    {activeTab === 'formulario' && (
+                      <div className={styles.tabPane}>
+                        {isLoadingFormData ? (
+                          <div className={styles.loading}>
+                            <p>Cargando formulario...</p>
+                          </div>
+                        ) : formStructure ? (
+                          <div className={styles.formStructureContainer}>
+                            <div className={styles.formHeader}>
+                              <h3>Formulario de Parámetros</h3>
+                              <p className={styles.formDescription}>
+                                Complete los siguientes campos para el proyecto <strong>{architectureProject.name}</strong>
+                              </p>
+                              {/* DEBUG: Mostrar información de la estructura */}
+                              <div style={{ background: '#f0f0f0', padding: '10px', marginTop: '10px', fontSize: '12px' }}>
+                                <strong>Debug Info:</strong>
+                                <div>Total secciones: {formStructure.sections?.length || 0}</div>
+                                <div>Tipo de proyecto: {formStructure.project_type?.name}</div>
+                                {formStructure.sections?.map(s => (
+                                  <div key={s.id} style={{ marginLeft: '10px' }}>
+                                    <div>- {s.name}: {s.form_parameters?.length || 0} parámetros (visible: {s.is_active ? 'sí' : 'no'})</div>
+                                    {s.subcategories && s.subcategories.length > 0 && (
+                                      <div style={{ marginLeft: '20px' }}>
+                                        <strong>Subsecciones:</strong>
+                                        {s.subcategories.map((sub: any) => (
+                                          <div key={sub.id}>
+                                            * {sub.name}: {sub.form_parameters?.length || 0} parámetros
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            {formStructure.sections.map((section) => (
+                              <DynamicFormSection
+                                key={section.id}
+                                section={section}
+                                getParameterValue={getParameterValue}
+                                onParameterChange={(code, value, dataType) => {
+                                  saveParameter({
+                                    definition: code,
+                                    value,
+                                    dataType: dataType as 'decimal' | 'integer' | 'boolean' | 'text' | 'date',
+                                  });
+                                }}
+                                isSaving={isSavingParameter}
+                                disabled={false}
+                                showCompleteness={true}
+                                completeness={getSectionCompleteness(section.id)}
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <div className={styles.noFormData}>
+                            <p>No hay estructura de formulario disponible para este tipo de proyecto.</p>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -850,12 +1012,31 @@ const ArchitectureProjectDetail: React.FC = () => {
                   )}
                 </div>
 
-                {/* Botón de guardar */}
+                {/* Botones de acción */}
                 <div className={styles.formActions}>
-                  <button className={styles.saveButton}>
+                  <button 
+                    className={styles.saveButton}
+                    onClick={() => console.log('Guardar formulario - funcionalidad pendiente')}
+                  >
                     Guardar Formulario
                   </button>
+                  
+                  <button 
+                    className={styles.pdfButton}
+                    onClick={handleGeneratePDF}
+                    disabled={generatingPDF}
+                  >
+                    <PdfIcon style={{ marginRight: '8px' }} />
+                    {generatingPDF ? 'Generando PDF...' : 'Generar Formulario en PDF'}
+                  </button>
                 </div>
+                
+                {/* Mensaje de error del PDF */}
+                {pdfError && (
+                  <div className={styles.pdfError}>
+                    {pdfError}
+                  </div>
+                )}
               </div>
             ) : (
               <ListadoDeAntecedentes 

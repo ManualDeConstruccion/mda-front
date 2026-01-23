@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useProjectNodes } from '../../hooks/useProjectNodes';
+import { useArchitectureProjectTypes } from '../../hooks/useArchitectureProjectTypes';
 import { TypeCode } from '../../types/project_nodes.types';
 import CharacterCounter from '../../components/common/CharacterCounter/CharacterCounter';
 import { CHARACTER_LIMITS } from '../../utils/validation';
@@ -12,6 +13,7 @@ const CreateArchitectureProject: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const { createProject } = useProjectNodes();
+  const { projectTypes, isLoading: loadingProjectTypes } = useArchitectureProjectTypes();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -21,11 +23,9 @@ const CreateArchitectureProject: React.FC = () => {
     status: 'en_estudio' as const,
     start_date: '',
     parent: Number(projectId) || null,
-    tipo_tramite: '',
-    tipo_tramite_otro: '',
+    architecture_project_type: null as number | null,
   });
 
-  const [showOtroTramite, setShowOtroTramite] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -39,18 +39,13 @@ const CreateArchitectureProject: React.FC = () => {
       }));
     }
     
-    // Si se cambia el tipo de trámite, verificar si es "otro"
-    if (name === 'tipo_tramite') {
-      setShowOtroTramite(value === 'otro');
-      if (value !== 'otro') {
-        // Limpiar el campo "otro" si no se seleccionó "otro"
-        setFormData(prev => ({
-          ...prev,
-          tipo_tramite: value,
-          tipo_tramite_otro: '',
-        }));
-        return;
-      }
+    // Para architecture_project_type, convertir a número
+    if (name === 'architecture_project_type') {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value ? Number(value) : null,
+      }));
+      return;
     }
     
     setFormData(prev => ({
@@ -82,14 +77,9 @@ const CreateArchitectureProject: React.FC = () => {
       newErrors.name = 'El nombre del proyecto es obligatorio';
     }
 
-    // Validar tipo de trámite (obligatorio)
-    if (!formData.tipo_tramite) {
-      newErrors.tipo_tramite = 'Debe seleccionar un tipo de trámite';
-    }
-
-    // Validar tipo de trámite "otro" (obligatorio si se selecciona "otro")
-    if (formData.tipo_tramite === 'otro' && !formData.tipo_tramite_otro.trim()) {
-      newErrors.tipo_tramite_otro = 'Debe especificar el tipo de trámite personalizado';
+    // Validar tipo de proyecto de arquitectura (obligatorio)
+    if (!formData.architecture_project_type) {
+      newErrors.architecture_project_type = 'Debe seleccionar un tipo de proyecto de arquitectura';
     }
 
     // Validar estado (obligatorio)
@@ -157,45 +147,32 @@ const CreateArchitectureProject: React.FC = () => {
         </div>
 
         <div className={styles.formGroup}>
-          <label htmlFor="tipo_tramite">
-            Tipo de Trámite
+          <label htmlFor="architecture_project_type">
+            Tipo de Proyecto de Arquitectura
             <span className={styles.requiredLabel}>(obligatorio)</span>
           </label>
-          <select
-            id="tipo_tramite"
-            name="tipo_tramite"
-            value={formData.tipo_tramite}
-            onChange={handleInputChange}
-            required
-          >
-            <option value="">Seleccione un tipo de trámite</option>
-            <option value="2-1.1">2-1.1 - Obra Nueva: Aprobación de Anteproyecto de Obras de Edificación</option>
-            <option value="2-3.1">2-3.1 - Obra Nueva: Solicitud Permiso de Edificación</option>
-            <option value="2-5.1">2-5.1 - Obra Nueva: Solicitud Modificación de Proyecto de Edificación</option>
-            <option value="2-7.1">2-7.1 - Obra Nueva: Solicitud Recepción Definitiva de Obras de Edificación</option>
-            <option value="otro">Otro</option>
-          </select>
-          {errors.tipo_tramite && <span className={styles.errorMessage}>{errors.tipo_tramite}</span>}
-        </div>
-
-        {showOtroTramite && (
-          <div className={styles.formGroup}>
-            <label htmlFor="tipo_tramite_otro">
-              Especifique el tipo de trámite
-              <span className={styles.requiredLabel}>(obligatorio)</span>
-            </label>
-            <input
-              type="text"
-              id="tipo_tramite_otro"
-              name="tipo_tramite_otro"
-              value={formData.tipo_tramite_otro}
+          {loadingProjectTypes ? (
+            <p>Cargando tipos de proyecto...</p>
+          ) : (
+            <select
+              id="architecture_project_type"
+              name="architecture_project_type"
+              value={formData.architecture_project_type || ''}
               onChange={handleInputChange}
-              placeholder="Ingrese el tipo de trámite personalizado"
               required
-            />
-            {errors.tipo_tramite_otro && <span className={styles.errorMessage}>{errors.tipo_tramite_otro}</span>}
-          </div>
-        )}
+            >
+              <option value="">Seleccione un tipo de proyecto</option>
+              {projectTypes.map((type) => (
+                <option key={type.id} value={type.id}>
+                  {type.name}
+                </option>
+              ))}
+            </select>
+          )}
+          {errors.architecture_project_type && (
+            <span className={styles.errorMessage}>{errors.architecture_project_type}</span>
+          )}
+        </div>
 
         <div className={styles.formGroup}>
           <label htmlFor="status">

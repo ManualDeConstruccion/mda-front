@@ -45,6 +45,7 @@ export interface ProjectNode {
   properties: number[];
   is_active: boolean;
   architecture_project: number | null;
+  architecture_project_type?: number | null;
   file: string | null;
   cover_image: string | null;
   external_url: string | null;
@@ -79,6 +80,7 @@ export interface CreateProjectNodeDto {
   properties?: number[];
   is_active?: boolean;
   architecture_project?: number;
+  architecture_project_type?: number | null;
   file?: File;
   cover_image?: File;
   external_url?: string;
