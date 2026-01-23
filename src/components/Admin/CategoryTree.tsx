@@ -14,6 +14,7 @@ import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import FolderIcon from '@mui/icons-material/Folder';
 import DescriptionIcon from '@mui/icons-material/Description';
+import ListIcon from '@mui/icons-material/List';
 import styles from './CategoryTree.module.scss';
 
 interface Category {
@@ -45,6 +46,7 @@ interface CategoryTreeProps {
   onAddProjectType: (categoryId: number) => void;
   onEditCategory?: (category: Category) => void;
   onEditProjectType?: (projectType: ArchitectureProjectType) => void;
+  onEditListTemplate?: (projectType: ArchitectureProjectType) => void;
 }
 
 const CategoryTree: React.FC<CategoryTreeProps> = ({
@@ -54,6 +56,7 @@ const CategoryTree: React.FC<CategoryTreeProps> = ({
   onAddProjectType,
   onEditCategory,
   onEditProjectType,
+  onEditListTemplate,
 }) => {
   const [isExpanded, setIsExpanded] = useState(level === 0); // Expandir raíz por defecto
   const hasChildren = category.children && category.children.length > 0;
@@ -206,6 +209,7 @@ const CategoryTree: React.FC<CategoryTreeProps> = ({
                 onAddProjectType={onAddProjectType}
                 onEditCategory={onEditCategory}
                 onEditProjectType={onEditProjectType}
+                onEditListTemplate={onEditListTemplate}
               />
             ))}
 
@@ -246,25 +250,44 @@ const CategoryTree: React.FC<CategoryTreeProps> = ({
                     size="small"
                     variant="outlined"
                   />
-                  {onEditProjectType && (
-                    <Tooltip title="Editar tipo de proyecto">
-                      <IconButton
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onEditProjectType(projectType);
-                        }}
-                        sx={{
-                          ml: 1,
-                          '&:hover': {
-                            bgcolor: 'rgba(0, 0, 0, 0.04)',
-                          },
-                        }}
-                      >
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  )}
+                  <Box sx={{ display: 'flex', gap: 0.5, ml: 1 }}>
+                    {onEditProjectType && (
+                      <Tooltip title="Editar tipo de proyecto">
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEditProjectType(projectType);
+                          }}
+                          sx={{
+                            '&:hover': {
+                              bgcolor: 'rgba(0, 0, 0, 0.04)',
+                            },
+                          }}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                    {onEditListTemplate && (
+                      <Tooltip title="Agregar/Editar Listado">
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEditListTemplate(projectType);
+                          }}
+                          sx={{
+                            '&:hover': {
+                              bgcolor: 'rgba(0, 0, 0, 0.04)',
+                            },
+                          }}
+                        >
+                          <ListIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                  </Box>
                 </Box>
               ))}
             </Box>
