@@ -16,6 +16,7 @@ import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import DescriptionIcon from '@mui/icons-material/Description';
 import GavelIcon from '@mui/icons-material/Gavel';
 import TuneIcon from '@mui/icons-material/Tune';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
 import { useAuth } from '../../context/AuthContext';
 import styles from './Sidebar.module.scss';
 import classNames from 'classnames';
@@ -85,7 +86,8 @@ const getMenuStructure = (isStaff: boolean): (MenuItem | MenuGroup)[] => {
       items: [
         { path: '/admin/permisos', icon: <GavelIcon />, text: 'Permisos' },
         { path: '/admin/formularios', icon: <DescriptionIcon />, text: 'Formularios' },
-        { path: '/admin/parametros', icon: <TuneIcon />, text: 'Parámetros' }
+        { path: '/admin/parametros', icon: <TuneIcon />, text: 'Parámetros' },
+        { path: '/admin/normativas', icon: <MenuBookIcon />, text: 'Normativas' }
       ]
     });
   }

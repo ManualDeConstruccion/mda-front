@@ -8,7 +8,9 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogActions from '@mui/material/DialogActions';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
+import axios from 'axios';
+import { useAuth } from '../../context/AuthContext';
 import styles from './ListadoDeAntecedentes.module.scss';
 import ModalDocumentNode from '../EditArchitectureNodes/EditDocumentNode';
 import EditListNode from '../EditArchitectureNodes/EditListNode';
@@ -51,6 +53,70 @@ function extractBackendError(err: any): string {
 const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, projectId, architectureProjectId }) => {
   const queryClient = useQueryClient();
   const { data: tree, isLoading } = useProjectNodeTree(stageId);
+  const { accessToken } = useAuth();
+  
+  const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+  
+  // Obtener token con fallback
+  const getAuthToken = () => {
+    return accessToken || localStorage.getItem('access_token') || localStorage.getItem('auth_token');
+  };
+  
+  // Obtener el nodo architecture_subproject para obtener el architecture_project_type
+  const { data: architectureProject } = useQuery<ProjectNode & { architecture_project_type?: number | { id: number } }>({
+    queryKey: ['architecture-project', architectureProjectId],
+    queryFn: async () => {
+      const response = await axios.get(
+        `${API_URL}/api/projects/project-nodes/${architectureProjectId}/`,
+        {
+          withCredentials: true,
+          headers: {
+            'Authorization': getAuthToken() ? `Bearer ${getAuthToken()}` : undefined,
+          },
+        }
+      );
+      return response.data;
+    },
+    enabled: !!architectureProjectId,
+  });
+  
+  // Obtener el ID del architecture_project_type
+  const projectTypeId = architectureProject?.architecture_project_type
+    ? (typeof architectureProject.architecture_project_type === 'number'
+        ? architectureProject.architecture_project_type
+        : (architectureProject.architecture_project_type as any)?.id)
+    : null;
+  
+  // Obtener el ProjectTypeList
+  const { data: projectTypeList } = useQuery<{
+    id: number;
+    name: string;
+    description?: string;
+    architecture_project_type: number;
+  } | null>({
+    queryKey: ['project-type-list', projectTypeId],
+    queryFn: async () => {
+      if (!projectTypeId) return null;
+      try {
+        const response = await axios.get(
+          `${API_URL}/api/architecture/project-type-lists/by-project-type/${projectTypeId}/`,
+          {
+            withCredentials: true,
+            headers: {
+              'Authorization': getAuthToken() ? `Bearer ${getAuthToken()}` : undefined,
+            },
+          }
+        );
+        return response.data || null;
+      } catch (error: any) {
+        if (error.response?.status === 404 || (error.response?.status === 200 && !error.response.data)) {
+          return null;
+        }
+        throw error;
+      }
+    },
+    enabled: !!projectTypeId,
+  });
 
   // Clave única para sessionStorage por proyecto de arquitectura
   const ACCORDION_KEY = `acordeones-arquitectura-${architectureProjectId}`;
@@ -313,6 +379,20 @@ const ListadoDeAntecedentes: React.FC<ListadoDeAntecedentesProps> = ({ stageId, 
 
   return (
     <div>
+      {/* Mostrar nombre y descripción del ProjectTypeList si existe */}
+      {projectTypeList && (
+        <Box sx={{ mb: 3, p: 2, bgcolor: 'background.paper', borderRadius: 1, boxShadow: 1 }}>
+          <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
+            {projectTypeList.name}
+          </Typography>
+          {projectTypeList.description && (
+            <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
+              {projectTypeList.description}
+            </Typography>
+          )}
+        </Box>
+      )}
+      
       <Typography variant="h5" gutterBottom>Listado de antecedentes</Typography>
       <div className={styles.container}>
         <Box className={styles.tableContainer}>

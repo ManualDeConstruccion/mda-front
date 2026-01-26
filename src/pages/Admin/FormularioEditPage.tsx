@@ -29,9 +29,11 @@ import EditFormParameterCategoryModal from '../../components/Admin/EditFormParam
 import AddFormParameterModal from '../../components/Admin/AddFormParameterModal';
 import EditFormParameterModal from '../../components/Admin/EditFormParameterModal';
 import SectionTreeWithModes from '../../components/Admin/SectionTreeWithModes';
+import UpdateParametersModal from '../../components/Admin/UpdateParametersModal';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import EditNoteIcon from '@mui/icons-material/EditNote';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import UpdateIcon from '@mui/icons-material/Update';
 
 interface FormParameterCategory {
   id: number;
@@ -310,6 +312,7 @@ const FormularioEditPage: React.FC = () => {
   const navigate = useNavigate();
   const { accessToken } = useAuth();
   const [addSectionModalOpen, setAddSectionModalOpen] = useState(false);
+  const [updateParametersModalOpen, setUpdateParametersModalOpen] = useState(false);
   const [mode, setMode] = useState<SectionTreeMode>('admin');
 
   // Función para obtener todas las secciones de forma plana
@@ -459,15 +462,24 @@ const FormularioEditPage: React.FC = () => {
               </ToggleButtonGroup>
             </Box>
 
-            {/* Botón agregar sección (solo visible en modo admin) */}
+            {/* Botones de acción (solo visible en modo admin) */}
             {mode === 'admin' && (
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() => setAddSectionModalOpen(true)}
-              >
-                Agregar Sección
-              </Button>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  variant="outlined"
+                  startIcon={<UpdateIcon />}
+                  onClick={() => setUpdateParametersModalOpen(true)}
+                >
+                  Actualizar Parámetros
+                </Button>
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() => setAddSectionModalOpen(true)}
+                >
+                  Agregar Sección
+                </Button>
+              </Box>
             )}
           </Box>
         </Paper>
@@ -506,6 +518,15 @@ const FormularioEditPage: React.FC = () => {
           category={null}
           projectTypeId={Number(projectTypeId)}
           parentCategories={getAllSections(formStructure.sections)}
+        />
+
+        {/* Modal para actualizar parámetros */}
+        <UpdateParametersModal
+          open={updateParametersModalOpen}
+          onClose={() => setUpdateParametersModalOpen(false)}
+          onSuccess={() => {
+            // Opcional: refrescar la página o invalidar queries
+          }}
         />
       </Box>
     </Container>

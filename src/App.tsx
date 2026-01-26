@@ -37,6 +37,8 @@ import PermisosPage from './pages/Admin/PermisosPage';
 import FormulariosPage from './pages/Admin/FormulariosPage';
 import ParametersPage from './pages/Admin/ParametersPage';
 import FormularioEditPage from './pages/Admin/FormularioEditPage';
+import NormativesPage from './pages/Admin/NormativesPage';
+import PublicationEditorPage from './pages/Admin/PublicationEditorPage';
 
 /** ────────────────────────────────────────────────────────────────────────────
  *  🎛️  React‑Query client (sin refetch on focus)
@@ -145,6 +147,8 @@ const App: React.FC = () => {
                     <Route path="/admin/formularios" element={<FormulariosPage />} />
                     <Route path="/admin/formularios/:projectTypeId" element={<FormularioEditPage />} />
                     <Route path="/admin/parametros" element={<ParametersPage />} />
+                    <Route path="/admin/normativas" element={<NormativesPage />} />
+                    <Route path="/admin/normativas/publicacion/:publicationId" element={<PublicationEditorPage />} />
                   </Route>
 
                   {/* fallback */}

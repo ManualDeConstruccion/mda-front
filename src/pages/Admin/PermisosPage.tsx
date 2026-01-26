@@ -19,6 +19,7 @@ import CreateCategoryModal from '../../components/Admin/CreateCategoryModal';
 import CreateProjectTypeModal from '../../components/Admin/CreateProjectTypeModal';
 import EditCategoryModal from '../../components/Admin/EditCategoryModal';
 import EditProjectTypeModal from '../../components/Admin/EditProjectTypeModal';
+import EditListTemplateModal from '../../components/Admin/EditListTemplateModal';
 
 interface Category {
   id: number;
@@ -48,9 +49,11 @@ const PermisosPage: React.FC = () => {
   const [createProjectTypeModalOpen, setCreateProjectTypeModalOpen] = useState(false);
   const [editCategoryModalOpen, setEditCategoryModalOpen] = useState(false);
   const [editProjectTypeModalOpen, setEditProjectTypeModalOpen] = useState(false);
+  const [editListTemplateModalOpen, setEditListTemplateModalOpen] = useState(false);
   const [selectedParentCategory, setSelectedParentCategory] = useState<number | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [selectedProjectType, setSelectedProjectType] = useState<ArchitectureProjectType | null>(null);
+  const [selectedProjectTypeForList, setSelectedProjectTypeForList] = useState<ArchitectureProjectType | null>(null);
   const [isImporting, setIsImporting] = useState(false);
 
   // Fetch categorías raíz con sus hijos y tipos de proyecto
@@ -112,6 +115,17 @@ const PermisosPage: React.FC = () => {
     queryClient.invalidateQueries({ queryKey: ['categories-tree'] });
     setEditProjectTypeModalOpen(false);
     setSelectedProjectType(null);
+  };
+
+  const handleEditListTemplate = (projectType: ArchitectureProjectType) => {
+    setSelectedProjectTypeForList(projectType);
+    setEditListTemplateModalOpen(true);
+  };
+
+  const handleListTemplateUpdated = () => {
+    queryClient.invalidateQueries({ queryKey: ['categories-tree'] });
+    setEditListTemplateModalOpen(false);
+    setSelectedProjectTypeForList(null);
   };
 
   const handleImportFile = async (file: File) => {
@@ -226,6 +240,7 @@ const PermisosPage: React.FC = () => {
                 onAddProjectType={handleCreateProjectType}
                 onEditCategory={handleEditCategory}
                 onEditProjectType={handleEditProjectType}
+                onEditListTemplate={handleEditListTemplate}
               />
             ))}
           </Box>
@@ -296,6 +311,17 @@ const PermisosPage: React.FC = () => {
         }}
         onSuccess={handleProjectTypeUpdated}
         projectType={selectedProjectType}
+      />
+
+      {/* Modal para editar/crear listado */}
+      <EditListTemplateModal
+        open={editListTemplateModalOpen}
+        onClose={() => {
+          setEditListTemplateModalOpen(false);
+          setSelectedProjectTypeForList(null);
+        }}
+        onSuccess={handleListTemplateUpdated}
+        projectType={selectedProjectTypeForList}
       />
     </Container>
   );

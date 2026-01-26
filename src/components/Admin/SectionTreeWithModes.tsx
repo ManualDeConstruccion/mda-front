@@ -484,8 +484,14 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
   // Persistir estado de expansión usando sessionStorage para evitar que se cierre al recargar
   const storageKey = `section-expanded-${section.id}`;
   const getInitialExpandedState = () => {
+    // En modo vista, todas las secciones inician plegadas
+    if (mode === 'view') {
+      return false;
+    }
+    
     // Si hay una sección activa definida, esa debe estar expandida (solo para la primera vez)
-    if (activeSectionId !== undefined && section.id === activeSectionId) {
+    // Pero solo en modos admin o editable, no en vista
+    if (activeSectionId !== undefined && section.id === activeSectionId && mode !== 'view') {
       return true;
     }
     
@@ -502,7 +508,14 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
   const [isExpanded, setIsExpanded] = useState(getInitialExpandedState);
   
   // Si hay activeSectionId y coincide con esta sección, expandirla (solo si no estaba ya guardada)
+  // Pero NO en modo vista
   useEffect(() => {
+    if (mode === 'view') {
+      // En modo vista, forzar que esté plegada
+      setIsExpanded(false);
+      return;
+    }
+    
     if (activeSectionId !== undefined && section.id === activeSectionId) {
       // Solo expandir si no hay estado guardado en sessionStorage
       try {
@@ -514,7 +527,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
         setIsExpanded(true);
       }
     }
-  }, [activeSectionId, section.id, storageKey]);
+  }, [activeSectionId, section.id, storageKey, mode]);
   
   // Guardar estado de expansión cuando cambia
   useEffect(() => {
@@ -978,16 +991,30 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
   // Calcular número máximo de filas necesarias
   // Si no hay contenido (parámetros ni celdas de texto), retornar 0 para no mostrar filas vacías
   const maxRow = useMemo(() => {
-    // Si no hay contenido, no mostrar filas
+    // Si no hay contenido real (parámetros o celdas), calcular maxRow solo si es modo admin
+    // En modo vista/editable, no mostrar filas vacías
     if (!hasParameters && !hasGridCells) {
-      // Solo mostrar filas si hay filas definidas en display_config
-      const rowsColumns = section.display_config?.grid_config?.rows_columns || {};
-      const hasDefinedRows = Object.keys(rowsColumns).length > 0;
-      if (!hasDefinedRows) {
-        return 0; // No mostrar filas vacías
+      // En modo admin, permitir mostrar filas definidas en display_config (para poder agregar contenido)
+      if (mode === 'admin') {
+        const rowsColumns = section.display_config?.grid_config?.rows_columns || {};
+        const hasDefinedRows = Object.keys(rowsColumns).length > 0;
+        if (hasDefinedRows) {
+          // Calcular max basándose en display_config
+          let max = 1;
+          Object.keys(rowsColumns).forEach(key => {
+            const rowNum = Number(key);
+            if (rowNum > max) {
+              max = rowNum;
+            }
+          });
+          return max;
+        }
       }
+      // En modo vista/editable o si no hay filas definidas, retornar 0
+      return 0;
     }
     
+    // Si hay contenido real, calcular maxRow normalmente
     let max = 1;
     
     // Primero verificar las filas definidas en display_config
@@ -1016,7 +1043,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
     });
     
     return max;
-  }, [section.form_parameters, section.display_config, gridCells, hasParameters, hasGridCells]);
+  }, [section.form_parameters, section.display_config, gridCells, hasParameters, hasGridCells, mode]);
 
   // Organizar celdas en grilla (modo admin) - ahora usando columnas por fila
   const gridLayout = useMemo(() => {
@@ -1336,6 +1363,14 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
   }, [effectiveMode, maxRow, gridLayout, activeId, hasParameters, section, values, onChange, addRowBefore, addRowAfter, deleteRow, updateDisplayConfig, handleDeleteCell, getColumnsForRow]);
   
   const renderGrid = () => {
+    // Verificar si realmente hay contenido (parámetros o celdas de texto)
+    const hasRealContent = hasParameters || hasGridCells;
+    
+    // Si no hay contenido real y no es modo admin, no renderizar nada
+    if (!hasRealContent && mode !== 'admin') {
+      return null;
+    }
+    
     // Si no hay filas (categoría vacía) y es tipo "general", mostrar botón para agregar primera fila
     if (maxRow === 0 && mode === 'admin' && useGridInterface) {
       return (
@@ -1393,6 +1428,16 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
           </Button>
         </Box>
       );
+    }
+    
+    // Si no hay contenido real y maxRow es 0, no renderizar contenedor
+    if (!hasRealContent && maxRow === 0) {
+      return null;
+    }
+    
+    // Si hay filas pero no hay contenido real en modo vista/editable, no renderizar
+    if (!hasRealContent && mode !== 'admin' && maxRow > 0) {
+      return null;
     }
     
     const gridContent = (
@@ -1500,11 +1545,11 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
   return (
     <Box
       sx={{
-        ml: level * 3,
+        ml: level * 1,
         mb: 2,
         borderLeft: level > 0 ? '2px solid' : 'none',
         borderColor: 'divider',
-        pl: level > 0 ? 2 : 0,
+        pl: level > 0 ? 1 : 0,
       }}
     >
       <Box
