@@ -91,6 +91,7 @@ export interface FormParameter {
     name: string;
     data_type: string;
     unit?: string;
+    is_calculated?: boolean;
   };
   order: number;
   is_required: boolean;
@@ -195,10 +196,11 @@ const GridCell: React.FC<GridCellProps> = ({
     ? getParameterDefinition(cell as FormParameter)?.code || (cell as FormParameter).parameter_definition_code
     : null;
 
-  // Obtener data_type y unit del parameter_definition para modo editable/vista
+  // Obtener data_type, unit e is_calculated del parameter_definition para modo editable/vista
   const paramDef = isParameter ? getParameterDefinition(cell as FormParameter) : null;
   const dataType = paramDef?.data_type || 'text';
   const unit = paramDef?.unit;
+  const isCalculated = paramDef?.is_calculated ?? false;
   
   // Obtener is_required del FormParameter
   const isRequired = isParameter ? (cell as FormParameter).is_required : false;
@@ -301,7 +303,7 @@ const GridCell: React.FC<GridCellProps> = ({
                     label={undefined} // Ya se muestra el nombre arriba
                     unit={unit}
                     required={isRequired}
-                    disabled={false}
+                    disabled={isCalculated}
                   />
                 </Box>
               );
