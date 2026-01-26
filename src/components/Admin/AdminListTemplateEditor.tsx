@@ -9,7 +9,12 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
@@ -31,6 +36,8 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import styles from '../../pages/ArchitectureProjects/ListadoDeAntecedentes.module.scss';
+import CreateEditTemplateModal from './CreateEditTemplateModal';
+import EditProjectTypeList from './EditProjectTypeList';
 
 interface NodeType {
   id: number;
@@ -73,7 +80,9 @@ const SortableTemplateRow: React.FC<{
   template: ListTemplate;
   depth: number;
   isDragging?: boolean;
-}> = ({ template, depth, isDragging = false }) => {
+  onEdit?: (template: ListTemplate) => void;
+  onDelete?: (template: ListTemplate) => void;
+}> = ({ template, depth, isDragging = false, onEdit, onDelete }) => {
   const {
     attributes,
     listeners,
@@ -144,6 +153,37 @@ const SortableTemplateRow: React.FC<{
           {template.order}
         </Typography>
       </td>
+      <td className={styles.acciones}>
+        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
+          {onEdit && (
+            <Tooltip title="Editar elemento">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(template);
+                }}
+              >
+                <EditIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
+          {onDelete && (
+            <Tooltip title="Eliminar elemento">
+              <IconButton
+                size="small"
+                color="error"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(template);
+                }}
+              >
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
+        </Box>
+      </td>
     </tr>
   );
 };
@@ -152,7 +192,9 @@ const SortableTemplateRow: React.FC<{
 const TemplateRow: React.FC<{
   template: ListTemplate;
   depth: number;
-}> = ({ template, depth }) => {
+  onEdit?: (template: ListTemplate) => void;
+  onDelete?: (template: ListTemplate) => void;
+}> = ({ template, depth, onEdit, onDelete }) => {
   const indentStyle = {
     paddingLeft: `${depth * 30 + 10}px`,
   };
@@ -189,6 +231,37 @@ const TemplateRow: React.FC<{
           {template.order}
         </Typography>
       </td>
+      <td className={styles.acciones}>
+        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
+          {onEdit && (
+            <Tooltip title="Editar template">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(template);
+                }}
+              >
+                <EditIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
+          {onDelete && (
+            <Tooltip title="Eliminar template">
+              <IconButton
+                size="small"
+                color="error"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(template);
+                }}
+              >
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
+        </Box>
+      </td>
     </tr>
   );
 };
@@ -198,7 +271,9 @@ const TemplateTree: React.FC<{
   templates: ListTemplate[];
   depth?: number;
   parentCode?: string | null;
-}> = ({ templates, depth = 0, parentCode = null }) => {
+  onEdit?: (template: ListTemplate) => void;
+  onDelete?: (template: ListTemplate) => void;
+}> = ({ templates, depth = 0, parentCode = null, onEdit, onDelete }) => {
   // Filtrar templates por parent_code
   const children = templates.filter(
     (t) => (t.parent_code || null) === parentCode
@@ -212,11 +287,13 @@ const TemplateTree: React.FC<{
     <>
       {children.map((template) => (
         <React.Fragment key={template.id}>
-          <TemplateRow template={template} depth={depth} />
+          <TemplateRow template={template} depth={depth} onEdit={onEdit} onDelete={onDelete} />
           <TemplateTree
             templates={templates}
             depth={depth + 1}
             parentCode={template.code}
+            onEdit={onEdit}
+            onDelete={onDelete}
           />
         </React.Fragment>
       ))}
@@ -233,8 +310,17 @@ const AdminListTemplateEditor: React.FC<AdminListTemplateEditorProps> = ({
   const { accessToken } = useAuth();
   const [templates, setTemplates] = useState<ListTemplate[]>([]);
   const [activeId, setActiveId] = useState<number | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<ListTemplate | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ListTemplate | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
   const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+  
+  // Obtener token con fallback
+  const getAuthToken = () => {
+    return accessToken || localStorage.getItem('access_token') || localStorage.getItem('auth_token');
+  };
 
   // Obtener todos los templates del project type
   const { data: templatesData, isLoading } = useQuery<ListTemplate[]>({
@@ -246,7 +332,7 @@ const AdminListTemplateEditor: React.FC<AdminListTemplateEditorProps> = ({
         {
           withCredentials: true,
           headers: {
-            'Authorization': accessToken ? `Bearer ${accessToken}` : undefined,
+            'Authorization': getAuthToken() ? `Bearer ${getAuthToken()}` : undefined,
           },
         }
       );
@@ -288,6 +374,65 @@ const AdminListTemplateEditor: React.FC<AdminListTemplateEditorProps> = ({
       queryClient.invalidateQueries({ queryKey: ['categories-tree'] });
     },
   });
+
+  // Mutation para eliminar template
+  const deleteMutation = useMutation({
+    mutationFn: async (templateId: number) => {
+      const response = await axios.delete(
+        `${API_URL}/api/architecture/list-templates/${templateId}/`,
+        {
+          withCredentials: true,
+          headers: {
+            'Authorization': getAuthToken() ? `Bearer ${getAuthToken()}` : undefined,
+          },
+        }
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['list-templates-all', projectType?.id] });
+      queryClient.invalidateQueries({ queryKey: ['list-template', projectType?.id] });
+      queryClient.invalidateQueries({ queryKey: ['categories-tree'] });
+      setDeleteModalOpen(false);
+      setDeleteTarget(null);
+    },
+  });
+
+  // Handlers
+  const handleAddTemplate = () => {
+    setSelectedTemplate(null);
+    // Calcular orden por defecto: máximo orden + 1
+    const maxOrder = templates.length > 0 
+      ? Math.max(...templates.map(t => t.order)) 
+      : -1;
+    setEditModalOpen(true);
+  };
+
+  const handleEditTemplate = (template: ListTemplate) => {
+    setSelectedTemplate(template);
+    setEditModalOpen(true);
+  };
+
+  const handleDeleteTemplate = (template: ListTemplate) => {
+    setDeleteTarget(template);
+    setDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (deleteTarget) {
+      deleteMutation.mutate(deleteTarget.id);
+    }
+  };
+
+  const handleTemplateSaved = () => {
+    setEditModalOpen(false);
+    setSelectedTemplate(null);
+  };
+
+  // Obtener códigos disponibles para parent_code (excluyendo el template actual si está editando)
+  const availableParentCodes = templates
+    .filter((t) => !selectedTemplate || t.id !== selectedTemplate.id)
+    .map((t) => t.code);
 
   // Configuración de sensores para drag and drop
   const sensors = useSensors(
@@ -344,69 +489,97 @@ const AdminListTemplateEditor: React.FC<AdminListTemplateEditorProps> = ({
   }
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="lg" fullWidth>
-      <DialogTitle>
-        Editar Listado: {projectType.name}
-      </DialogTitle>
-      <DialogContent>
-        <Box sx={{ mt: 2 }}>
-          {isLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-              <CircularProgress />
-            </Box>
-          ) : templates.length === 0 ? (
-            <Alert severity="info">
-              No hay templates definidos para este tipo de proyecto.
-            </Alert>
-          ) : (
-            <>
-              <Alert severity="info" sx={{ mb: 2 }}>
-                Arrastra y suelta los elementos para reordenar. Solo puedes reordenar los templates de nivel raíz.
-              </Alert>
-
-              <Box className={styles.tableContainer}>
-                <table className={styles.listadoTable}>
-                  <thead>
-                    <tr>
-                      <th className={styles.tableHeader}>Nombre</th>
-                      <th className={styles.tableHeader}>Tipo</th>
-                      <th className={styles.tableHeader}>Código</th>
-                      <th className={styles.tableHeader}>Padre</th>
-                      <th className={styles.tableHeader}>Orden</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <DndContext
-                      sensors={sensors}
-                      collisionDetection={closestCenter}
-                      onDragEnd={handleDragEnd}
-                      onDragStart={(event) => {
-                        setActiveId(event.active.id as number);
-                      }}
-                    >
-                      <SortableContext
-                        items={rootTemplates.map((t) => t.id)}
-                        strategy={verticalListSortingStrategy}
-                      >
-                        {rootTemplates.map((template) => (
-                          <React.Fragment key={template.id}>
-                            <SortableTemplateRow
-                              template={template}
-                              depth={0}
-                              isDragging={activeId === template.id}
-                            />
-                            <TemplateTree
-                              templates={templates}
-                              depth={1}
-                              parentCode={template.code}
-                            />
-                          </React.Fragment>
-                        ))}
-                      </SortableContext>
-                    </DndContext>
-                  </tbody>
-                </table>
+    <>
+      <Dialog open={open} onClose={handleClose} maxWidth="lg" fullWidth>
+        <DialogTitle>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="h6">Editar Listado: {projectType.name}</Typography>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleAddTemplate}
+              size="small"
+            >
+              Agregar Elemento
+            </Button>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2 }}>
+            {/* Componente para editar ProjectTypeList */}
+            <EditProjectTypeList projectType={projectType} />
+            
+            {isLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                <CircularProgress />
               </Box>
+            ) : templates.length === 0 ? (
+              <Box>
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  No hay templates definidos para este tipo de proyecto.
+                </Alert>
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={handleAddTemplate}
+                >
+                  Crear Primer Elemento
+                </Button>
+              </Box>
+            ) : (
+              <>
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  Arrastra y suelta los elementos para reordenar. Solo puedes reordenar los templates de nivel raíz.
+                </Alert>
+
+                <Box className={styles.tableContainer}>
+                  <table className={styles.listadoTable}>
+                    <thead>
+                      <tr>
+                        <th className={styles.tableHeader}>Nombre</th>
+                        <th className={styles.tableHeader}>Tipo</th>
+                        <th className={styles.tableHeader}>Código</th>
+                        <th className={styles.tableHeader}>Padre</th>
+                        <th className={styles.tableHeader}>Orden</th>
+                        <th className={styles.tableHeader}>Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleDragEnd}
+                        onDragStart={(event) => {
+                          setActiveId(event.active.id as number);
+                        }}
+                      >
+                        <SortableContext
+                          items={rootTemplates.map((t) => t.id)}
+                          strategy={verticalListSortingStrategy}
+                        >
+                          {rootTemplates.map((template) => (
+                            <React.Fragment key={template.id}>
+                              <SortableTemplateRow
+                                template={template}
+                                depth={0}
+                                isDragging={activeId === template.id}
+                                onEdit={handleEditTemplate}
+                                onDelete={handleDeleteTemplate}
+                              />
+                              <TemplateTree
+                                templates={templates}
+                                depth={1}
+                                parentCode={template.code}
+                                onEdit={handleEditTemplate}
+                                onDelete={handleDeleteTemplate}
+                              />
+                            </React.Fragment>
+                          ))}
+                        </SortableContext>
+                      </DndContext>
+                    </tbody>
+                  </table>
+                </Box>
 
               {updateOrderMutation.isError && (
                 <Alert severity="error" sx={{ mt: 2 }}>
@@ -420,15 +593,64 @@ const AdminListTemplateEditor: React.FC<AdminListTemplateEditorProps> = ({
                 </Alert>
               )}
             </>
-          )}
+              )}
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button onClick={handleClose} disabled={updateOrderMutation.isPending}>
+        <Button onClick={handleClose} disabled={updateOrderMutation.isPending || deleteMutation.isPending}>
           Cerrar
         </Button>
       </DialogActions>
     </Dialog>
+
+    {/* Modal para crear/editar template */}
+    <CreateEditTemplateModal
+      open={editModalOpen}
+      onClose={() => {
+        setEditModalOpen(false);
+        setSelectedTemplate(null);
+      }}
+      onSuccess={handleTemplateSaved}
+      projectType={projectType}
+      template={selectedTemplate}
+      availableParentCodes={availableParentCodes}
+      defaultOrder={
+        selectedTemplate 
+          ? undefined 
+          : templates.length > 0 
+            ? Math.max(...templates.map(t => t.order)) + 1 
+            : 0
+      }
+    />
+
+    {/* Modal de confirmación para eliminar */}
+    <Dialog open={deleteModalOpen} onClose={() => setDeleteModalOpen(false)}>
+      <DialogTitle>Eliminar Template</DialogTitle>
+      <DialogContent>
+        <Typography>
+          ¿Estás seguro de que deseas eliminar el template <strong>"{deleteTarget?.name}"</strong>?
+          {templates.some((t) => t.parent_code === deleteTarget?.code) && (
+            <Alert severity="warning" sx={{ mt: 2 }}>
+              Este template tiene hijos. Se eliminarán también todos los templates hijos asociados.
+            </Alert>
+          )}
+        </Typography>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setDeleteModalOpen(false)} disabled={deleteMutation.isPending}>
+          Cancelar
+        </Button>
+        <Button
+          onClick={handleConfirmDelete}
+          color="error"
+          variant="contained"
+          disabled={deleteMutation.isPending}
+        >
+          {deleteMutation.isPending ? 'Eliminando...' : 'Eliminar'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  </>
   );
 };
 
