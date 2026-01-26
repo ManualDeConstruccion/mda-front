@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useProjectNodes } from '../../hooks/useProjectNodes';
+import { usePDFGeneration } from '../../hooks/usePDFGeneration';
 import { ProjectNode, TypeCode } from '../../types/project_nodes.types';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -40,8 +41,15 @@ const ArchitectureProjectDetail: React.FC = () => {
 
   const [activeStageId, setActiveStageId] = useState<number | string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('propiedad');
-  const [generatingPDF, setGeneratingPDF] = useState(false);
-  const [pdfError, setPdfError] = useState<string | null>(null);
+  
+  // Hook para generación asíncrona de PDFs
+  const {
+    generatePDF,
+    status: pdfStatus,
+    progress: pdfProgress,
+    error: pdfError,
+    isGenerating: generatingPDF,
+  } = usePDFGeneration();
   
   // Etapa fija para la maqueta
   const fixedStage = {
@@ -494,68 +502,24 @@ const ArchitectureProjectDetail: React.FC = () => {
     setStageError(null);
   };
 
+  /**
+   * Maneja la generación asíncrona de PDF.
+   * 
+   * Usa el hook usePDFGeneration que:
+   * 1. Inicia la generación (POST /api/formpdf/templates/generate/{id}/)
+   * 2. Hace polling del estado (GET /api/formpdf/templates/tasks/status/{task_id}/)
+   * 3. Descarga automáticamente cuando está listo
+   */
   const handleGeneratePDF = async () => {
     if (!architectureId) {
-      setPdfError('No se ha especificado un proyecto de arquitectura');
+      console.error('No architecture ID available');
       return;
     }
 
-    setGeneratingPDF(true);
-    setPdfError(null);
-
     try {
-      // Llamar al endpoint de generación de PDF
-      const response = await api.post(
-        `formpdf/templates/generate/${architectureId}/`,
-        {},
-        {
-          responseType: 'blob', // Importante para recibir el PDF
-        }
-      );
-
-      // Crear blob del PDF
-      const blob = new Blob([response.data], { type: 'application/pdf' });
-      const url = window.URL.createObjectURL(blob);
-
-      // Crear link temporal y hacer click para descargar
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `formulario_${architectureProject?.name || 'proyecto'}_${new Date().toISOString().split('T')[0]}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-
-      // Cleanup
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
-      console.log('PDF generado y descargado exitosamente');
-    } catch (error: any) {
-      console.error('Error generando PDF:', error);
-      
-      // Extraer mensaje de error del backend
-      let errorMessage = 'Error al generar el PDF. Por favor intente nuevamente.';
-      
-      if (error.response?.data) {
-        // Si el error viene como blob, necesitamos parsearlo
-        if (error.response.data instanceof Blob) {
-          try {
-            const text = await error.response.data.text();
-            const errorData = JSON.parse(text);
-            errorMessage = errorData.error || errorData.detail || errorMessage;
-          } catch {
-            errorMessage = 'Error al procesar la respuesta del servidor';
-          }
-        } else if (typeof error.response.data === 'object') {
-          errorMessage = error.response.data.error || error.response.data.detail || errorMessage;
-        }
-      }
-      
-      setPdfError(errorMessage);
-      
-      // Mostrar alerta al usuario
-      alert(`Error: ${errorMessage}`);
-    } finally {
-      setGeneratingPDF(false);
+      await generatePDF(parseInt(architectureId));
+    } catch (error) {
+      console.error('Error en handleGeneratePDF:', error);
     }
   };
 
@@ -904,14 +868,41 @@ const ArchitectureProjectDetail: React.FC = () => {
                         disabled={generatingPDF}
                       >
                         <PdfIcon style={{ marginRight: '8px' }} />
-                        {generatingPDF ? 'Generando PDF...' : 'Generar Formulario en PDF'}
+                        {pdfStatus === 'pending' && 'Iniciando generación...'}
+                        {pdfStatus === 'processing' && `Generando PDF... ${pdfProgress}%`}
+                        {pdfStatus === 'success' && 'PDF Generado ✓'}
+                        {pdfStatus === 'failed' && 'Error - Reintentar'}
+                        {pdfStatus === 'idle' && 'Generar Formulario en PDF'}
                       </button>
                     </div>
+                    
+                    {/* Barra de progreso del PDF */}
+                    {generatingPDF && (
+                      <div className={styles.pdfProgress}>
+                        <div className={styles.progressBar}>
+                          <div 
+                            className={styles.progressFill}
+                            style={{ width: `${pdfProgress}%` }}
+                          />
+                        </div>
+                        <p className={styles.progressText}>
+                          {pdfStatus === 'pending' && 'Enviando datos al formulario...'}
+                          {pdfStatus === 'processing' && 'Rellenando formulario PDF...'}
+                        </p>
+                      </div>
+                    )}
                     
                     {/* Mensaje de error del PDF */}
                     {pdfError && (
                       <div className={styles.pdfError}>
-                        {pdfError}
+                        ❌ {pdfError}
+                      </div>
+                    )}
+                    
+                    {/* Mensaje de éxito */}
+                    {pdfStatus === 'success' && !generatingPDF && (
+                      <div className={styles.pdfSuccess}>
+                        ✓ PDF generado exitosamente. La descarga debería iniciarse automáticamente.
                       </div>
                     )}
                   </>

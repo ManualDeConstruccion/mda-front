@@ -154,20 +154,20 @@ const CreateArchitectureProject: React.FC = () => {
           {loadingProjectTypes ? (
             <p>Cargando tipos de proyecto...</p>
           ) : (
-            <select
-              id="architecture_project_type"
-              name="architecture_project_type"
+          <select
+            id="architecture_project_type"
+            name="architecture_project_type"
               value={formData.architecture_project_type || ''}
-              onChange={handleInputChange}
-              required
-            >
+            onChange={handleInputChange}
+            required
+          >
               <option value="">Seleccione un tipo de proyecto</option>
               {projectTypes.map((type) => (
                 <option key={type.id} value={type.id}>
                   {type.name}
-                </option>
-              ))}
-            </select>
+              </option>
+            ))}
+          </select>
           )}
           {errors.architecture_project_type && (
             <span className={styles.errorMessage}>{errors.architecture_project_type}</span>
