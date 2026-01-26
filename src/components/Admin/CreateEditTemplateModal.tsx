@@ -84,13 +84,13 @@ const CreateEditTemplateModal: React.FC<CreateEditTemplateModalProps> = ({
   const { data: nodeTypes = [], isLoading: loadingNodeTypes } = useQuery<NodeType[]>({
     queryKey: ['node-types'],
     queryFn: async () => {
-      const response = await axios.get(`${API_URL}/api/node-types/`, {
+      const response = await axios.get(`${API_URL}/api/projects/node-types/`, {
           withCredentials: true,
           headers: {
             'Authorization': getAuthToken() ? `Bearer ${getAuthToken()}` : undefined,
           },
       });
-      return response.data;
+      return response.data?.results || response.data || [];
     },
     enabled: open,
   });
@@ -224,7 +224,7 @@ const CreateEditTemplateModal: React.FC<CreateEditTemplateModalProps> = ({
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <form onSubmit={handleSubmit}>
         <DialogTitle>
-          {isEditMode ? 'Editar Template' : 'Agregar Template'}
+          {isEditMode ? 'Editar Elemento de Listado' : 'Agregar Elemento de Listado'}
         </DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
