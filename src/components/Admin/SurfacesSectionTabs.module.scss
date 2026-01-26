@@ -1,0 +1,54 @@
+// Estilos para pestañas de la sección Superficies (compartidos con FloorEditor)
+@use '../../styles/variables' as *;
+
+.tabsContainer {
+  width: 100%;
+}
+
+.tabs {
+  display: flex;
+  gap: $spacing-xs;
+  border-bottom: 2px solid $border-color;
+  margin-bottom: $spacing-lg;
+
+  .tab {
+    padding: $spacing-sm $spacing-md;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    font-size: $font-size-base;
+    color: $text-secondary;
+    transition: all 0.2s;
+    font-weight: 500;
+
+    &:hover {
+      color: $text-primary;
+      background-color: $background-light;
+    }
+
+    &.active {
+      color: $primary-color;
+      border-bottom-color: $primary-color;
+      font-weight: 600;
+    }
+  }
+}
+
+.tabContent {
+  min-height: 400px;
+}
+
+.tabPane {
+  h3 {
+    margin-top: 0;
+    margin-bottom: $spacing-md;
+    color: $text-primary;
+    font-size: $font-size-lg;
+  }
+
+  p {
+    color: $text-secondary;
+    margin-bottom: $spacing-lg;
+  }
+}

@@ -49,6 +49,7 @@ import EditFormParameterModal from './EditFormParameterModal';
 import AddEditFormGridCellModal from './AddEditFormGridCellModal';
 import GridRow from './GridRow';
 import ParameterInput from './ParameterInput';
+import SuperficiesSectionContent from './SuperficiesSectionContent';
 
 // Tipos
 export type SectionTreeMode = 'view' | 'editable' | 'admin';
@@ -583,7 +584,9 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
   const normalizedFormTypeName = (formTypeName === '' || formTypeName === null || formTypeName === undefined) ? null : formTypeName;
   // Solo mostrar grilla si el tipo es explícitamente "general", no si es undefined/null
   const useGridInterface = normalizedFormTypeName === 'general';
-  
+  // Sección especial "superficies": pestañas Resumen / Pisos / Niveles / Polígonos (solo vista/editable con subprojectId)
+  const isSuperficiesSection = normalizedFormTypeName === 'superficies' && mode !== 'admin' && !!subprojectId;
+
   // Verificar si form_type es realmente undefined/null (no solo falsy)
   // IMPORTANTE: Si es tipo "general", NO es undefined, así que no mostrar selector
   const isFormTypeUndefined = normalizedFormTypeName === null || normalizedFormTypeName === undefined || normalizedFormTypeName === '';
@@ -1564,8 +1567,8 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-          {/* Botón de expandir/colapsar - Mostrar siempre en modo admin, o si tiene contenido */}
-          {(mode === 'admin' || hasSubcategories || hasParameters || hasGridCells) && (
+          {/* Botón de expandir/colapsar - Mostrar en admin, si tiene contenido, o si es sección superficies */}
+          {(mode === 'admin' || hasSubcategories || hasParameters || hasGridCells || isSuperficiesSection) && (
             <IconButton
               size="small"
               onClick={async () => {
@@ -1582,13 +1585,22 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
               {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
             </IconButton>
           )}
-          {mode !== 'admin' && !(hasSubcategories || hasParameters || hasGridCells) && <Box sx={{ width: 40, mr: 1 }} />}
+          {mode !== 'admin' && !(hasSubcategories || hasParameters || hasGridCells || isSuperficiesSection) && <Box sx={{ width: 40, mr: 1 }} />}
           
           <Typography variant="h6" sx={{ flex: 1 }}>
             {section.number} - {section.name}
           </Typography>
           
-          {hasParameters && (
+          {isSuperficiesSection && (
+            <Chip
+              label="Superficies"
+              size="small"
+              color="primary"
+              variant="outlined"
+              sx={{ mr: 1 }}
+            />
+          )}
+          {hasParameters && !isSuperficiesSection && (
             <>
               <Chip
                 label={`${section.form_parameters?.length} parámetros`}
@@ -1748,26 +1760,37 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
             </Box>
           )}
           
-          {/* Mostrar información del tipo si ya está seleccionado (solo si no es "general" o si tiene contenido) */}
+          {/* Mostrar información del tipo si ya está seleccionado (solo si no es "general") */}
           {mode === 'admin' && normalizedFormTypeName && normalizedFormTypeName !== 'general' && (
             <Box sx={{ mt: 2, mb: 2, ml: 0 }}>
               <Box sx={{ p: 1, bgcolor: 'background.default', borderRadius: 1 }}>
                 <Typography variant="body2" color="text.secondary">
                   Tipo: {normalizedFormTypeName}
-                  <span> - La interfaz personalizada para este tipo aún no está implementada</span>
+                  {normalizedFormTypeName === 'superficies' ? (
+                    <span> – En vista/editable se usa la interfaz de pestañas (Resumen, Pisos, Niveles, Polígonos).</span>
+                  ) : (
+                    <span> – La interfaz personalizada para este tipo aún no está implementada</span>
+                  )}
                 </Typography>
               </Box>
             </Box>
           )}
           
+          {/* Sección superficies: pestañas Resumen / Pisos / Niveles / Polígonos */}
+          {isSuperficiesSection && subprojectId && (
+            <Box sx={{ mt: 2, ml: 0 }}>
+              <SuperficiesSectionContent subprojectId={subprojectId} />
+            </Box>
+          )}
+
           {/* Renderizar contenido: SOLO si usa grilla (tipo "general") o si tiene contenido */}
           {/* Si es tipo "general", siempre mostrar la grilla, incluso si está vacía */}
-          {useGridInterface || hasParameters || hasSubcategories || hasGridCells ? (
+          {!isSuperficiesSection && (useGridInterface || hasParameters || hasSubcategories || hasGridCells) ? (
             renderContent()
           ) : null}
 
-          {/* Subcategorías */}
-          {hasSubcategories && (
+          {/* Subcategorías (no en sección superficies) */}
+          {hasSubcategories && !isSuperficiesSection && (
             <Box sx={{ mt: 2 }}>
               {section.subcategories?.map((subcategory) => (
                 <SectionTreeWithModes
@@ -1791,8 +1814,8 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
             </Box>
           )}
 
-          {/* Mensaje para modo no-admin cuando está vacía */}
-          {mode !== 'admin' && !hasParameters && !hasSubcategories && !hasGridCells && (
+          {/* Mensaje para modo no-admin cuando está vacía (no en sección superficies) */}
+          {mode !== 'admin' && !hasParameters && !hasSubcategories && !hasGridCells && !isSuperficiesSection && (
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1, ml: 6 }}>
               Esta sección no tiene parámetros configurados.
             </Typography>
