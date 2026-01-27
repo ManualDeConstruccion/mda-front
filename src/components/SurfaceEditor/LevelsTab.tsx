@@ -7,7 +7,6 @@ import {
   Add as AddIcon, 
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Save as SaveIcon,
   Height as HeightIcon
 } from '@mui/icons-material';
 import HelpTooltip from '../common/HelpTooltip/HelpTooltip';
@@ -111,11 +110,6 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
     return num.toFixed(2);
   };
 
-  const handleSaveToProject = async () => {
-    // TODO: Implementar servicio que consolida valores de edificios a NodeParameter
-    console.log('Guardar superficies en proyecto');
-    alert('Funcionalidad de consolidación pendiente de implementar');
-  };
 
   const handleEditBuilding = (building: Building) => {
     setEditingBuilding(building.id);
@@ -786,7 +780,12 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
     }
   };
 
-  if (isLoadingBuildings || isLoadingLevels) {
+  // Verificar si hay pisos disponibles
+  const hasFloors = floors && floors.length > 0;
+  const hasBelowFloors = floors && floors.some(floor => floor.floor_type === 'below');
+  const hasAboveFloors = floors && floors.some(floor => floor.floor_type === 'above');
+
+  if (isLoadingBuildings || isLoadingLevels || isLoadingFloors) {
     return <div className={styles.loading}>Cargando edificios y niveles...</div>;
   }
 
@@ -798,14 +797,10 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
           <button
             className={styles.addBuildingButton}
             onClick={() => setShowAddBuildingModal(true)}
+            disabled={!floors || floors.length === 0}
+            title={!floors || floors.length === 0 ? 'Debe crear pisos primero en la pestaña "Pisos"' : 'Agregar Edificio'}
           >
             <AddIcon /> Agregar Edificio
-          </button>
-          <button
-            className={styles.saveButton}
-            onClick={handleSaveToProject}
-          >
-            <SaveIcon /> Guardar Superficies en Proyecto
           </button>
         </div>
       </div>
@@ -863,108 +858,112 @@ const LevelsTab: React.FC<LevelsTabProps> = ({ projectNodeId }) => {
               </div>
 
               {/* Sección: Superficies Subterráneas */}
-              <div className={styles.levelTypeSection}>
-                <div className={styles.levelTypeHeader}>
-                  <h5>
-                    S. EDIFICADA SUBTERRÁNEO (S)
-                    <span className={styles.subtitle}>S. Edificada por nivel</span>
-                  </h5>
-                  <div className={styles.levelTypeActions}>
-                    <button
-                      className={styles.addLevelButton}
-                      onClick={() => handleOpenAddLevelModal(building.id, 'below')}
-                    >
-                      <AddIcon /> Agregar Nivel
-                    </button>
-                    <button
-                      className={styles.addMultipleButton}
-                      onClick={() => handleOpenAddMultipleLevelsModal(building.id, 'below')}
-                      disabled={createMultipleLevels.isPending}
-                    >
-                      <AddIcon /> Agregar Múltiples Niveles
-                    </button>
+              {hasBelowFloors && (
+                <div className={styles.levelTypeSection}>
+                  <div className={styles.levelTypeHeader}>
+                    <h5>
+                      S. EDIFICADA SUBTERRÁNEO (S)
+                      <span className={styles.subtitle}>S. Edificada por nivel</span>
+                    </h5>
+                    <div className={styles.levelTypeActions}>
+                      <button
+                        className={styles.addLevelButton}
+                        onClick={() => handleOpenAddLevelModal(building.id, 'below')}
+                      >
+                        <AddIcon /> Agregar Nivel
+                      </button>
+                      <button
+                        className={styles.addMultipleButton}
+                        onClick={() => handleOpenAddMultipleLevelsModal(building.id, 'below')}
+                        disabled={createMultipleLevels.isPending}
+                      >
+                        <AddIcon /> Agregar Múltiples Niveles
+                      </button>
+                    </div>
                   </div>
+                  {buildingLevels.below.length === 0 ? (
+                    <div className={styles.emptyMessage}>
+                      No existen niveles asociados
+                    </div>
+                  ) : (
+                    <table className={styles.table}>
+                      <thead>
+                        <tr>
+                          <th>Nivel</th>
+                          <th>ÚTIL (m²)</th>
+                          <th>COMÚN (m²)</th>
+                          <th>TOTAL (m²)</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {organizeLevelsByType(building.id, 'below').map(item => {
+                          if (typeof item === 'object' && 'template' in item) {
+                            return renderLevelGroup(item, building.id);
+                          } else {
+                            return renderLevelRow(item as ProjectLevel, building.id);
+                          }
+                        })}
+                        {renderTotalRow(totals.subterraneo, `TOTAL SUBTERRÁNEO ${building.name}`)}
+                      </tbody>
+                    </table>
+                  )}
                 </div>
-                {buildingLevels.below.length === 0 ? (
-                  <div className={styles.emptyMessage}>
-                    No existen niveles asociados
-                  </div>
-                ) : (
-                  <table className={styles.table}>
-                    <thead>
-                      <tr>
-                        <th>Nivel</th>
-                        <th>ÚTIL (m²)</th>
-                        <th>COMÚN (m²)</th>
-                        <th>TOTAL (m²)</th>
-                        <th></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {organizeLevelsByType(building.id, 'below').map(item => {
-                        if (typeof item === 'object' && 'template' in item) {
-                          return renderLevelGroup(item, building.id);
-                        } else {
-                          return renderLevelRow(item as ProjectLevel, building.id);
-                        }
-                      })}
-                      {renderTotalRow(totals.subterraneo, `TOTAL SUBTERRÁNEO ${building.name}`)}
-                    </tbody>
-                  </table>
-                )}
-              </div>
+              )}
 
               {/* Sección: Superficies Sobre Terreno */}
-              <div className={styles.levelTypeSection}>
-                <div className={styles.levelTypeHeader}>
-                  <h5>
-                    S. EDIFICADA SOBRE TERRENO
-                    <span className={styles.subtitle}>S. Edificada por nivel</span>
-                  </h5>
-                  <div className={styles.levelTypeActions}>
-                    <button
-                      className={styles.addLevelButton}
-                      onClick={() => handleOpenAddLevelModal(building.id, 'above')}
-                    >
-                      <AddIcon /> Agregar Nivel
-                    </button>
-                    <button
-                      className={styles.addMultipleButton}
-                      onClick={() => handleOpenAddMultipleLevelsModal(building.id, 'above')}
-                      disabled={createMultipleLevels.isPending}
-                    >
-                      <AddIcon /> Agregar Múltiples Niveles
-                    </button>
+              {hasAboveFloors && (
+                <div className={styles.levelTypeSection}>
+                  <div className={styles.levelTypeHeader}>
+                    <h5>
+                      S. EDIFICADA SOBRE TERRENO
+                      <span className={styles.subtitle}>S. Edificada por nivel</span>
+                    </h5>
+                    <div className={styles.levelTypeActions}>
+                      <button
+                        className={styles.addLevelButton}
+                        onClick={() => handleOpenAddLevelModal(building.id, 'above')}
+                      >
+                        <AddIcon /> Agregar Nivel
+                      </button>
+                      <button
+                        className={styles.addMultipleButton}
+                        onClick={() => handleOpenAddMultipleLevelsModal(building.id, 'above')}
+                        disabled={createMultipleLevels.isPending}
+                      >
+                        <AddIcon /> Agregar Múltiples Niveles
+                      </button>
+                    </div>
                   </div>
+                  {buildingLevels.above.length === 0 ? (
+                    <div className={styles.emptyMessage}>
+                      No existen niveles asociados
+                    </div>
+                  ) : (
+                    <table className={styles.table}>
+                      <thead>
+                        <tr>
+                          <th>Nivel</th>
+                          <th>ÚTIL (m²)</th>
+                          <th>COMÚN (m²)</th>
+                          <th>TOTAL (m²)</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {organizeLevelsByType(building.id, 'above').map(item => {
+                          if (typeof item === 'object' && 'template' in item) {
+                            return renderLevelGroup(item, building.id);
+                          } else {
+                            return renderLevelRow(item as ProjectLevel, building.id);
+                          }
+                        })}
+                        {renderTotalRow(totals.sobre_terreno, `TOTAL SOBRE TERRENO ${building.name}`)}
+                      </tbody>
+                    </table>
+                  )}
                 </div>
-                {buildingLevels.above.length === 0 ? (
-                  <div className={styles.emptyMessage}>
-                    No existen niveles asociados
-                  </div>
-                ) : (
-                  <table className={styles.table}>
-                    <thead>
-                      <tr>
-                        <th>Nivel</th>
-                        <th>ÚTIL (m²)</th>
-                        <th>COMÚN (m²)</th>
-                        <th>TOTAL (m²)</th>
-                        <th></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {organizeLevelsByType(building.id, 'above').map(item => {
-                        if (typeof item === 'object' && 'template' in item) {
-                          return renderLevelGroup(item, building.id);
-                        } else {
-                          return renderLevelRow(item as ProjectLevel, building.id);
-                        }
-                      })}
-                      {renderTotalRow(totals.sobre_terreno, `TOTAL SOBRE TERRENO ${building.name}`)}
-                    </tbody>
-                  </table>
-                )}
-              </div>
+              )}
 
               {/* Totales del Edificio */}
               <div className={styles.buildingTotals}>

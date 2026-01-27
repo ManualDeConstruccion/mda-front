@@ -304,7 +304,7 @@ const FloorsTab: React.FC<FloorsTabProps> = ({ projectNodeId }) => {
         </div>
         {floorsByType.below.length === 0 ? (
           <div className={styles.emptyMessage}>
-            No existen niveles asociados
+            No existen pisos asociados
           </div>
         ) : (
           <table className={styles.table}>
@@ -353,7 +353,7 @@ const FloorsTab: React.FC<FloorsTabProps> = ({ projectNodeId }) => {
         </div>
         {floorsByType.above.length === 0 ? (
           <div className={styles.emptyMessage}>
-            No existen niveles asociados
+            No existen pisos asociados
           </div>
         ) : (
           <table className={styles.table}>
