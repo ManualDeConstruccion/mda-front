@@ -1,104 +1,157 @@
 // src/components/FloorEditor/FloorsSummaryTab.tsx
+// Resumen de superficies en grilla estilo SectionTreeWithModes: cada piso (subterráneos / sobre terreno),
+// columnas Útil, Común, Total, sin desplegables. Subtotales por grupo calculados en frontend.
 
-import React, { useState, useMemo } from 'react';
-import { useFloors } from '../../hooks/useFloors';
+import React, { useMemo } from 'react';
+import { Box, Typography } from '@mui/material';
+import { useFloors, Floor } from '../../hooks/useFloors';
 import styles from './FloorsTab.module.scss';
+
+const HEADER_BG = 'rgba(135, 206, 250, 0.35)';
+const DATA_BG = 'background.paper';
+const SUBTOTAL_BG = 'rgba(135, 206, 250, 0.2)';
 
 interface FloorsSummaryTabProps {
   projectNodeId: number;
 }
 
+const formatNumber = (num: number): string => num.toFixed(2);
+
+interface GridCellProps {
+  children: React.ReactNode;
+  header?: boolean;
+  subtotal?: boolean;
+  align?: 'left' | 'center' | 'right';
+}
+
+const GridCell: React.FC<GridCellProps> = ({ children, header, subtotal, align = 'left' }) => {
+  const justifyContent =
+    align === 'center' ? 'center' : align === 'right' ? 'flex-end' : 'flex-start';
+  return (
+    <Box
+      sx={{
+        p: 1.5,
+        border: '1px solid',
+        borderColor: 'divider',
+        borderRadius: 1,
+        bgcolor: header ? HEADER_BG : subtotal ? SUBTOTAL_BG : DATA_BG,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent,
+        minHeight: 44,
+      }}
+    >
+      <Typography
+        variant="body2"
+        sx={{
+          fontWeight: header || subtotal ? 700 : 400,
+          color: subtotal ? 'primary.main' : 'text.primary',
+        }}
+      >
+        {children}
+      </Typography>
+    </Box>
+  );
+};
+
+interface FloorGroupGridProps {
+  title: string;
+  subtitle: string;
+  floors: Floor[];
+  subtotalLabel: string;
+  subtotal: { util: number; comun: number; total: number };
+  formatNumber: (n: number) => string;
+}
+
+const FloorGroupGrid: React.FC<FloorGroupGridProps> = ({
+  title,
+  subtitle,
+  floors,
+  subtotalLabel,
+  subtotal,
+  formatNumber: fmt,
+}) => (
+  <div className={styles.section}>
+    <h4 className={styles.sectionTitle}>
+      <span style={{ fontWeight: 700 }}>{title}</span>
+      <span className={styles.sectionSubtitle}>{subtitle}</span>
+    </h4>
+    <Box
+      sx={{
+        p: 2,
+        border: '1px solid',
+        borderColor: 'divider',
+        borderRadius: 1,
+        bgcolor: 'background.paper',
+        width: '100%',
+      }}
+    >
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr 1fr 1fr',
+          gap: 2,
+          width: '100%',
+        }}
+      >
+        {/* Cabecera */}
+        <GridCell header>Piso</GridCell>
+        <GridCell header align="center">Útil (m²)</GridCell>
+        <GridCell header align="center">Común (m²)</GridCell>
+        <GridCell header align="center">Total (m²)</GridCell>
+
+        {/* Filas por piso (sin desplegables) */}
+        {floors.map((f) => (
+          <React.Fragment key={f.id}>
+            <GridCell>{f.name}</GridCell>
+            <GridCell align="center">{fmt(f.surface_util ?? 0)}</GridCell>
+            <GridCell align="center">{fmt(f.surface_comun ?? 0)}</GridCell>
+            <GridCell align="center">{fmt(f.surface_total ?? 0)}</GridCell>
+          </React.Fragment>
+        ))}
+
+        {/* Subtotal */}
+        <GridCell subtotal>{subtotalLabel}</GridCell>
+        <GridCell subtotal align="center">{fmt(subtotal.util)}</GridCell>
+        <GridCell subtotal align="center">{fmt(subtotal.comun)}</GridCell>
+        <GridCell subtotal align="center">{fmt(subtotal.total)}</GridCell>
+      </Box>
+    </Box>
+  </div>
+);
+
 const FloorsSummaryTab: React.FC<FloorsSummaryTabProps> = ({ projectNodeId }) => {
-  const { floors, isLoadingFloors } = useFloors({
-    project_node: projectNodeId,
-  });
+  const { floors, isLoadingFloors } = useFloors({ project_node: projectNodeId });
 
-  const [surfaceTerreno, setSurfaceTerreno] = useState<number>(300);
-  const [permittedValues, setPermittedValues] = useState({
-    ocupacionPisosSuperiores: 4,
-    ocupacionSuelo: 0.6,
-    constructibilidad: 6,
-  });
+  const { floorsByType, totals } = useMemo(() => {
+    const below = floors.filter((f) => f.floor_type === 'below').sort((a, b) => b.order - a.order);
+    const above = floors.filter((f) => f.floor_type === 'above').sort((a, b) => a.order - b.order);
 
-  const formatNumber = (num: number): string => {
-    return num.toFixed(2);
-  };
-
-  // Calcular totales
-  const totals = useMemo(() => {
-    const floorsByType = {
-      below: floors.filter(f => f.floor_type === 'below'),
-      above: floors.filter(f => f.floor_type === 'above'),
-    };
-
-    const calculateTotals = (floorList: typeof floors) => {
-      return floorList.reduce(
-        (acc, floor) => ({
-          util: acc.util + (floor.surface_util || 0),
-          comun: acc.comun + (floor.surface_comun || 0),
-          total: acc.total + (floor.surface_total || 0),
+    const calc = (list: Floor[]) =>
+      list.reduce(
+        (acc, f) => ({
+          util: acc.util + (f.surface_util ?? 0),
+          comun: acc.comun + (f.surface_comun ?? 0),
+          total: acc.total + (f.surface_total ?? 0),
         }),
         { util: 0, comun: 0, total: 0 }
       );
-    };
 
-    const subterraneoTotals = calculateTotals(floorsByType.below);
-    const sobreTerrenoTotals = calculateTotals(floorsByType.above);
-    const totalGeneral = {
-      util: subterraneoTotals.util + sobreTerrenoTotals.util,
-      comun: subterraneoTotals.comun + sobreTerrenoTotals.comun,
-      total: subterraneoTotals.total + sobreTerrenoTotals.total,
-    };
-
-    // Encontrar el primer piso (piso 1) - el primer piso "above" con order más bajo
-    const firstFloor = floorsByType.above
-      .sort((a, b) => a.order - b.order)[0];
-
+    const subterraneo = calc(below);
+    const sobreTerreno = calc(above);
     return {
-      subterraneo: subterraneoTotals,
-      sobreTerreno: sobreTerrenoTotals,
-      general: totalGeneral,
-      firstFloor: firstFloor,
-      allAboveFloors: floorsByType.above,
+      floorsByType: { below, above },
+      totals: {
+        subterraneo,
+        sobreTerreno,
+        general: {
+          util: subterraneo.util + sobreTerreno.util,
+          comun: subterraneo.comun + sobreTerreno.comun,
+          total: subterraneo.total + sobreTerreno.total,
+        },
+      },
     };
   }, [floors]);
-
-  // Calcular coeficientes del proyecto
-  const projectCoefficients = useMemo(() => {
-    const terreno = surfaceTerreno || 1; // Evitar división por cero
-    
-    // Superficie del primer piso
-    const primerPiso = totals.firstFloor?.surface_total || 0;
-    
-    // Superficie de todos los pisos superiores (excluyendo el primer piso)
-    const pisosSuperiores = totals.allAboveFloors
-      .filter(f => f.id !== totals.firstFloor?.id)
-      .reduce((sum, f) => sum + (f.surface_total || 0), 0);
-    
-    // Ocupación pisos superiores: (todos_los_superiores - piso 1) / terreno
-    const ocupacionPisosSuperiores = pisosSuperiores / terreno;
-    
-    // Ocupación de suelo: (piso 1 / terreno)
-    const ocupacionSuelo = primerPiso / terreno;
-    
-    // Constructibilidad: (superficie total / terreno)
-    const constructibilidad = totals.general.total / terreno;
-
-    return {
-      ocupacionPisosSuperiores,
-      ocupacionSuelo,
-      constructibilidad,
-    };
-  }, [totals, surfaceTerreno]);
-
-  const renderTotalRow = (totals: { util: number; comun: number; total: number }, label: string) => (
-    <tr className={styles.totalRow}>
-      <td className={styles.totalLabel}>{label}</td>
-      <td className={`${styles.numberCell} ${styles.totalCell}`}>{formatNumber(totals.util)}</td>
-      <td className={`${styles.numberCell} ${styles.totalCell}`}>{formatNumber(totals.comun)}</td>
-      <td className={`${styles.numberCell} ${styles.totalCell}`}>{formatNumber(totals.total)}</td>
-    </tr>
-  );
 
   if (isLoadingFloors) {
     return (
@@ -111,197 +164,56 @@ const FloorsSummaryTab: React.FC<FloorsSummaryTabProps> = ({ projectNodeId }) =>
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h3>Resumen de Superficies</h3>
+        <h3 style={{ fontWeight: 700 }}>Resumen de Superficies</h3>
       </div>
 
-      {/* Sección: Superficies Subterráneas */}
-      <div className={styles.section}>
-        <h4 className={styles.sectionTitle}>
-          S. EDIFICADA SUBTERRÁNEO (S)
-          <span className={styles.sectionSubtitle}>S. Edificada por piso</span>
-        </h4>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th></th>
-              <th>ÚTIL (m²)</th>
-              <th>COMÚN (m²)</th>
-              <th>TOTAL (m²)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {renderTotalRow(totals.subterraneo, 'TOTAL SUBTERRÁNEO')}
-          </tbody>
-        </table>
-      </div>
+      <FloorGroupGrid
+        title="S. EDIFICADA SUBTERRÁNEO (S)"
+        subtitle="S. Edificada por nivel"
+        floors={floorsByType.below}
+        subtotalLabel="TOTAL SUBTERRÁNEO"
+        subtotal={totals.subterraneo}
+        formatNumber={formatNumber}
+      />
 
-      {/* Sección: Superficies Sobre Terreno */}
-      <div className={styles.section}>
-        <h4 className={styles.sectionTitle}>
-          S. EDIFICADA SOBRE TERRENO
-          <span className={styles.sectionSubtitle}>S. Edificada por piso</span>
-        </h4>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th></th>
-              <th>ÚTIL (m²)</th>
-              <th>COMÚN (m²)</th>
-              <th>TOTAL (m²)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {renderTotalRow(totals.sobreTerreno, 'TOTAL SOBRE TERRENO')}
-          </tbody>
-        </table>
-      </div>
+      <FloorGroupGrid
+        title="S. EDIFICADA SOBRE TERRENO"
+        subtitle="S. Edificada por nivel"
+        floors={floorsByType.above}
+        subtotalLabel="TOTAL SOBRE TERRENO"
+        subtotal={totals.sobreTerreno}
+        formatNumber={formatNumber}
+      />
 
-      {/* Sección: Total General */}
       <div className={styles.section}>
-        <h4 className={styles.sectionTitle}>
-          TOTAL GENERAL DEL PROYECTO
-        </h4>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th></th>
-              <th>ÚTIL (m²)</th>
-              <th>COMÚN (m²)</th>
-              <th>TOTAL (m²)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {renderTotalRow(totals.general, 'TOTAL GENERAL')}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Campo: Superficie Terreno */}
-      <div className={styles.section}>
-        <div className={styles.formGroup}>
-          <label htmlFor="surfaceTerreno">Superficie Terreno (m²)</label>
-          <input
-            id="surfaceTerreno"
-            type="number"
-            min="0"
-            step="0.01"
-            value={surfaceTerreno.toFixed(2)}
-            onChange={(e) => {
-              const value = parseFloat(e.target.value) || 0;
-              setSurfaceTerreno(value);
+        <h4 className={styles.sectionTitle} style={{ fontWeight: 700 }}>TOTAL GENERAL DEL PROYECTO</h4>
+        <Box
+          sx={{
+            p: 2,
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: 1,
+            bgcolor: 'background.paper',
+            width: '100%',
+          }}
+        >
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr 1fr 1fr',
+              gap: 2,
+              width: '100%',
             }}
-            className={styles.formInput}
-          />
-        </div>
-      </div>
-
-      {/* Cuadro Comparativo */}
-      <div className={styles.comparativeSection}>
-        <h4 className={styles.comparativeTitle}>
-          Cuadro Comparativo
-        </h4>
-        <table className={styles.comparativeTable}>
-          <thead>
-            <tr>
-              <th>Parámetro</th>
-              <th>Proyecto</th>
-              <th style={{ textAlign: 'center' }}>Permitido</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>COEFICIENTE DE OCUPACIÓN PISOS SUPERIORES (sobre 1er piso)</td>
-              <td className={`${styles.numberCell} ${styles.projectValueCell}`}>
-                <span className={styles.projectValue}>
-                  {formatNumber(projectCoefficients.ocupacionPisosSuperiores)}
-                </span>
-                {projectCoefficients.ocupacionPisosSuperiores <= permittedValues.ocupacionPisosSuperiores ? (
-                  <span style={{ color: '#4caf50', marginLeft: '8px', fontSize: '18px' }}>✓</span>
-                ) : (
-                  <span style={{ color: '#f44336', marginLeft: '8px', fontSize: '18px' }}>✗</span>
-                )}
-              </td>
-              <td style={{ textAlign: 'center' }}>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={permittedValues.ocupacionPisosSuperiores || ''}
-                  onChange={(e) => {
-                    const value = e.target.value === '' ? 0 : parseFloat(e.target.value) || 0;
-                    setPermittedValues({
-                      ...permittedValues,
-                      ocupacionPisosSuperiores: value,
-                    });
-                  }}
-                  className={styles.permittedInput}
-                />
-              </td>
-            </tr>
-            <tr>
-              <td>COEFICIENTE DE OCUPACIÓN DE SUELO (1er piso)</td>
-              <td className={`${styles.numberCell} ${styles.projectValueCell}`}>
-                <span className={styles.projectValue}>
-                  {formatNumber(projectCoefficients.ocupacionSuelo)}
-                </span>
-                {projectCoefficients.ocupacionSuelo <= permittedValues.ocupacionSuelo ? (
-                  <span style={{ color: '#4caf50', marginLeft: '8px', fontSize: '18px' }}>✓</span>
-                ) : (
-                  <span style={{ color: '#f44336', marginLeft: '8px', fontSize: '18px' }}>✗</span>
-                )}
-              </td>
-              <td style={{ textAlign: 'center' }}>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={permittedValues.ocupacionSuelo || ''}
-                  onChange={(e) => {
-                    const value = e.target.value === '' ? 0 : parseFloat(e.target.value) || 0;
-                    setPermittedValues({
-                      ...permittedValues,
-                      ocupacionSuelo: value,
-                    });
-                  }}
-                  className={styles.permittedInput}
-                />
-              </td>
-            </tr>
-            <tr>
-              <td>COEFICIENTE DE CONSTRUCTIBILIDAD</td>
-              <td className={`${styles.numberCell} ${styles.projectValueCell}`}>
-                <span className={styles.projectValue}>
-                  {formatNumber(projectCoefficients.constructibilidad)}
-                </span>
-                {projectCoefficients.constructibilidad <= permittedValues.constructibilidad ? (
-                  <span style={{ color: '#4caf50', marginLeft: '8px', fontSize: '18px' }}>✓</span>
-                ) : (
-                  <span style={{ color: '#f44336', marginLeft: '8px', fontSize: '18px' }}>✗</span>
-                )}
-              </td>
-              <td style={{ textAlign: 'center' }}>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={permittedValues.constructibilidad || ''}
-                  onChange={(e) => {
-                    const value = e.target.value === '' ? 0 : parseFloat(e.target.value) || 0;
-                    setPermittedValues({
-                      ...permittedValues,
-                      constructibilidad: value,
-                    });
-                  }}
-                  className={styles.permittedInput}
-                />
-              </td>
-            </tr>
-          </tbody>
-        </table>
+          >
+            <GridCell subtotal>TOTAL GENERAL</GridCell>
+            <GridCell subtotal align="center">{formatNumber(totals.general.util)}</GridCell>
+            <GridCell subtotal align="center">{formatNumber(totals.general.comun)}</GridCell>
+            <GridCell subtotal align="center">{formatNumber(totals.general.total)}</GridCell>
+          </Box>
+        </Box>
       </div>
     </div>
   );
 };
 
 export default FloorsSummaryTab;
-
