@@ -22,7 +22,7 @@ import { useAuth } from '../../context/AuthContext';
 interface CreatePublicationSectionModalProps {
   open: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (newSection?: { id: number; code: string; name: string }) => void;
   publicationId: number;
   parentSectionId?: number | null;
 }
@@ -91,8 +91,9 @@ const CreatePublicationSectionModal: React.FC<CreatePublicationSectionModalProps
       });
       return res.data;
     },
-    onSuccess: () => {
-      onSuccess();
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['normative-publication-sections', publicationId] });
+      onSuccess(data);
     },
   });
 

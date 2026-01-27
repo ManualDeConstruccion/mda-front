@@ -22,9 +22,10 @@ import {
   Chip,
   Stack,
 } from '@mui/material';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import CreatePublicationSectionModal from './CreatePublicationSectionModal';
 
 interface ArticleDraft {
   id?: number;
@@ -92,7 +93,9 @@ const EditRegulationArticleModal: React.FC<EditRegulationArticleModalProps> = ({
   defaultSectionId,
 }) => {
   const { accessToken } = useAuth();
+  const queryClient = useQueryClient();
   const [tabValue, setTabValue] = useState(0);
+  const [createSectionModalOpen, setCreateSectionModalOpen] = useState(false);
   const [code, setCode] = useState('');
   const [articleNumber, setArticleNumber] = useState('');
   const [title, setTitle] = useState('');
@@ -417,6 +420,17 @@ const EditRegulationArticleModal: React.FC<EditRegulationArticleModalProps> = ({
                   Capítulo o sección del documento donde se encuentra este artículo
                 </Typography>
               </FormControl>
+              {pubIdForSections && (
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  onClick={() => setCreateSectionModalOpen(true)}
+                  size="small"
+                  sx={{ alignSelf: 'flex-start' }}
+                >
+                  Crear Nueva Sección
+                </Button>
+              )}
               <FormControl fullWidth>
                 <InputLabel>Artículo padre</InputLabel>
                 <Select
@@ -620,6 +634,21 @@ const EditRegulationArticleModal: React.FC<EditRegulationArticleModalProps> = ({
           </Button>
         </DialogActions>
       </form>
+      {pubIdForSections && (
+        <CreatePublicationSectionModal
+          open={createSectionModalOpen}
+          onClose={() => setCreateSectionModalOpen(false)}
+          onSuccess={(newSection) => {
+            setCreateSectionModalOpen(false);
+            // Si se creó una nueva sección, seleccionarla automáticamente
+            if (newSection && newSection.id) {
+              setSection(newSection.id);
+            }
+          }}
+          publicationId={pubIdForSections}
+          parentSectionId={null}
+        />
+      )}
     </Dialog>
   );
 };

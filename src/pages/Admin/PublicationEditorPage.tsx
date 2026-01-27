@@ -35,6 +35,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import EditRegulationArticleModal from '../../components/Admin/EditRegulationArticleModal';
+import ManagePublicationSectionsModal from '../../components/Admin/ManagePublicationSectionsModal';
 
 interface RegulationArticleRow {
   id: number;
@@ -55,6 +56,8 @@ interface PublicationSectionRow {
   name: string;
   section_number?: string;
   order: number;
+  parent?: number | null;
+  subsections?: PublicationSectionRow[];
 }
 
 interface PublicationDetail {
@@ -79,6 +82,7 @@ const PublicationEditorPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [editingArticle, setEditingArticle] = useState<RegulationArticleRow | null>(null);
   const [createArticleOpen, setCreateArticleOpen] = useState(false);
+  const [manageSectionsOpen, setManageSectionsOpen] = useState(false);
 
   const itemsPerPage = 50;
   const headers = {
@@ -124,8 +128,64 @@ const PublicationEditorPage: React.FC = () => {
     enabled: !!publicationId && !!accessToken,
   });
 
+  // Construir árbol jerárquico de secciones
+  const sectionTree = useMemo(() => {
+    const sectionMap = new Map<number, PublicationSectionRow & { subsections: PublicationSectionRow[] }>();
+    const rootSections: (PublicationSectionRow & { subsections: PublicationSectionRow[] })[] = [];
+
+    // Crear mapa de todas las secciones
+    sections.forEach((section) => {
+      sectionMap.set(section.id, { ...section, subsections: [] });
+    });
+
+    // Construir árbol
+    sections.forEach((section) => {
+      const sectionWithSubs = sectionMap.get(section.id)!;
+      if (section.parent && sectionMap.has(section.parent)) {
+        const parentSection = sectionMap.get(section.parent)!;
+        parentSection.subsections.push(sectionWithSubs);
+      } else {
+        rootSections.push(sectionWithSubs);
+      }
+    });
+
+    // Ordenar por order y section_number
+    const sortSections = (sections: (PublicationSectionRow & { subsections: PublicationSectionRow[] })[]) => {
+      sections.sort((a, b) => {
+        if (a.order !== b.order) return a.order - b.order;
+        if (a.section_number && b.section_number) {
+          return a.section_number.localeCompare(b.section_number);
+        }
+        return a.name.localeCompare(b.name);
+      });
+      sections.forEach((s) => {
+        if (s.subsections.length > 0) {
+          sortSections(s.subsections);
+        }
+      });
+    };
+
+    sortSections(rootSections);
+    return rootSections;
+  }, [sections]);
+
+  // Aplanar árbol de secciones manteniendo orden jerárquico
+  const flattenedSections = useMemo(() => {
+    const result: (PublicationSectionRow & { subsections: PublicationSectionRow[]; level: number })[] = [];
+    const flatten = (sections: (PublicationSectionRow & { subsections: PublicationSectionRow[] })[], level: number = 0) => {
+      sections.forEach((section) => {
+        result.push({ ...section, level });
+        if (section.subsections.length > 0) {
+          flatten(section.subsections, level + 1);
+        }
+      });
+    };
+    flatten(sectionTree);
+    return result;
+  }, [sectionTree]);
+
   const { groupedArticles, totalCount } = useMemo(() => {
-    if (!articles.length) return { groupedArticles: {} as Record<string, { sectionName: string; articles: RegulationArticleRow[] }>, totalCount: 0 };
+    if (!articles.length) return { groupedArticles: {} as Record<string, { sectionName: string; sectionId: number | null; level: number; articles: RegulationArticleRow[] }>, totalCount: 0 };
 
     const filtered = articles.filter((a) => {
       if (searchTerm) {
@@ -142,36 +202,98 @@ const PublicationEditorPage: React.FC = () => {
       return true;
     });
 
-    const grouped: Record<string, { sectionName: string; articles: RegulationArticleRow[] }> = {};
+    const grouped: Record<string, { sectionName: string; sectionId: number | null; level: number; articles: RegulationArticleRow[] }> = {};
     filtered.forEach((a) => {
       const key = a.section != null ? `s${a.section}` : 'nosection';
-      const sectionName = a.section_name ?? 'Sin sección';
-      if (!grouped[key]) grouped[key] = { sectionName, articles: [] };
+      const section = flattenedSections.find((s) => s.id === a.section);
+      const sectionName = section?.name ?? a.section_name ?? 'Sin sección';
+      const level = section?.level ?? 0;
+      if (!grouped[key]) grouped[key] = { sectionName, sectionId: a.section, level, articles: [] };
       grouped[key].articles.push(a);
     });
 
+    // Agregar secciones padre que tienen subsecciones con artículos
+    const addParentSections = (sectionId: number | null) => {
+      if (!sectionId) return;
+      const section = flattenedSections.find((s) => s.id === sectionId);
+      if (!section || !section.parent) return;
+      
+      const parentKey = `s${section.parent}`;
+      const parentSection = flattenedSections.find((s) => s.id === section.parent);
+      if (parentSection && !grouped[parentKey]) {
+        grouped[parentKey] = {
+          sectionName: parentSection.name,
+          sectionId: parentSection.id,
+          level: parentSection.level,
+          articles: [],
+        };
+        // Recursivamente agregar padres de padres
+        addParentSections(parentSection.id);
+      }
+    };
+
+    // Para cada sección con artículos, agregar sus padres
+    Object.keys(grouped).forEach((key) => {
+      if (key !== 'nosection') {
+        const sectionId = parseInt(key.replace('s', ''));
+        addParentSections(sectionId);
+      }
+    });
+
     return { groupedArticles: grouped, totalCount: filtered.length };
-  }, [articles, searchTerm, filterSection, filterIsActive]);
+  }, [articles, searchTerm, filterSection, filterIsActive, flattenedSections]);
 
   const paginatedEntries = useMemo(() => {
-    const flat: { key: string; sectionName: string; article: RegulationArticleRow }[] = [];
+    const flat: { key: string; sectionName: string; sectionId: number | null; level: number; article: RegulationArticleRow }[] = [];
     Object.entries(groupedArticles).forEach(([key, g]) => {
-      g.articles.forEach((a) => flat.push({ key, sectionName: g.sectionName, article: a }));
+      g.articles.forEach((a) => flat.push({ key, sectionName: g.sectionName, sectionId: g.sectionId, level: g.level, article: a }));
     });
     const start = (page - 1) * itemsPerPage;
     return flat.slice(start, start + itemsPerPage);
   }, [groupedArticles, page, itemsPerPage]);
 
   const { paginatedBySection, orderedSectionKeys } = useMemo(() => {
-    const map: Record<string, { sectionName: string; articles: RegulationArticleRow[] }> = {};
-    paginatedEntries.forEach(({ key, sectionName, article }) => {
-      if (!map[key]) map[key] = { sectionName, articles: [] };
+    const map: Record<string, { sectionName: string; sectionId: number | null; level: number; articles: RegulationArticleRow[] }> = {};
+    
+    // Primero, agregar todas las secciones que tienen artículos en la página actual
+    paginatedEntries.forEach(({ key, sectionName, sectionId, level, article }) => {
+      if (!map[key]) map[key] = { sectionName, sectionId, level, articles: [] };
       map[key].articles.push(article);
     });
-    const order = ['nosection', ...sections.map((s) => `s${s.id}`)];
+
+    // Agregar secciones padre que tienen subsecciones con artículos en la página actual
+    const addParentSectionsToMap = (sectionId: number | null) => {
+      if (!sectionId) return;
+      const section = flattenedSections.find((s) => s.id === sectionId);
+      if (!section || !section.parent) return;
+      
+      const parentKey = `s${section.parent}`;
+      const parentSection = flattenedSections.find((s) => s.id === section.parent);
+      if (parentSection && !map[parentKey]) {
+        map[parentKey] = {
+          sectionName: parentSection.name,
+          sectionId: parentSection.id,
+          level: parentSection.level,
+          articles: [],
+        };
+        // Recursivamente agregar padres de padres
+        addParentSectionsToMap(parentSection.id);
+      }
+    };
+
+    // Para cada sección con artículos en la página, agregar sus padres
+    Object.keys(map).forEach((key) => {
+      if (key !== 'nosection') {
+        const sectionId = parseInt(key.replace('s', ''));
+        addParentSectionsToMap(sectionId);
+      }
+    });
+
+    // Ordenar por el orden jerárquico de las secciones
+    const order = ['nosection', ...flattenedSections.map((s) => `s${s.id}`)];
     const ordered = order.filter((k) => k in map);
     return { paginatedBySection: map, orderedSectionKeys: ordered };
-  }, [paginatedEntries, sections]);
+  }, [paginatedEntries, flattenedSections]);
 
   const totalPages = Math.ceil(totalCount / itemsPerPage);
 
@@ -231,16 +353,25 @@ const PublicationEditorPage: React.FC = () => {
               <Chip label={publication.regulation_type_name} size="small" sx={{ mt: 0.5 }} />
             )}
           </Box>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => {
-              setEditingArticle(null);
-              setCreateArticleOpen(true);
-            }}
-          >
-            Nuevo artículo
-          </Button>
+          <Stack direction="row" spacing={2}>
+            <Button
+              variant="outlined"
+              startIcon={<AddIcon />}
+              onClick={() => setManageSectionsOpen(true)}
+            >
+              Nueva sección
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => {
+                setEditingArticle(null);
+                setCreateArticleOpen(true);
+              }}
+            >
+              Nuevo artículo
+            </Button>
+          </Stack>
         </Box>
 
         <Paper sx={{ p: 2, mb: 3 }}>
@@ -326,21 +457,39 @@ const PublicationEditorPage: React.FC = () => {
                   orderedSectionKeys.map((sectionKey, groupIdx) => {
                     const group = paginatedBySection[sectionKey];
                     if (!group) return null;
+                    const indent = group.level * 24;
+                    const section = flattenedSections.find((s) => s.id === group.sectionId);
+                    const sectionNumber = section?.section_number;
                     return (
                     <React.Fragment key={sectionKey}>
                       <TableRow>
-                        <TableCell colSpan={7} sx={{ bgcolor: 'grey.100', py: 1.5 }}>
-                          <Typography variant="subtitle1" fontWeight="bold" color="primary">
-                            {group.sectionName}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {group.articles.length} artículo{group.articles.length !== 1 ? 's' : ''}
-                          </Typography>
+                        <TableCell colSpan={7} sx={{ bgcolor: group.level === 0 ? 'grey.100' : 'grey.50', py: 1.5, pl: `${indent + 16}px` }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            {group.level > 0 && (
+                              <Box
+                                sx={{
+                                  width: 2,
+                                  height: 20,
+                                  bgcolor: 'divider',
+                                  ml: -1,
+                                }}
+                              />
+                            )}
+                            <Box sx={{ flex: 1 }}>
+                              <Typography variant="subtitle1" fontWeight={group.level === 0 ? 'bold' : 'medium'} color="primary">
+                                {sectionNumber && `${sectionNumber}. `}
+                                {group.sectionName}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {group.articles.length} artículo{group.articles.length !== 1 ? 's' : ''}
+                              </Typography>
+                            </Box>
+                          </Box>
                         </TableCell>
                       </TableRow>
                       {group.articles.map((art) => (
                         <TableRow key={art.id} hover>
-                          <TableCell>
+                          <TableCell sx={{ pl: `${indent + 40}px` }}>
                             <Typography variant="body2" fontWeight="medium">
                               {art.code}
                             </Typography>
@@ -423,6 +572,17 @@ const PublicationEditorPage: React.FC = () => {
         officialPublicationId={publication?.id ? Number(publication.id) : 0}
         defaultSectionId={undefined}
       />
+
+      {publication?.id && (
+        <ManagePublicationSectionsModal
+          open={manageSectionsOpen}
+          onClose={() => {
+            setManageSectionsOpen(false);
+            queryClient.invalidateQueries({ queryKey: ['normative-publication-sections', publicationId] });
+          }}
+          publicationId={Number(publication.id)}
+        />
+      )}
     </Container>
   );
 };

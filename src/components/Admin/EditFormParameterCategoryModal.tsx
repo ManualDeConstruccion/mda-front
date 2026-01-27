@@ -32,7 +32,6 @@ interface FormParameterCategory {
   name: string;
   description?: string;
   parent?: number | null;
-  order: number;
   is_active: boolean;
   form_type?: number | FormType | null;
   form_type_name?: string | null;
@@ -66,7 +65,6 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [parent, setParent] = useState<number | null>(null);
-  const [order, setOrder] = useState(0);
   const [isActive, setIsActive] = useState(true);
   const [formType, setFormType] = useState<number | null>(null);
   const [formTypes, setFormTypes] = useState<FormType[]>([]);
@@ -103,7 +101,6 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
       setName(category.name);
       setDescription(category.description || '');
       setParent(category.parent || null);
-      setOrder(category.order);
       setIsActive(category.is_active);
       // Establecer form_type
       if (category.form_type) {
@@ -119,7 +116,6 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
       setName('');
       setDescription('');
       setParent(defaultParentId || null); // Usar defaultParentId si está disponible
-      setOrder(0);
       setIsActive(true);
       setFormType(null);
     }
@@ -179,7 +175,6 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
       name: name.trim(),
       description: description.trim() || '',
       parent: parent || null,
-      order,
       is_active: isActive,
     };
     
@@ -294,15 +289,6 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
               )}
             </FormControl>
           )}
-
-          <TextField
-            label="Orden"
-            type="number"
-            value={order}
-            onChange={(e) => setOrder(Number(e.target.value))}
-            fullWidth
-            inputProps={{ min: 0 }}
-          />
 
           <FormControlLabel
             control={

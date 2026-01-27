@@ -79,6 +79,25 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
   const [createCategoryModalOpen, setCreateCategoryModalOpen] = useState(false);
   const [tabValue, setTabValue] = useState(0);
 
+  // Funciones auxiliares para validar JSON
+  const isValidJSON = (str: string): boolean => {
+    try {
+      JSON.parse(str);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const isValidJSONArray = (str: string): boolean => {
+    try {
+      const parsed = JSON.parse(str);
+      return Array.isArray(parsed);
+    } catch {
+      return false;
+    }
+  };
+
   // Fetch categorías
   const { data: categories } = useQuery<ParameterCategory[]>({
     queryKey: ['parameter-categories'],
@@ -123,6 +142,32 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
     enabled: open && !!accessToken,
     retry: false,
   });
+
+  // Limpiar error cuando los campos se corrigen y son válidos
+  useEffect(() => {
+    // Solo validar si hay un error activo
+    if (!error) return;
+    
+    // Validar que todos los campos sean válidos
+    const trimmedCode = code.trim();
+    const trimmedName = name.trim();
+    
+    // Validar código: debe comenzar con letra y solo contener letras minúsculas, números y guiones bajos
+    const isCodeValid = trimmedCode && /^[a-z][a-z0-9_]*$/.test(trimmedCode);
+    
+    // Validar nombre: no debe estar vacío
+    const isNameValid = trimmedName.length > 0;
+    
+    // Validar JSON fields
+    const isValidationRulesValid = !validationRules.trim() || isValidJSON(validationRules.trim());
+    const isCalculationInputsValid = !calculationInputs.trim() || isValidJSONArray(calculationInputs.trim());
+    
+    // Si todos los campos son válidos, limpiar el error
+    if (isCodeValid && isNameValid && isValidationRulesValid && isCalculationInputsValid) {
+      setError(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code, name, validationRules, calculationInputs]);
 
   useEffect(() => {
     if (!open) {
@@ -359,7 +404,16 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
           <TextField
             label="Código"
             value={code}
-            onChange={(e) => setCode(e.target.value)}
+            onChange={(e) => {
+              setCode(e.target.value);
+              // Limpiar error cuando el usuario modifica el código
+              if (error) {
+                const trimmedCode = e.target.value.trim();
+                if (trimmedCode && /^[a-z][a-z0-9_]*$/.test(trimmedCode)) {
+                  setError(null);
+                }
+              }
+            }}
             required
             fullWidth
             disabled={!!parameter}
@@ -377,7 +431,16 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
           <TextField
             label="Nombre"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              setName(e.target.value);
+              // Limpiar error cuando el usuario modifica el nombre y el error era sobre nombre
+              if (error && e.target.value.trim() && error.includes('nombre')) {
+                const trimmedCode = code.trim();
+                if (trimmedCode && /^[a-z][a-z0-9_]*$/.test(trimmedCode)) {
+                  setError(null);
+                }
+              }
+            }}
             required
             fullWidth
             helperText="Nombre descriptivo del parámetro"
@@ -514,7 +577,24 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
             <TextField
               label="Reglas de Validación"
               value={validationRules}
-              onChange={(e) => setValidationRules(e.target.value)}
+              onChange={(e) => {
+                setValidationRules(e.target.value);
+                // Limpiar error cuando el usuario modifica las reglas de validación y el error era sobre JSON
+                if (error && (error.includes('Reglas de validación') || error.includes('JSON válido'))) {
+                  const trimmed = e.target.value.trim();
+                  if (!trimmed || (trimmed && isValidJSON(trimmed))) {
+                    // Verificar que otros campos también sean válidos antes de limpiar
+                    const trimmedCode = code.trim();
+                    const trimmedName = name.trim();
+                    const isCodeValid = trimmedCode && /^[a-z][a-z0-9_]*$/.test(trimmedCode);
+                    const isNameValid = trimmedName.length > 0;
+                    const isCalculationInputsValid = !calculationInputs.trim() || isValidJSONArray(calculationInputs.trim());
+                    if (isCodeValid && isNameValid && isCalculationInputsValid) {
+                      setError(null);
+                    }
+                  }
+                }
+              }}
               multiline
               rows={4}
               fullWidth
@@ -543,7 +623,24 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
             <TextField
               label="Parámetros de Entrada"
               value={calculationInputs}
-              onChange={(e) => setCalculationInputs(e.target.value)}
+              onChange={(e) => {
+                setCalculationInputs(e.target.value);
+                // Limpiar error cuando el usuario modifica los parámetros de entrada y el error era sobre este campo
+                if (error && error.includes('Parámetros de entrada')) {
+                  const trimmed = e.target.value.trim();
+                  if (!trimmed || (trimmed && isValidJSONArray(trimmed))) {
+                    // Verificar que otros campos también sean válidos antes de limpiar
+                    const trimmedCode = code.trim();
+                    const trimmedName = name.trim();
+                    const isCodeValid = trimmedCode && /^[a-z][a-z0-9_]*$/.test(trimmedCode);
+                    const isNameValid = trimmedName.length > 0;
+                    const isValidationRulesValid = !validationRules.trim() || isValidJSON(validationRules.trim());
+                    if (isCodeValid && isNameValid && isValidationRulesValid) {
+                      setError(null);
+                    }
+                  }
+                }
+              }}
               multiline
               rows={3}
               fullWidth
