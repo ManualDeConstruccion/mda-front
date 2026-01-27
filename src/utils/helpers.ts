@@ -47,4 +47,15 @@ export const formatFileSize = (bytes: number): string => {
   const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+};
+
+/**
+ * Formato de número: separador de miles ".", decimal ",".
+ * Ej: 1234567.89 → "1.234.567,89"; 1500 → "1.500,00" (decimals=2).
+ */
+export const formatNumberLocale = (num: number, decimals = 2): string => {
+  const fixed = num.toFixed(decimals);
+  const [intPart, decPart] = fixed.split('.');
+  const withThousands = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return decPart != null ? `${withThousands},${decPart}` : withThousands;
 }; 

@@ -43,6 +43,8 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import { formatNumberLocale } from '../../utils/helpers';
+import { GRID_LABEL_LIGHTBLUE } from '../../utils/gridStandard';
 import EditFormParameterCategoryModal from './EditFormParameterCategoryModal';
 import AddFormParameterModal from './AddFormParameterModal';
 import EditFormParameterModal from './EditFormParameterModal';
@@ -206,19 +208,33 @@ const GridCell: React.FC<GridCellProps> = ({
   // Obtener is_required del FormParameter
   const isRequired = isParameter ? (cell as FormParameter).is_required : false;
 
-  // Determinar el color de fondo para celdas de texto
+  // Determinar el color de fondo
   const getBackgroundColor = () => {
+    if (mode === 'editable') {
+      // Parámetros editables (no calculados, con input) → verde claro
+      const isEditableParam = isParameter && !isCalculated && !!cellCode && !!paramDef && !!onChange;
+      if (isEditableParam) {
+        return 'rgba(232, 245, 233, 0.95)'; // Verde claro (Material green 50)
+      }
+      // Celdas de texto con celeste en estilo → mantener celeste (estándar grilla)
+      if (!isParameter) {
+        const cellStyle = (cell as FormGridCell).style || {};
+        if ((cellStyle.backgroundColor || '') === 'lightblue') {
+          return GRID_LABEL_LIGHTBLUE;
+        }
+      }
+      // Resto (calculados, celdas de texto sin celeste) → blanco
+      return '#fff';
+    }
     if (isParameter) {
       return 'background.default';
     }
-    // Para celdas de texto, verificar si tienen fondo celeste definido en style
+    // Para celdas de texto, verificar si tienen fondo celeste definido en style (estándar grilla)
     const cellStyle = (cell as FormGridCell).style || {};
     const backgroundColor = cellStyle.backgroundColor || 'transparent';
-    
     if (backgroundColor === 'lightblue') {
-      return 'rgba(135, 206, 250, 0.3)'; // Celeste claro
+      return GRID_LABEL_LIGHTBLUE;
     }
-    // Si no tiene fondo celeste, no aplicar fondo
     return 'transparent';
   };
 
@@ -319,13 +335,15 @@ const GridCell: React.FC<GridCellProps> = ({
               } else {
                 switch (dataType) {
                   case 'decimal':
-                    displayValue = typeof value === 'number' 
-                      ? value.toFixed(2) 
+                    displayValue = typeof value === 'number'
+                      ? formatNumberLocale(value, 2)
                       : String(value);
                     if (unit) displayValue += ` ${unit}`;
                     break;
                   case 'integer':
-                    displayValue = String(value);
+                    displayValue = typeof value === 'number'
+                      ? formatNumberLocale(value, 0)
+                      : String(value);
                     if (unit) displayValue += ` ${unit}`;
                     break;
                   case 'boolean':

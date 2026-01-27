@@ -1,0 +1,88 @@
+// Estándar gráfico para grillas (grilla general, resumen de pisos).
+// Usa variables de _variables.scss.
+//
+// Uso: importar como módulo y aplicar clases.
+// - .gridSection, .gridSectionTitle, .gridSectionSubtitle: sección con título
+// - .gridContainer: contenedor del grid (borde, padding, fondo)
+// - .grid, .gridColumns4: layout (grid 4 columnas)
+// - .gridCell + .gridCellHeader | .gridCellData | .gridCellSubtotal + .gridCellLeft | .gridCellCenter | .gridCellRight
+
+@use './variables' as *;
+
+.gridSection {
+  margin-bottom: $spacing-xl;
+}
+
+.gridSectionTitle {
+  font-size: $font-size-lg;
+  font-weight: 700;
+  color: $text-primary;
+  margin-bottom: $spacing-sm;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.gridSectionSubtitle {
+  font-size: $font-size-sm;
+  font-weight: 400;
+  color: $text-secondary;
+}
+
+.gridContainer {
+  padding: $spacing-md;
+  border: $grid-container-border;
+  border-radius: $grid-container-radius;
+  background-color: $grid-data-bg;
+  width: 100%;
+}
+
+.grid {
+  display: grid;
+  gap: $spacing-md;
+  width: 100%;
+}
+
+.gridColumns4 {
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+}
+
+.gridCell {
+  padding: $grid-cell-padding;
+  border: 1px solid $grid-cell-border-color;
+  border-radius: $grid-cell-radius;
+  min-height: $grid-cell-min-height;
+  display: flex;
+  align-items: center;
+  font-size: $grid-font-size;
+}
+
+.gridCellHeader {
+  background-color: $grid-header-bg;
+  font-weight: 700;
+  color: $text-primary;
+}
+
+.gridCellData {
+  background-color: $grid-data-bg;
+  font-weight: 400;
+  color: $text-primary;
+}
+
+.gridCellSubtotal {
+  background-color: $grid-subtotal-bg;
+  font-weight: 700;
+  color: $primary-color;
+}
+
+.gridCellLeft {
+  justify-content: flex-start;
+}
+
+.gridCellCenter {
+  justify-content: center;
+}
+
+.gridCellRight {
+  justify-content: flex-end;
+}

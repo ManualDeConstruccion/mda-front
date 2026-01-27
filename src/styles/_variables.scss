@@ -84,3 +84,15 @@ $font-size-sm: 14px;
 $font-size-md: 16px;
 $font-size-lg: 18px;
 $font-size-xl: 24px;
+
+// Grid standard (grilla general / resumen de pisos)
+$grid-header-bg: rgba(135, 206, 250, 0.35);
+$grid-data-bg: #ffffff;
+$grid-subtotal-bg: rgba(135, 206, 250, 0.2);
+$grid-cell-border-color: #e0e0e0;
+$grid-cell-radius: 4px;
+$grid-cell-padding: 12px;
+$grid-cell-min-height: 44px;
+$grid-font-size: $font-size-sm;
+$grid-container-radius: $border-radius-md;
+$grid-container-border: 1px solid $grid-cell-border-color;

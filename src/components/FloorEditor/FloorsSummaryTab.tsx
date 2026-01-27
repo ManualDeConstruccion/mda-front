@@ -1,58 +1,34 @@
 // src/components/FloorEditor/FloorsSummaryTab.tsx
-// Resumen de superficies en grilla estilo SectionTreeWithModes: cada piso (subterráneos / sobre terreno),
+// Resumen de superficies en grilla estándar: cada piso (subterráneos / sobre terreno),
 // columnas Útil, Común, Total, sin desplegables. Subtotales por grupo calculados en frontend.
+// Usa estilos centralizados de grid-standard.
 
 import React, { useMemo } from 'react';
-import { Box, Typography } from '@mui/material';
 import { useFloors, Floor } from '../../hooks/useFloors';
+import { formatNumberLocale } from '../../utils/helpers';
 import styles from './FloorsTab.module.scss';
-
-const HEADER_BG = 'rgba(135, 206, 250, 0.35)';
-const DATA_BG = 'background.paper';
-const SUBTOTAL_BG = 'rgba(135, 206, 250, 0.2)';
+import gridStyles from '../../styles/grid-standard.module.scss';
 
 interface FloorsSummaryTabProps {
   projectNodeId: number;
 }
 
-const formatNumber = (num: number): string => num.toFixed(2);
+const formatNumber = (num: number): string => formatNumberLocale(num, 2);
 
-interface GridCellProps {
-  children: React.ReactNode;
-  header?: boolean;
-  subtotal?: boolean;
-  align?: 'left' | 'center' | 'right';
+function cellClass(
+  g: Record<string, string>,
+  opts: { header?: boolean; subtotal?: boolean; align?: 'left' | 'center' | 'right' }
+): string {
+  const { header, subtotal, align = 'left' } = opts;
+  const c = [g.gridCell];
+  if (header) c.push(g.gridCellHeader);
+  else if (subtotal) c.push(g.gridCellSubtotal);
+  else c.push(g.gridCellData);
+  if (align === 'center') c.push(g.gridCellCenter);
+  else if (align === 'right') c.push(g.gridCellRight);
+  else c.push(g.gridCellLeft);
+  return c.join(' ');
 }
-
-const GridCell: React.FC<GridCellProps> = ({ children, header, subtotal, align = 'left' }) => {
-  const justifyContent =
-    align === 'center' ? 'center' : align === 'right' ? 'flex-end' : 'flex-start';
-  return (
-    <Box
-      sx={{
-        p: 1.5,
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 1,
-        bgcolor: header ? HEADER_BG : subtotal ? SUBTOTAL_BG : DATA_BG,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent,
-        minHeight: 44,
-      }}
-    >
-      <Typography
-        variant="body2"
-        sx={{
-          fontWeight: header || subtotal ? 700 : 400,
-          color: subtotal ? 'primary.main' : 'text.primary',
-        }}
-      >
-        {children}
-      </Typography>
-    </Box>
-  );
-};
 
 interface FloorGroupGridProps {
   title: string;
@@ -71,52 +47,43 @@ const FloorGroupGrid: React.FC<FloorGroupGridProps> = ({
   subtotal,
   formatNumber: fmt,
 }) => (
-  <div className={styles.section}>
-    <h4 className={styles.sectionTitle}>
+  <div className={gridStyles.gridSection}>
+    <h4 className={gridStyles.gridSectionTitle}>
       <span style={{ fontWeight: 700 }}>{title}</span>
-      <span className={styles.sectionSubtitle}>{subtitle}</span>
+      <span className={gridStyles.gridSectionSubtitle}>{subtitle}</span>
     </h4>
-    <Box
-      sx={{
-        p: 2,
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 1,
-        bgcolor: 'background.paper',
-        width: '100%',
-      }}
-    >
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr 1fr 1fr',
-          gap: 2,
-          width: '100%',
-        }}
-      >
-        {/* Cabecera */}
-        <GridCell header>Piso</GridCell>
-        <GridCell header align="center">Útil (m²)</GridCell>
-        <GridCell header align="center">Común (m²)</GridCell>
-        <GridCell header align="center">Total (m²)</GridCell>
-
-        {/* Filas por piso (sin desplegables) */}
+    <div className={gridStyles.gridContainer}>
+      <div className={`${gridStyles.grid} ${gridStyles.gridColumns4}`}>
+        <div className={cellClass(gridStyles, { header: true })}>Piso</div>
+        <div className={cellClass(gridStyles, { header: true, align: 'center' })}>Útil (m²)</div>
+        <div className={cellClass(gridStyles, { header: true, align: 'center' })}>Común (m²)</div>
+        <div className={cellClass(gridStyles, { header: true, align: 'center' })}>Total (m²)</div>
         {floors.map((f) => (
           <React.Fragment key={f.id}>
-            <GridCell>{f.name}</GridCell>
-            <GridCell align="center">{fmt(f.surface_util ?? 0)}</GridCell>
-            <GridCell align="center">{fmt(f.surface_comun ?? 0)}</GridCell>
-            <GridCell align="center">{fmt(f.surface_total ?? 0)}</GridCell>
+            <div className={cellClass(gridStyles, {})}>{f.name}</div>
+            <div className={cellClass(gridStyles, { align: 'center' })}>
+              {fmt(f.surface_util ?? 0)}
+            </div>
+            <div className={cellClass(gridStyles, { align: 'center' })}>
+              {fmt(f.surface_comun ?? 0)}
+            </div>
+            <div className={cellClass(gridStyles, { align: 'center' })}>
+              {fmt(f.surface_total ?? 0)}
+            </div>
           </React.Fragment>
         ))}
-
-        {/* Subtotal */}
-        <GridCell subtotal>{subtotalLabel}</GridCell>
-        <GridCell subtotal align="center">{fmt(subtotal.util)}</GridCell>
-        <GridCell subtotal align="center">{fmt(subtotal.comun)}</GridCell>
-        <GridCell subtotal align="center">{fmt(subtotal.total)}</GridCell>
-      </Box>
-    </Box>
+        <div className={cellClass(gridStyles, { subtotal: true })}>{subtotalLabel}</div>
+        <div className={cellClass(gridStyles, { subtotal: true, align: 'center' })}>
+          {fmt(subtotal.util)}
+        </div>
+        <div className={cellClass(gridStyles, { subtotal: true, align: 'center' })}>
+          {fmt(subtotal.comun)}
+        </div>
+        <div className={cellClass(gridStyles, { subtotal: true, align: 'center' })}>
+          {fmt(subtotal.total)}
+        </div>
+      </div>
+    </div>
   </div>
 );
 
@@ -185,32 +152,24 @@ const FloorsSummaryTab: React.FC<FloorsSummaryTabProps> = ({ projectNodeId }) =>
         formatNumber={formatNumber}
       />
 
-      <div className={styles.section}>
-        <h4 className={styles.sectionTitle} style={{ fontWeight: 700 }}>TOTAL GENERAL DEL PROYECTO</h4>
-        <Box
-          sx={{
-            p: 2,
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: 1,
-            bgcolor: 'background.paper',
-            width: '100%',
-          }}
-        >
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr 1fr 1fr',
-              gap: 2,
-              width: '100%',
-            }}
-          >
-            <GridCell subtotal>TOTAL GENERAL</GridCell>
-            <GridCell subtotal align="center">{formatNumber(totals.general.util)}</GridCell>
-            <GridCell subtotal align="center">{formatNumber(totals.general.comun)}</GridCell>
-            <GridCell subtotal align="center">{formatNumber(totals.general.total)}</GridCell>
-          </Box>
-        </Box>
+      <div className={gridStyles.gridSection}>
+        <h4 className={gridStyles.gridSectionTitle} style={{ fontWeight: 700 }}>
+          TOTAL GENERAL DEL PROYECTO
+        </h4>
+        <div className={gridStyles.gridContainer}>
+          <div className={`${gridStyles.grid} ${gridStyles.gridColumns4}`}>
+            <div className={cellClass(gridStyles, { subtotal: true })}>TOTAL GENERAL</div>
+            <div className={cellClass(gridStyles, { subtotal: true, align: 'center' })}>
+              {formatNumber(totals.general.util)}
+            </div>
+            <div className={cellClass(gridStyles, { subtotal: true, align: 'center' })}>
+              {formatNumber(totals.general.comun)}
+            </div>
+            <div className={cellClass(gridStyles, { subtotal: true, align: 'center' })}>
+              {formatNumber(totals.general.total)}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
