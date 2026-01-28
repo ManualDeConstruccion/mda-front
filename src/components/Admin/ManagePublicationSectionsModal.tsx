@@ -40,7 +40,6 @@ interface PublicationSection {
   name: string;
   description?: string;
   section_number?: string;
-  order: number;
   parent?: number | null;
   is_active: boolean;
   official_publication: number;
@@ -66,7 +65,6 @@ const ManagePublicationSectionsModal: React.FC<ManagePublicationSectionsModalPro
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [sectionNumber, setSectionNumber] = useState('');
-  const [order, setOrder] = useState(0);
   const [parent, setParent] = useState<number | ''>('');
   const [isActive, setIsActive] = useState(true);
 
@@ -105,13 +103,34 @@ const ManagePublicationSectionsModal: React.FC<ManagePublicationSectionsModalPro
       }
     });
 
-    // Ordenar por order y section_number
+    // Función para ordenar por section_number de forma jerárquica
+    const sectionNumberSortKey = (sectionNumber: string | undefined): (number | string)[] => {
+      if (!sectionNumber) return [999999];
+      const parts = sectionNumber.trim().split('.');
+      try {
+        // Si todos los partes son números, retornar tupla de enteros
+        return parts.map(p => parseInt(p.trim()));
+      } catch {
+        // Si hay partes no numéricas, usar ordenamiento alfabético al final
+        return [999999, sectionNumber];
+      }
+    };
+
+    // Ordenar por section_number jerárquico
     const sortSections = (sections: (PublicationSection & { subsections: PublicationSection[] })[]) => {
       sections.sort((a, b) => {
-        if (a.order !== b.order) return a.order - b.order;
-        if (a.section_number && b.section_number) {
-          return a.section_number.localeCompare(b.section_number);
+        const keyA = sectionNumberSortKey(a.section_number);
+        const keyB = sectionNumberSortKey(b.section_number);
+        
+        // Comparar tuplas elemento por elemento
+        for (let i = 0; i < Math.max(keyA.length, keyB.length); i++) {
+          const valA = keyA[i] ?? 0;
+          const valB = keyB[i] ?? 0;
+          if (valA < valB) return -1;
+          if (valA > valB) return 1;
         }
+        
+        // Si los section_number son iguales, ordenar por nombre
         return a.name.localeCompare(b.name);
       });
       sections.forEach((s) => {
@@ -131,7 +150,6 @@ const ManagePublicationSectionsModal: React.FC<ManagePublicationSectionsModalPro
       setName('');
       setDescription('');
       setSectionNumber('');
-      setOrder(0);
       setParent('');
       setIsActive(true);
     }
@@ -143,7 +161,6 @@ const ManagePublicationSectionsModal: React.FC<ManagePublicationSectionsModalPro
       setName(editingSection.name);
       setDescription(editingSection.description || '');
       setSectionNumber(editingSection.section_number || '');
-      setOrder(editingSection.order);
       setParent(editingSection.parent ?? '');
       setIsActive(editingSection.is_active);
     }
@@ -155,7 +172,6 @@ const ManagePublicationSectionsModal: React.FC<ManagePublicationSectionsModalPro
       name: string;
       description?: string;
       section_number?: string;
-      order: number;
       official_publication: number;
       parent?: number | null;
       is_active: boolean;
@@ -183,7 +199,6 @@ const ManagePublicationSectionsModal: React.FC<ManagePublicationSectionsModalPro
       name: string;
       description?: string;
       section_number?: string;
-      order: number;
       parent?: number | null;
       is_active: boolean;
     }) => {
@@ -214,7 +229,6 @@ const ManagePublicationSectionsModal: React.FC<ManagePublicationSectionsModalPro
     setName('');
     setDescription('');
     setSectionNumber('');
-    setOrder(0);
     setParent('');
     setIsActive(true);
   };
@@ -226,7 +240,6 @@ const ManagePublicationSectionsModal: React.FC<ManagePublicationSectionsModalPro
       name,
       description: description || undefined,
       section_number: sectionNumber || undefined,
-      order,
       official_publication: publicationId,
       parent: parent ? Number(parent) : null,
       is_active: isActive,
@@ -443,14 +456,6 @@ const ManagePublicationSectionsModal: React.FC<ManagePublicationSectionsModalPro
                       ))}
                     </Select>
                   </FormControl>
-                  <TextField
-                    label="Orden"
-                    type="number"
-                    value={order}
-                    onChange={(e) => setOrder(Number(e.target.value) || 0)}
-                    fullWidth
-                    inputProps={{ min: 0 }}
-                  />
                   <FormControlLabel
                     control={<Switch checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />}
                     label="Activa"

@@ -149,13 +149,34 @@ const PublicationEditorPage: React.FC = () => {
       }
     });
 
-    // Ordenar por order y section_number
+    // Función para ordenar por section_number de forma jerárquica
+    const sectionNumberSortKey = (sectionNumber: string | undefined): (number | string)[] => {
+      if (!sectionNumber) return [999999];
+      const parts = sectionNumber.trim().split('.');
+      try {
+        // Si todos los partes son números, retornar tupla de enteros
+        return parts.map(p => parseInt(p.trim()));
+      } catch {
+        // Si hay partes no numéricas, usar ordenamiento alfabético al final
+        return [999999, sectionNumber];
+      }
+    };
+
+    // Ordenar por section_number jerárquico
     const sortSections = (sections: (PublicationSectionRow & { subsections: PublicationSectionRow[] })[]) => {
       sections.sort((a, b) => {
-        if (a.order !== b.order) return a.order - b.order;
-        if (a.section_number && b.section_number) {
-          return a.section_number.localeCompare(b.section_number);
+        const keyA = sectionNumberSortKey(a.section_number);
+        const keyB = sectionNumberSortKey(b.section_number);
+        
+        // Comparar tuplas elemento por elemento
+        for (let i = 0; i < Math.max(keyA.length, keyB.length); i++) {
+          const valA = keyA[i] ?? 0;
+          const valB = keyB[i] ?? 0;
+          if (valA < valB) return -1;
+          if (valA > valB) return 1;
         }
+        
+        // Si los section_number son iguales, ordenar por nombre
         return a.name.localeCompare(b.name);
       });
       sections.forEach((s) => {
