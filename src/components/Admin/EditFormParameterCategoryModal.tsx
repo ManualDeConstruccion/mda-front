@@ -15,8 +15,11 @@ import {
   Select,
   MenuItem,
   Typography,
+  Autocomplete,
 } from '@mui/material';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 
@@ -35,6 +38,8 @@ interface FormParameterCategory {
   is_active: boolean;
   form_type?: number | FormType | null;
   form_type_name?: string | null;
+  project_type?: number;
+  project_type_name?: string | null;
 }
 
 interface EditFormParameterCategoryModalProps {
@@ -69,12 +74,84 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
   const [formType, setFormType] = useState<number | null>(null);
   const [formTypes, setFormTypes] = useState<FormType[]>([]);
   const [error, setError] = useState<string | null>(null);
+  type ModalMode = 'create' | 'copy';
+  const [mode, setMode] = useState<ModalMode>('create');
+  const [selectedSourceCategory, setSelectedSourceCategory] = useState<FormParameterCategory | null>(null);
+  const [targetParentId, setTargetParentId] = useState<number | null>(null);
+
+  const isNewSection = !category && !defaultParentId;
+  const isSubsection = selectedSourceCategory?.parent != null;
+
+  // Categorías de otros tipos de proyecto para copiar (solo cuando modo copia y modal abierto)
+  const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+  const { data: categoriesForCopy = [], isLoading: loadingCategoriesForCopy } = useQuery<FormParameterCategory[]>({
+    queryKey: ['form-parameter-categories-for-copy', projectTypeId],
+    queryFn: async () => {
+      const res = await axios.get(
+        `${API_URL}/api/parameters/form-parameter-categories/?exclude_project_type=${projectTypeId}`,
+        {
+          headers: { Authorization: accessToken ? `Bearer ${accessToken}` : undefined },
+          withCredentials: true,
+        }
+      );
+      const list = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
+      return list;
+    },
+    enabled: open && mode === 'copy' && isNewSection && !!projectTypeId,
+  });
+
+  const copyMutation = useMutation({
+    mutationFn: async (payload: { sourceId: number; targetParentId: number | null; isSub: boolean }) => {
+      const body: { target_project_type_id: number; target_parent_id?: number | null } = {
+        target_project_type_id: projectTypeId,
+      };
+      if (payload.isSub) body.target_parent_id = payload.targetParentId ?? null;
+      const res = await axios.post(
+        `${API_URL}/api/parameters/form-parameter-categories/${payload.sourceId}/copy/`,
+        body,
+        {
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['form-structure', projectTypeId] });
+      onSuccess();
+      handleClose();
+    },
+    onError: (err: any) => {
+      setError(err.response?.data?.detail || 'Error al copiar la sección.');
+    },
+  });
+
+  const handleCopySelect = () => {
+    if (!selectedSourceCategory) return;
+    setError(null);
+    copyMutation.mutate({
+      sourceId: selectedSourceCategory.id,
+      targetParentId: isSubsection ? targetParentId : null,
+      isSub: isSubsection,
+    });
+  };
+
+  const handleClose = () => {
+    setMode('create');
+    setSelectedSourceCategory(null);
+    setTargetParentId(null);
+    setError(null);
+    copyMutation.reset();
+    onClose();
+  };
 
   // Obtener tipos de formulario
   useEffect(() => {
     const fetchFormTypes = async () => {
       try {
-        const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
         const response = await axios.get(
           `${API_URL}/api/parameters/form-types/`,
           {
@@ -121,9 +198,12 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
     }
   }, [category, open, defaultParentId]);
 
+  useEffect(() => {
+    if (open && isNewSection) setMode('create');
+  }, [open, isNewSection]);
+
   const updateMutation = useMutation({
     mutationFn: async (data: any) => {
-      const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
       if (category) {
         const response = await axios.patch(
           `${API_URL}/api/parameters/form-parameter-categories/${category.id}/`,
@@ -155,7 +235,7 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['form-structure', projectTypeId] });
       onSuccess();
-      onClose();
+      handleClose();
     },
     onError: (err: any) => {
       setError(err.response?.data?.code?.[0] || err.response?.data?.detail || 'Error al guardar');
@@ -194,9 +274,21 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
   );
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>
-        {category ? 'Editar Sección' : (defaultParentId ? 'Nueva Subsección' : 'Nueva Sección')}
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
+        <span>
+          {category ? 'Editar Sección' : defaultParentId ? 'Nueva Subsección' : mode === 'copy' ? 'Copiar sección' : 'Nueva Sección'}
+        </span>
+        {isNewSection && mode === 'create' && (
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<ContentCopyIcon />}
+            onClick={() => setMode('copy')}
+          >
+            Copiar sección
+          </Button>
+        )}
       </DialogTitle>
       <DialogContent>
         {error && (
@@ -205,6 +297,61 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
           </Alert>
         )}
 
+        {mode === 'copy' && isNewSection ? (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              Elige una sección o subsección de otro tipo de proyecto. Se copiará completa (parámetros, grillas, subsecciones) en el tipo actual.
+            </Typography>
+            <Autocomplete
+              options={categoriesForCopy}
+              getOptionLabel={(opt) => {
+                const pt = opt.project_type_name || `Tipo #${opt.project_type}`;
+                const sub = opt.parent != null ? ' — subsección' : '';
+                return `${opt.number} - ${opt.name} (${pt})${sub}`;
+              }}
+              value={selectedSourceCategory}
+              onChange={(_, v) => { setSelectedSourceCategory(v); setTargetParentId(null); setError(null); }}
+              loading={loadingCategoriesForCopy}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Sección a copiar"
+                  placeholder="Buscar por número, nombre o tipo..."
+                  helperText="Secciones y subsecciones de otros tipos de proyecto"
+                />
+              )}
+            />
+            {isSubsection && (
+              <FormControl fullWidth size="small">
+                <InputLabel>Copiar como subsección de</InputLabel>
+                <Select
+                  value={targetParentId ?? ''}
+                  label="Copiar como subsección de"
+                  onChange={(e) => setTargetParentId(e.target.value === '' ? null : Number(e.target.value))}
+                >
+                  <MenuItem value="">
+                    <em>Como sección raíz</em>
+                  </MenuItem>
+                  {parentCategories.map((cat) => (
+                    <MenuItem key={cat.id} value={cat.id}>
+                      {cat.number} - {cat.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                  Elige dónde colocar la subsección en el tipo actual, o como raíz.
+                </Typography>
+              </FormControl>
+            )}
+            <Button
+              startIcon={<ArrowBackIcon />}
+              onClick={() => { setMode('create'); setSelectedSourceCategory(null); setTargetParentId(null); setError(null); }}
+              sx={{ alignSelf: 'flex-start' }}
+            >
+              Volver a crear desde cero
+            </Button>
+          </Box>
+        ) : (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
           <TextField
             label="Código"
@@ -300,16 +447,35 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
             label="Activa"
           />
         </Box>
+        )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancelar</Button>
-        <Button
-          onClick={handleSubmit}
-          variant="contained"
-          disabled={updateMutation.isPending}
-        >
-          {updateMutation.isPending ? 'Guardando...' : 'Guardar'}
-        </Button>
+        {mode === 'copy' && isNewSection ? (
+          <>
+            <Button onClick={() => { setMode('create'); setSelectedSourceCategory(null); setTargetParentId(null); setError(null); }}>
+              Volver
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleCopySelect}
+              disabled={!selectedSourceCategory || copyMutation.isPending}
+              startIcon={<ContentCopyIcon />}
+            >
+              {copyMutation.isPending ? 'Copiando...' : 'Copiar sección'}
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button onClick={handleClose}>Cancelar</Button>
+            <Button
+              onClick={handleSubmit}
+              variant="contained"
+              disabled={updateMutation.isPending}
+            >
+              {updateMutation.isPending ? 'Guardando...' : 'Guardar'}
+            </Button>
+          </>
+        )}
       </DialogActions>
     </Dialog>
   );
