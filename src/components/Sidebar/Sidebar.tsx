@@ -17,6 +17,7 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import GavelIcon from '@mui/icons-material/Gavel';
 import TuneIcon from '@mui/icons-material/Tune';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
+import SettingsApplicationsIcon from '@mui/icons-material/SettingsApplications';
 import { useAuth } from '../../context/AuthContext';
 import styles from './Sidebar.module.scss';
 import classNames from 'classnames';
@@ -84,6 +85,7 @@ const getMenuStructure = (isStaff: boolean): (MenuItem | MenuGroup)[] => {
       highlighted: true, // ⚡ Resaltado
       staffOnly: true,
       items: [
+        { path: '/admin/general', icon: <SettingsApplicationsIcon />, text: 'General' },
         { path: '/admin/permisos', icon: <GavelIcon />, text: 'Permisos' },
         { path: '/admin/formularios', icon: <DescriptionIcon />, text: 'Formularios' },
         { path: '/admin/parametros', icon: <TuneIcon />, text: 'Parámetros' },

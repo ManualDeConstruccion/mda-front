@@ -57,7 +57,6 @@ const AddFormParameterModal: React.FC<AddFormParameterModalProps> = ({
   const queryClient = useQueryClient();
   const [tab, setTab] = useState(0); // 0: Seleccionar existente, 1: Crear nuevo
   const [selectedParameter, setSelectedParameter] = useState<ParameterDefinition | null>(null);
-  const [order, setOrder] = useState(0);
   const [isRequired, setIsRequired] = useState(true);
   const [isVisible, setIsVisible] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -150,7 +149,6 @@ const AddFormParameterModal: React.FC<AddFormParameterModalProps> = ({
       addMutation.mutate({
         category: categoryId,
         parameter_definition: selectedParameter.id,
-        order,
         is_required: isRequired,
         is_visible: isVisible,
         ...(initialGridPosition && {
@@ -170,7 +168,6 @@ const AddFormParameterModal: React.FC<AddFormParameterModalProps> = ({
     addMutation.mutate({
       category: categoryId,
       parameter_definition: newParameter.id,
-      order,
       is_required: isRequired,
       is_visible: isVisible,
       ...(initialGridPosition && {
@@ -308,16 +305,6 @@ const AddFormParameterModal: React.FC<AddFormParameterModalProps> = ({
 
           {(tab === 0 && selectedParameter) && (
             <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
-              <TextField
-                label="Orden"
-                type="number"
-                value={order}
-                onChange={(e) => setOrder(Number(e.target.value))}
-                fullWidth
-                sx={{ mb: 2 }}
-                inputProps={{ min: 0 }}
-              />
-
               <FormControlLabel
                 control={
                   <Switch
