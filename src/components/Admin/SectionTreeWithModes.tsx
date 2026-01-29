@@ -407,7 +407,7 @@ const GridCell: React.FC<GridCellProps> = ({
       </Box>
 
       {mode === 'admin' && (
-        <Box sx={{ display: 'flex', gap: 0.5, mt: 'auto' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 'auto' }}>
           {onEdit && (
             <IconButton
               size="small"
@@ -430,6 +430,11 @@ const GridCell: React.FC<GridCellProps> = ({
             >
               <DeleteIcon fontSize="small" />
             </IconButton>
+          )}
+          {isParameter && isRequired && (
+            <Typography variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
+              Requerido
+            </Typography>
           )}
         </Box>
       )}

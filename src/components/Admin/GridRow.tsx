@@ -140,14 +140,30 @@ const GridRow: React.FC<GridRowProps> = React.memo(({
         </Box>
       )}
       
-      {/* Grilla de la fila */}
+      {/* Grilla de la fila: en modo admin, envolver en contenedor con scroll horizontal si las columnas no caben */}
       <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: `repeat(${rowColumns}, 1fr)`,
-          gap: 2,
-        }}
+        sx={
+          mode === 'admin'
+            ? {
+                overflowX: 'auto',
+                overflowY: 'visible',
+                // Evitar que la barra de scroll ocupe espacio extra en algunos navegadores
+                scrollbarGutter: 'stable',
+              }
+            : undefined
+        }
       >
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: `repeat(${rowColumns}, 1fr)`,
+            gap: 2,
+            ...(mode === 'admin' && {
+              // Ancho mínimo para que cada columna tenga al menos ~200px; si no caben, aparece barra horizontal
+              minWidth: rowColumns * 200,
+            }),
+          }}
+        >
         {Array.from({ length: rowColumns }, (_, colIndex) => {
           const col = colIndex + 1;
           const cell = rowCells[col];
@@ -236,6 +252,7 @@ const GridRow: React.FC<GridRowProps> = React.memo(({
           // En modo vista/editable, no mostrar celdas vacías
           return null;
         })}
+        </Box>
       </Box>
     </Box>
   );
