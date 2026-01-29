@@ -433,6 +433,27 @@ const EditFormParameterModal: React.FC<EditFormParameterModalProps> = ({
                 inputProps={{ min: 1, max: 8 }}
                 required
               />
+
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={isRequired}
+                    onChange={(e) => setIsRequired(e.target.checked)}
+                  />
+                }
+                label="Requerido"
+                sx={{ mb: 1 }}
+              />
+
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={isVisible}
+                    onChange={(e) => setIsVisible(e.target.checked)}
+                  />
+                }
+                label="Visible"
+              />
             </Box>
           ) : (
             // Pestaña 2: ParameterDefinition
