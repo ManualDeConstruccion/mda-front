@@ -83,11 +83,13 @@ const GridCell: React.FC<GridCellProps> = ({
     ? getParameterDefinition(cell as FormParameter)?.code || (cell as FormParameter).parameter_definition_code
     : null;
 
-  // Obtener data_type, unit e is_calculated del parameter_definition para modo editable/vista
+  // Obtener data_type, unit e is_calculated del parameter_definition para modo editable/vista.
+  // Los parámetros calculados (is_calculated) son siempre solo lectura en la grilla.
   const paramDef = isParameter ? getParameterDefinition(cell as FormParameter) : null;
   const dataType = paramDef?.data_type || 'text';
   const unit = paramDef?.unit;
-  const isCalculated = paramDef?.is_calculated ?? false;
+  const isCalculated =
+    paramDef?.is_calculated ?? (cell as FormParameter).parameter_definition_is_calculated ?? false;
 
   // Obtener is_required del FormParameter
   const isRequired = isParameter ? (cell as FormParameter).is_required : false;
@@ -195,14 +197,14 @@ const GridCell: React.FC<GridCellProps> = ({
                 )}
               </>
             )}
-            {/* En modo editable, mostrar el input correspondiente (inline o en modal si la celda es estrecha) */}
-            {mode === 'editable' && cellCode && paramDef && onChange && (() => {
+            {/* En modo editable, mostrar el input correspondiente (inline o en modal si la celda es estrecha). Parámetros calculados: solo lectura, sin modal. */}
+            {mode === 'editable' && cellCode && paramDef && (() => {
               const handleChange = onChange;
-              const useModalForInput = cellWidth !== null && cellWidth < MIN_CELL_WIDTH_FOR_INLINE_INPUT;
+              const useModalForInput = !isCalculated && cellWidth !== null && cellWidth < MIN_CELL_WIDTH_FOR_INLINE_INPUT;
               const currentValue = values?.[cellCode];
               let displayValue = '';
               if (currentValue === null || currentValue === undefined) {
-                displayValue = 'Ingresar valor';
+                displayValue = isCalculated ? '-' : 'Ingresar valor';
               } else {
                 switch (dataType) {
                   case 'decimal':
@@ -231,7 +233,28 @@ const GridCell: React.FC<GridCellProps> = ({
                     displayValue = String(currentValue);
                 }
               }
-              if (useModalForInput) {
+              // Parámetros calculados: solo lectura (sin modal ni input)
+              if (isCalculated) {
+                return (
+                  <Box
+                    sx={{
+                      mt: 1,
+                      py: 1,
+                      px: 1.5,
+                      border: '1px dashed',
+                      borderColor: 'divider',
+                      borderRadius: 1,
+                      bgcolor: 'action.hover',
+                      cursor: 'default',
+                    }}
+                  >
+                    <Typography variant="body2" color={currentValue === null || currentValue === undefined ? 'text.secondary' : 'text.primary'}>
+                      {displayValue}
+                    </Typography>
+                  </Box>
+                );
+              }
+              if (useModalForInput && onChange) {
                 return (
                   <>
                     <Box
@@ -266,7 +289,7 @@ const GridCell: React.FC<GridCellProps> = ({
                             label={undefined}
                             unit={unit}
                             required={isRequired}
-                            disabled={isCalculated}
+                            disabled={false}
                           />
                         </Box>
                       </DialogContent>
@@ -285,22 +308,25 @@ const GridCell: React.FC<GridCellProps> = ({
                   </>
                 );
               }
-              return (
-                <Box sx={{ mt: 1 }}>
-                  <ParameterInput
-                    dataType={dataType as any}
-                    value={values?.[cellCode]}
-                    onChange={(newValue) => {
-                      handleChange(cellCode, newValue);
-                    }}
-                    label={undefined}
-                    unit={unit}
-                    required={isRequired}
-                    disabled={isCalculated}
-                    persistOnBlur
-                  />
-                </Box>
-              );
+              if (onChange) {
+                return (
+                  <Box sx={{ mt: 1 }}>
+                    <ParameterInput
+                      dataType={dataType as any}
+                      value={values?.[cellCode]}
+                      onChange={(newValue) => {
+                        handleChange(cellCode, newValue);
+                      }}
+                      label={undefined}
+                      unit={unit}
+                      required={isRequired}
+                      disabled={false}
+                      persistOnBlur
+                    />
+                  </Box>
+                );
+              }
+              return null;
             })()}
             {/* En modo vista, mostrar solo el valor formateado, grande y centrado */}
             {mode === 'view' && cellCode && (() => {

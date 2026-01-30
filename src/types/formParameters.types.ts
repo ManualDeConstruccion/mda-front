@@ -64,6 +64,8 @@ export interface FormParameter {
   grid_span?: number;
   parameter_definition_name?: string;
   parameter_definition_code?: string;
+  /** Si el parámetro es calculado (solo lectura en grilla). Incluido cuando parameter_definition viene como ID. */
+  parameter_definition_is_calculated?: boolean;
 }
 
 export interface FormGridCellStyle {
