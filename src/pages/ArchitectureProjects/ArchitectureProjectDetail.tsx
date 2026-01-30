@@ -818,8 +818,8 @@ const ArchitectureProjectDetail: React.FC = () => {
                               mode="view" // Modo base, cada sección tiene su propio modo
                               subprojectId={Number(architectureId)}
                               values={sectionValues}
-                              onChange={(code: string, value: any) => {
-                                handleParameterChange(section.id, code, value);
+                              onChange={(categoryId: number, code: string, value: any) => {
+                                handleParameterChange(categoryId, code, value);
                               }}
                               onSectionExpand={async (sectionId: number) => {
                                 // Cargar valores cuando se expande una sección

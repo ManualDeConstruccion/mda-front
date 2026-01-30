@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -11,6 +11,10 @@ import {
   Select,
   FormControl,
   InputLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
@@ -133,7 +137,7 @@ interface SectionTreeWithModesProps {
   mode?: SectionTreeMode;
   subprojectId?: number; // Para modo editable (usuario final)
   values?: Record<string, any>; // Valores actuales del formulario (modo editable)
-  onChange?: (code: string, value: any) => void; // Callback para cambios (modo editable)
+  onChange?: (categoryId: number, code: string, value: any) => void; // Callback para cambios (modo editable); categoryId es la sección que contiene el parámetro
   onSectionExpand?: (sectionId: number) => Promise<void>; // Callback cuando se expande una sección (para cargar valores)
   activeSectionId?: number; // ID de la sección que debe estar expandida por defecto
   sectionMode?: 'view' | 'editable'; // Modo específico para esta sección (solo para usuario final)
@@ -156,6 +160,8 @@ export interface GridCellProps {
   onChange?: (code: string, value: any) => void;
 }
 
+const MIN_CELL_WIDTH_FOR_INLINE_INPUT = 180; // Por debajo de este ancho se usa modal para editar
+
 const GridCell: React.FC<GridCellProps> = ({
   cell,
   row,
@@ -170,9 +176,28 @@ const GridCell: React.FC<GridCellProps> = ({
   onChange,
 }) => {
   const cellId = `cell-${isParameter ? 'param' : 'text'}-${cell.id}`;
-  
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [cellWidth, setCellWidth] = useState<number | null>(null);
+  const [inputModalOpen, setInputModalOpen] = useState(false);
+  const [modalValue, setModalValue] = useState<any>(null);
+
   // Solo usar useSortable en modo admin
   const sortable = useSortable({ id: cellId, disabled: mode !== 'admin' });
+
+  // Medir ancho de la celda para decidir si mostrar input inline o en modal
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const w = entry.contentRect.width;
+        setCellWidth(w);
+      }
+    });
+    ro.observe(el);
+    setCellWidth(el.getBoundingClientRect().width);
+    return () => ro.disconnect();
+  }, []);
   
   const style = mode === 'admin' ? {
     transform: CSS.Transform.toString(sortable.transform),
@@ -241,9 +266,14 @@ const GridCell: React.FC<GridCellProps> = ({
   // Determinar si es tipo título
   const isTitleType = !isParameter && ((cell as FormGridCell).style || {}).cellType === 'title';
 
+  const setContainerRef = useCallback((el: HTMLDivElement | null) => {
+    if (mode === 'admin') sortable.setNodeRef(el);
+    (containerRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+  }, [mode, sortable]);
+
   return (
     <Box
-      ref={mode === 'admin' ? sortable.setNodeRef : undefined}
+      ref={setContainerRef}
       style={style}
       {...(mode === 'admin' ? sortable.attributes : {})}
       sx={{
@@ -306,9 +336,96 @@ const GridCell: React.FC<GridCellProps> = ({
                 )}
               </>
             )}
-            {/* En modo editable, mostrar el input correspondiente */}
+            {/* En modo editable, mostrar el input correspondiente (inline o en modal si la celda es estrecha) */}
             {mode === 'editable' && cellCode && paramDef && onChange && (() => {
-              const handleChange = onChange; // Capturar onChange para evitar error de TypeScript
+              const handleChange = onChange;
+              const useModalForInput = cellWidth !== null && cellWidth < MIN_CELL_WIDTH_FOR_INLINE_INPUT;
+              const currentValue = values?.[cellCode];
+              let displayValue = '';
+              if (currentValue === null || currentValue === undefined) {
+                displayValue = 'Ingresar valor';
+              } else {
+                switch (dataType) {
+                  case 'decimal':
+                    displayValue = typeof currentValue === 'number'
+                      ? formatNumberLocale(currentValue, 2)
+                      : String(currentValue);
+                    if (unit) displayValue += ` ${unit}`;
+                    break;
+                  case 'integer':
+                    displayValue = typeof currentValue === 'number'
+                      ? formatNumberLocale(currentValue, 0)
+                      : String(currentValue);
+                    if (unit) displayValue += ` ${unit}`;
+                    break;
+                  case 'boolean':
+                    displayValue = currentValue ? 'Sí' : 'No';
+                    break;
+                  case 'date':
+                    try {
+                      displayValue = new Date(currentValue).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                    } catch {
+                      displayValue = String(currentValue);
+                    }
+                    break;
+                  default:
+                    displayValue = String(currentValue);
+                }
+              }
+              if (useModalForInput) {
+                return (
+                  <>
+                    <Box
+                      onClick={() => {
+                        setModalValue(values?.[cellCode] ?? null);
+                        setInputModalOpen(true);
+                      }}
+                      sx={{
+                        mt: 1,
+                        py: 1,
+                        px: 1.5,
+                        border: '1px dashed',
+                        borderColor: 'divider',
+                        borderRadius: 1,
+                        cursor: 'pointer',
+                        bgcolor: 'action.hover',
+                        '&:hover': { bgcolor: 'action.selected', borderColor: 'primary.light' },
+                      }}
+                    >
+                      <Typography variant="body2" color={currentValue === null || currentValue === undefined ? 'text.secondary' : 'text.primary'}>
+                        {displayValue}
+                      </Typography>
+                    </Box>
+                    <Dialog open={inputModalOpen} onClose={() => setInputModalOpen(false)} maxWidth="xs" fullWidth>
+                      <DialogTitle>{cellContent}</DialogTitle>
+                      <DialogContent sx={{ pt: 1 }}>
+                        <Box sx={{ mt: 1 }}>
+                          <ParameterInput
+                            dataType={dataType as any}
+                            value={modalValue}
+                            onChange={(newValue) => setModalValue(newValue)}
+                            label={undefined}
+                            unit={unit}
+                            required={isRequired}
+                            disabled={isCalculated}
+                          />
+                        </Box>
+                      </DialogContent>
+                      <DialogActions>
+                        <Button
+                          onClick={() => {
+                            handleChange(cellCode, modalValue);
+                            setInputModalOpen(false);
+                          }}
+                          variant="contained"
+                        >
+                          Listo
+                        </Button>
+                      </DialogActions>
+                    </Dialog>
+                  </>
+                );
+              }
               return (
                 <Box sx={{ mt: 1 }}>
                   <ParameterInput
@@ -317,10 +434,11 @@ const GridCell: React.FC<GridCellProps> = ({
                     onChange={(newValue) => {
                       handleChange(cellCode, newValue);
                     }}
-                    label={undefined} // Ya se muestra el nombre arriba
+                    label={undefined}
                     unit={unit}
                     required={isRequired}
                     disabled={isCalculated}
+                    persistOnBlur
                   />
                 </Box>
               );
@@ -484,9 +602,18 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
       [code]: value,
     }));
   }, []);
-  
-  // Usar onChange externo si existe, sino usar el local
-  const onChange = externalOnChange || handleLocalChange;
+
+  // Envolver onChange para inyectar section.id: así cada nivel (incl. subcategorías) guarda en su categoryId correcto
+  const onChange = useCallback(
+    (code: string, value: any) => {
+      if (externalOnChange) {
+        externalOnChange(section.id, code, value);
+      } else {
+        handleLocalChange(code, value);
+      }
+    },
+    [section.id, externalOnChange, handleLocalChange]
+  );
   const values = externalOnChange ? externalValues : localValues;
   
   // Determinar el modo efectivo: usar sectionMode si está definido, sino usar mode
@@ -1826,7 +1953,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
                   mode={mode}
                   subprojectId={subprojectId}
                   values={values}
-                  onChange={onChange}
+                  onChange={externalOnChange}
                   onSectionExpand={onSectionExpand}
                   activeSectionId={activeSectionId}
                   sectionMode={getSectionMode ? getSectionMode(subcategory.id) : undefined}

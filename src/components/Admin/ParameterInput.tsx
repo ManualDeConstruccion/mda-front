@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   TextField,
   FormControlLabel,
@@ -23,6 +23,8 @@ interface ParameterInputProps {
   error?: boolean;
   helperText?: string;
   disabled?: boolean;
+  /** Si es true, solo se llama onChange al perder foco (onBlur), no en cada tecla */
+  persistOnBlur?: boolean;
 }
 
 const ParameterInput: React.FC<ParameterInputProps> = ({
@@ -35,9 +37,26 @@ const ParameterInput: React.FC<ParameterInputProps> = ({
   error = false,
   helperText,
   disabled = false,
+  persistOnBlur = false,
 }) => {
+  const [localValue, setLocalValue] = useState(value);
+
+  useEffect(() => {
+    setLocalValue(value);
+  }, [value]);
+
+  const displayValue = persistOnBlur ? localValue : value;
   const handleChange = (newValue: any) => {
-    onChange(newValue);
+    if (persistOnBlur) {
+      setLocalValue(newValue);
+    } else {
+      onChange(newValue);
+    }
+  };
+  const handleBlur = () => {
+    if (persistOnBlur) {
+      onChange(localValue);
+    }
   };
 
   switch (dataType) {
@@ -46,11 +65,12 @@ const ParameterInput: React.FC<ParameterInputProps> = ({
         <TextField
           type="number"
           label={label}
-          value={value ?? ''}
+          value={displayValue ?? ''}
           onChange={(e) => {
             const val = e.target.value === '' ? null : parseFloat(e.target.value);
             handleChange(val);
           }}
+          onBlur={handleBlur}
           required={required}
           error={error}
           helperText={helperText}
@@ -72,11 +92,12 @@ const ParameterInput: React.FC<ParameterInputProps> = ({
         <TextField
           type="number"
           label={label}
-          value={value ?? ''}
+          value={displayValue ?? ''}
           onChange={(e) => {
             const val = e.target.value === '' ? null : parseInt(e.target.value, 10);
             handleChange(val);
           }}
+          onBlur={handleBlur}
           required={required}
           error={error}
           helperText={helperText}
@@ -99,8 +120,17 @@ const ParameterInput: React.FC<ParameterInputProps> = ({
           <FormControlLabel
             control={
               <Switch
-                checked={value ?? false}
-                onChange={(e) => handleChange(e.target.checked)}
+                checked={(persistOnBlur ? localValue : value) ?? false}
+                onChange={(e) => {
+                  const v = e.target.checked;
+                  if (persistOnBlur) {
+                    setLocalValue(v);
+                    onChange(v);
+                  } else {
+                    onChange(v);
+                  }
+                }}
+                onBlur={persistOnBlur ? handleBlur : undefined}
                 disabled={disabled}
               />
             }
@@ -127,8 +157,9 @@ const ParameterInput: React.FC<ParameterInputProps> = ({
         <TextField
           type="text"
           label={label}
-          value={value ?? ''}
+          value={displayValue ?? ''}
           onChange={(e) => handleChange(e.target.value)}
+          onBlur={handleBlur}
           required={required}
           error={error}
           helperText={helperText}
@@ -144,10 +175,11 @@ const ParameterInput: React.FC<ParameterInputProps> = ({
         <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
           <DatePicker
             label={label}
-            value={value ? new Date(value) : null}
+            value={(displayValue ? new Date(displayValue) : null) as any}
             onChange={(newValue) => {
               handleChange(newValue ? newValue.toISOString().split('T')[0] : null);
             }}
+            onClose={persistOnBlur ? () => onChange(localValue) : undefined}
             disabled={disabled}
             slotProps={{
               textField: {
@@ -155,6 +187,7 @@ const ParameterInput: React.FC<ParameterInputProps> = ({
                 error,
                 helperText,
                 fullWidth: true,
+                onBlur: persistOnBlur ? handleBlur : undefined,
               },
             }}
           />
@@ -165,8 +198,9 @@ const ParameterInput: React.FC<ParameterInputProps> = ({
       return (
         <TextField
           label={label}
-          value={value ?? ''}
+          value={displayValue ?? ''}
           onChange={(e) => handleChange(e.target.value)}
+          onBlur={handleBlur}
           required={required}
           error={error}
           helperText={helperText || `Tipo de dato no soportado: ${dataType}`}
