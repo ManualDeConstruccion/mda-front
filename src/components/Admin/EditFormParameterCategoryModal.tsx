@@ -22,11 +22,8 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
-
-interface FormType {
-  id: number;
-  name: string;
-}
+import { useFormTypes } from '../../hooks/useFormTypes';
+import type { FormType } from '../../types/formParameters.types';
 
 interface FormParameterCategory {
   id: number;
@@ -72,8 +69,8 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
   const [parent, setParent] = useState<number | null>(null);
   const [isActive, setIsActive] = useState(true);
   const [formType, setFormType] = useState<number | null>(null);
-  const [formTypes, setFormTypes] = useState<FormType[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const { formTypes } = useFormTypes({ enabled: open });
   type ModalMode = 'create' | 'copy';
   const [mode, setMode] = useState<ModalMode>('create');
   const [selectedSourceCategory, setSelectedSourceCategory] = useState<FormParameterCategory | null>(null);
@@ -84,7 +81,7 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
 
   // Categorías de otros tipos de proyecto para copiar (solo cuando modo copia y modal abierto)
   const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
-  const { data: categoriesForCopy = [], isLoading: loadingCategoriesForCopy } = useQuery<FormParameterCategory[]>({
+  const { data: categoriesForCopy = [], isLoading: loadingCategoriesForCopy } = useQuery({
     queryKey: ['form-parameter-categories-for-copy', projectTypeId],
     queryFn: async () => {
       const res = await axios.get(
@@ -147,29 +144,6 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
     copyMutation.reset();
     onClose();
   };
-
-  // Obtener tipos de formulario
-  useEffect(() => {
-    const fetchFormTypes = async () => {
-      try {
-        const response = await axios.get(
-          `${API_URL}/api/parameters/form-types/`,
-          {
-            headers: {
-              'Authorization': accessToken ? `Bearer ${accessToken}` : undefined,
-            },
-            withCredentials: true,
-          }
-        );
-        setFormTypes(response.data);
-      } catch (error) {
-        console.error('Error al obtener tipos de formulario:', error);
-      }
-    };
-    if (open) {
-      fetchFormTypes();
-    }
-  }, [open, accessToken]);
 
   useEffect(() => {
     if (category) {

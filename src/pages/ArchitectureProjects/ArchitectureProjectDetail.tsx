@@ -27,7 +27,7 @@ import { PropertyData, CIPData, OwnerData, ArchitectData, ProfessionalsData } fr
 import { ProjectProvider } from '../../context/ProjectContext';
 import ProjectVersionSelector from '../../components/ProjectVersionSelector/ProjectVersionSelector';
 import SectionTreeWithModes from '../../components/Admin/SectionTreeWithModes';
-import type { FormParameterCategory } from '../../components/Admin/SectionTreeWithModes';
+import type { FormParameterCategory, UIAlert } from '../../components/Admin/SectionTreeWithModes';
 import { api } from '../../services/api';
 import styles from './ArchitectureProjectDetail.module.scss';
 import ListadoDeAntecedentes from './ListadoDeAntecedentes';
@@ -208,15 +208,11 @@ const ArchitectureProjectDetail: React.FC = () => {
 
   // Estados para formulario dinámico
   const [formValues, setFormValues] = useState<Record<string, Record<string, any>>>({}); // { categoryId: { paramCode: value } }
+  const [categoryAlerts, setCategoryAlerts] = useState<Record<number, UIAlert[]>>({}); // Alertas de validación por categoría
   // Modo por sección: { sectionId: 'view' | 'editable' }
   const [sectionModes, setSectionModes] = useState<Record<number, 'view' | 'editable'>>({});
   const queryClient = useQueryClient();
   const location = useLocation();
-  
-  // Debug: verificar cuando cambia sectionModes
-  useEffect(() => {
-    console.log(`[ArchitectureProjectDetail] sectionModes changed:`, sectionModes);
-  }, [sectionModes]);
 
   // Estado para mantener la sección activa (expandida)
   const [activeSectionId, setActiveSectionId] = useState<number | undefined>(undefined);
@@ -233,29 +229,19 @@ const ArchitectureProjectDetail: React.FC = () => {
   
   // Handler para cambiar el modo de una sección específica
   const handleSectionModeChange = useCallback((sectionId: number, mode: 'view' | 'editable') => {
-    console.log(`Changing section ${sectionId} (type: ${typeof sectionId}) mode to ${mode}`);
     setSectionModes(prev => {
-      // Si el modo es 'view', eliminarlo del estado (para usar el modo base)
-      // Si el modo es 'editable', agregarlo al estado
-      // Asegurar que usamos el mismo tipo de clave (number) siempre
-      const newModes = mode === 'view' 
+      const newModes = mode === 'view'
         ? (() => {
             const updated = { ...prev };
             delete updated[sectionId];
-            // También eliminar si está como string (por si acaso)
             const updatedAny = updated as Record<string | number, 'view' | 'editable'>;
             delete updatedAny[String(sectionId)];
             return updated;
           })()
         : {
             ...prev,
-            [sectionId]: mode, // Asegurar que siempre usamos number como clave
+            [sectionId]: mode,
           };
-      console.log(`New sectionModes:`, newModes);
-      console.log(`New sectionModes keys:`, Object.keys(newModes));
-      console.log(`Section ${sectionId} mode in newModes[${sectionId}]:`, newModes[sectionId]);
-      const newModesAny = newModes as Record<string | number, 'view' | 'editable'>;
-      console.log(`Section ${sectionId} mode in newModes['${sectionId}']:`, newModesAny[String(sectionId)]);
       return newModes;
     });
   }, []);
@@ -354,9 +340,14 @@ const ArchitectureProjectDetail: React.FC = () => {
       );
       
       const values = response.data.values || {};
+      const alerts = (response.data.alerts || []) as UIAlert[];
       setFormValues(prev => ({
         ...prev,
         [categoryId]: values,
+      }));
+      setCategoryAlerts(prev => ({
+        ...prev,
+        [categoryId]: alerts,
       }));
       return values;
     } catch (error) {
@@ -365,9 +356,25 @@ const ArchitectureProjectDetail: React.FC = () => {
     }
   }, [architectureId, accessToken]);
 
+  // Refetch de datos de una categoría (valores + alertas) tras actualizar un valor
+  const refetchCategoryData = useCallback(async (categoryId: number) => {
+    if (!architectureId) return;
+    try {
+      const response = await api.get(
+        `parameters/node-parameters/by-category/${categoryId}/?subproject_id=${architectureId}`
+      );
+      const values = response.data.values || {};
+      const alerts = (response.data.alerts || []) as UIAlert[];
+      setFormValues(prev => ({ ...prev, [categoryId]: values }));
+      setCategoryAlerts(prev => ({ ...prev, [categoryId]: alerts }));
+    } catch (e) {
+      console.error(`Error refetching category ${categoryId}:`, e);
+    }
+  }, [architectureId]);
+
   // Mutation para actualizar un valor
   const updateValueMutation = useMutation({
-    mutationFn: async ({ parameterCode, value }: { parameterCode: string; value: any }) => {
+    mutationFn: async ({ categoryId, parameterCode, value }: { categoryId: number; parameterCode: string; value: any }) => {
       if (!architectureId) throw new Error('No architecture ID');
       const response = await api.post(
         `parameters/node-parameters/update-value/`,
@@ -379,14 +386,13 @@ const ArchitectureProjectDetail: React.FC = () => {
       );
       return response.data;
     },
-    onSuccess: () => {
-      // Los valores se actualizan localmente, no necesitamos invalidar queries
+    onSuccess: (_data, variables) => {
+      refetchCategoryData(variables.categoryId);
     },
   });
 
   // Handler para cambios de valores
   const handleParameterChange = useCallback((categoryId: number, parameterCode: string, value: any) => {
-    // Actualizar estado local inmediatamente
     setFormValues(prev => ({
       ...prev,
       [categoryId]: {
@@ -394,9 +400,7 @@ const ArchitectureProjectDetail: React.FC = () => {
         [parameterCode]: value,
       },
     }));
-
-    // Guardar en el backend
-    updateValueMutation.mutate({ parameterCode, value });
+    updateValueMutation.mutate({ categoryId, parameterCode, value });
   }, [updateValueMutation]);
 
   // Get all stages for the selector
@@ -440,31 +444,26 @@ const ArchitectureProjectDetail: React.FC = () => {
   const handlePropertySave = (data: PropertyData) => {
     setPropertyData(data);
     // Aquí se enviaría al backend cuando esté disponible
-    console.log('Property data saved:', data);
   };
 
   const handleCIPSave = (data: CIPData) => {
     setCipData(data);
     // Aquí se enviaría al backend cuando esté disponible
-    console.log('CIP data saved:', data);
   };
 
   const handleOwnerSave = (data: OwnerData) => {
     setOwnerData(data);
     // Aquí se enviaría al backend cuando esté disponible
-    console.log('Owner data saved:', data);
   };
 
   const handleArchitectSave = (data: ArchitectData) => {
     setArchitectData(data);
     // Aquí se enviaría al backend cuando esté disponible
-    console.log('Architect data saved:', data);
   };
 
   const handleProfessionalsSave = (data: ProfessionalsData) => {
     setProfessionalsData(data);
     // Aquí se enviaría al backend cuando esté disponible
-    console.log('Professionals data saved:', data);
   };
 
   const toggleSection = (sectionKey: string) => {
@@ -766,11 +765,6 @@ const ArchitectureProjectDetail: React.FC = () => {
                     {/* Formulario dinámico */}
                     {formStructure?.sections && formStructure.sections.length > 0 ? (
                       <div>
-                        {(() => {
-                          console.log(`[ArchitectureProjectDetail] Total sections to render:`, formStructure.sections.length);
-                          console.log(`[ArchitectureProjectDetail] Section IDs:`, formStructure.sections.map(s => s.id));
-                          return null;
-                        })()}
                         {formStructure.sections.map((section: FormParameterCategory) => {
                           // Función recursiva para obtener todos los valores de una sección y sus subcategorías
                           const getAllSectionValues = (sec: FormParameterCategory): Record<string, any> => {
@@ -799,11 +793,7 @@ const ArchitectureProjectDetail: React.FC = () => {
                           const sectionModesAny = sectionModes as Record<string | number, 'view' | 'editable'>;
                           // Intentar primero con string (como aparece en Object.keys), luego con número
                           const currentSectionMode = sectionModesAny[String(sectionId)] || sectionModesAny[sectionId];
-                          
-                          // Debug: verificar qué secciones existen y cuál tiene parámetros
-                          const hasParams = section.form_parameters && section.form_parameters.length > 0;
-                          console.log(`[ArchitectureProjectDetail] Rendering Section ${sectionId} (hasParams: ${hasParams}): sectionModes keys=`, Object.keys(sectionModes), `sectionModes['${String(sectionId)}']=`, sectionModesAny[String(sectionId)], `sectionModes[${sectionId}]=`, sectionModesAny[sectionId], `currentSectionMode=`, currentSectionMode);
-                          
+
                           return (
                             <SectionTreeWithModes
                               key={`section-${section.id}`} // Usar solo el ID, no el modo (para mantener el estado del componente)
@@ -841,10 +831,10 @@ const ArchitectureProjectDetail: React.FC = () => {
                               sectionMode={currentSectionMode} // Modo específico de esta sección (undefined = usar modo base)
                               onSectionModeChange={handleSectionModeChange} // Callback para cambiar el modo
                               getSectionMode={(sectionId: number) => {
-                                // Función para obtener el modo de cualquier sección (para subcategorías)
                                 const sectionModesAny = sectionModes as Record<string | number, 'view' | 'editable'>;
                                 return sectionModesAny[String(sectionId)] || sectionModesAny[sectionId];
                               }}
+                              categoryAlerts={categoryAlerts}
                             />
                           );
                         })}
@@ -857,7 +847,7 @@ const ArchitectureProjectDetail: React.FC = () => {
                     <div className={styles.formActions}>
                       <button 
                         className={styles.saveButton}
-                        onClick={() => console.log('Guardar formulario - funcionalidad pendiente')}
+                        onClick={() => {}}
                       >
                         Guardar Formulario
                       </button>
