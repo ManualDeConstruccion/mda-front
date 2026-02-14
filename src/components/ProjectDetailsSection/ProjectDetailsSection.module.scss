@@ -1,0 +1,148 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+@use 'sass:color';
+
+.infoSection {
+  @include card-container;
+  margin-bottom: $spacing-xl;
+
+  .projectDetailsGrid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: $spacing-xl;
+    align-items: start;
+
+    // Responsive para tablets y móviles
+    @media (max-width: 968px) {
+      grid-template-columns: 1fr 1.5fr;
+    }
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+      gap: $spacing-lg;
+    }
+  }
+
+  .tabsContainer {
+    display: flex;
+    flex-direction: column;
+
+    h2 {
+      margin-top: 0;
+      margin-bottom: $spacing-lg;
+      color: $text-primary;
+    }
+  }
+
+  .coverImage {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 3 / 2;
+    overflow: hidden;
+
+    @media (max-width: 768px) {
+      aspect-ratio: 16 / 9;
+      order: -1; // Mostrar imagen arriba en móviles
+    }
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: $border-radius-sm;
+    }
+
+    .noImage {
+      width: 100%;
+      height: 100%;
+      @include flex-center();
+      background: $background-light;
+      border: 1px dashed $border-color;
+      border-radius: $border-radius-sm;
+      color: $text-secondary;
+      font-size: $font-size-lg;
+    }
+  }
+
+  .info {
+    p {
+      margin: $spacing-xs 0;
+      color: $text-secondary;
+      line-height: 1.5;
+      font-size: $font-size-md;
+
+      strong {
+        color: $text-primary;
+        margin-right: $spacing-xs;
+      }
+    }
+  }
+}
+
+// Estilos para las pestañas
+.tabs {
+  display: flex;
+  width: 100%;
+  border-bottom: 2px solid $border-color;
+  margin-bottom: $spacing-md;
+  flex-wrap: wrap;
+}
+
+.tab {
+  flex: 1;
+  background: none;
+  border: none;
+  padding: $spacing-sm $spacing-xs;
+  font-size: $font-size-sm;
+  font-weight: 500;
+  color: $text-secondary;
+  cursor: pointer;
+  transition: all $transition-fast;
+  position: relative;
+  border-bottom: 3px solid transparent;
+  text-align: center;
+  min-width: 80px;
+
+  &:hover {
+    color: $primary-color;
+    background: rgba($primary-color, 0.05);
+  }
+
+  &.active {
+    color: $primary-color;
+    border-bottom-color: $primary-color;
+    font-weight: 600;
+  }
+}
+
+.tabContent {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.tabPane {
+  animation: fadeIn 0.3s ease-in;
+
+  h3 {
+    margin-top: 0;
+    margin-bottom: $spacing-sm;
+    color: $text-primary;
+    font-size: $font-size-lg;
+  }
+
+  p {
+    color: $text-secondary;
+    line-height: 1.6;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

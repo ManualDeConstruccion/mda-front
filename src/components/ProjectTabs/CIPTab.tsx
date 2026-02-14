@@ -1,7 +1,7 @@
 // src/components/ProjectTabs/CIPTab.tsx
 
 import React, { useState } from 'react';
-import styles from './CIPTab.module.scss';
+import styles from './ProjectTabs.module.scss';
 
 export interface CIPData {
   proyecto_cip: File | null;
@@ -52,8 +52,7 @@ const CIPTab: React.FC<CIPTabProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = () => {
     onSave?.(formData);
     onEditChange?.(false);
   };
@@ -75,123 +74,101 @@ const CIPTab: React.FC<CIPTabProps> = ({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  if (isEditing) {
-    return (
-      <div className={styles.container}>
-        <form onSubmit={handleSubmit} className={styles.form}>
-          <div className={styles.formSection}>
-            <h3>Certificado de Informaciones Previas</h3>
-            <div className={styles.formGrid}>
-              <div className={styles.formGroup}>
-                <label>Archivo CIP (PDF)</label>
-                <div className={styles.fileUploadContainer}>
-                  <label className={styles.fileInputLabel}>
-                    Seleccionar archivo PDF
-                    <input
-                      type="file"
-                      name="proyecto_cip"
-                      accept=".pdf,application/pdf"
-                      onChange={handleFileChange}
-                    />
-                  </label>
-                  {formData.proyecto_cip && (
-                    <div className={styles.fileInfo}>
-                      <div className={styles.fileName}>
-                        {formData.proyecto_cip.name}
-                      </div>
-                      <div className={styles.fileSize}>
-                        {formatFileSize(formData.proyecto_cip.size)}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className={styles.formGroup}>
-                <label>Fecha del CIP</label>
-                <input
-                  type="date"
-                  name="proyecto_cip_fecha"
-                  value={formData.proyecto_cip_fecha}
-                  onChange={handleInputChange}
-                />
-              </div>
-            </div>
-
-            {previewUrl && (
-              <div className={styles.previewContainer}>
-                <h4>Vista previa del documento</h4>
-                <div className={styles.pdfPreview}>
-                  <iframe
-                    src={previewUrl}
-                    width="100%"
-                    height="400px"
-                    title="Vista previa del CIP"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className={styles.formActions}>
-            <button type="button" onClick={handleCancel} className={styles.cancelButton}>
+  return (
+    <>
+      <div className={styles.header}>
+        <p>Subir el Certificado de Informaciones Previas</p>
+        {!isEditing ? (
+          <button 
+            onClick={() => onEditChange?.(true)}
+            className={styles.editButton}
+          >
+            Editar Información
+          </button>
+        ) : (
+          <div className={styles.actionButtons}>
+            <button 
+              onClick={handleCancel}
+              className={styles.cancelButton}
+            >
               Cancelar
             </button>
-            <button type="submit" className={styles.saveButton}>
+            <button 
+              onClick={handleSave}
+              className={styles.saveButton}
+            >
               Guardar
             </button>
           </div>
-        </form>
-      </div>
-    );
-  }
-
-  return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <button 
-          onClick={() => onEditChange?.(true)}
-          className={styles.editButton}
-        >
-          Editar Información
-        </button>
+        )}
       </div>
 
-      <div className={styles.content}>
-        <div className={styles.section}>
-          <h4>Certificado de Informaciones Previas</h4>
-          <div className={styles.infoGrid}>
-            <div className={styles.infoItem}>
-              <span className={styles.label}>Archivo CIP:</span>
-              <div className={styles.value}>
-                {data?.proyecto_cip ? (
-                  <div className={styles.fileDisplay}>
-                    <span className={styles.fileName}>
-                      {data.proyecto_cip instanceof File ? data.proyecto_cip.name : 'CIP.pdf'}
-                    </span>
-                    <span className={styles.fileSize}>
-                      {data.proyecto_cip instanceof File ? formatFileSize(data.proyecto_cip.size) : ''}
-                    </span>
-                  </div>
-                ) : (
-                  <span className={styles.noFile}>No hay archivo cargado</span>
-                )}
-              </div>
-            </div>
+      <div className={styles.infoGrid}>
+        <div className={styles.infoItem}>
+          <span className={styles.label}>Archivo CIP:</span>
+          {isEditing ? (
+            <input
+              type="file"
+              name="proyecto_cip"
+              accept=".pdf,application/pdf"
+              onChange={handleFileChange}
+              className={styles.input}
+            />
+          ) : (
+            <span className={styles.value}>
+              {data?.proyecto_cip ? (
+                typeof data.proyecto_cip === 'string' 
+                  ? data.proyecto_cip 
+                  : data.proyecto_cip.name
+              ) : (
+                'No hay archivo cargado'
+              )}
+            </span>
+          )}
+        </div>
 
-            <div className={styles.infoItem}>
-              <span className={styles.label}>Fecha del CIP:</span>
-              <span className={styles.value}>
-                {data?.proyecto_cip_fecha 
-                  ? new Date(data.proyecto_cip_fecha).toLocaleDateString('es-CL')
-                  : 'No especificado'
-                }
-              </span>
-            </div>
-          </div>
+        <div className={styles.infoItem}>
+          <span className={styles.label}>Fecha del CIP:</span>
+          {isEditing ? (
+            <input
+              type="date"
+              name="proyecto_cip_fecha"
+              value={formData.proyecto_cip_fecha}
+              onChange={handleInputChange}
+              className={styles.input}
+            />
+          ) : (
+            <span className={styles.value}>
+              {data?.proyecto_cip_fecha 
+                ? new Date(data.proyecto_cip_fecha).toLocaleDateString('es-CL')
+                : 'No especificado'
+              }
+            </span>
+          )}
         </div>
       </div>
-    </div>
+
+      {isEditing && formData.proyecto_cip && (
+        <div className={styles.infoItem}>
+          <span className={styles.label}>Archivo seleccionado:</span>
+          <span className={styles.value}>
+            {formData.proyecto_cip.name} ({formatFileSize(formData.proyecto_cip.size)})
+          </span>
+        </div>
+      )}
+
+      {isEditing && previewUrl && (
+        <div style={{ marginTop: '1rem' }}>
+          <iframe
+            src={previewUrl}
+            width="100%"
+            height="400px"
+            title="Vista previa del CIP"
+            style={{ border: '1px solid #ddd', borderRadius: '4px' }}
+          />
+        </div>
+      )}
+    </>
   );
 };
 

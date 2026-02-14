@@ -1,6 +1,6 @@
 // src/pages/Projects/ProjectDetail.tsx
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useProjectNodes } from '../../hooks/useProjectNodes';
 import { ProjectNode } from '../../types/project_nodes.types';
@@ -17,14 +17,9 @@ import {
   ExpandLess as ExpandLessIcon
 } from '@mui/icons-material';
 import DeleteConfirmationModal from '../../components/common/DeleteConfirmationModal';
-import PropertyTab from '../../components/ProjectTabs/PropertyTab';
-import CIPTab from '../../components/ProjectTabs/CIPTab';
-import OwnerTab from '../../components/ProjectTabs/OwnerTab';
-import ArchitectTab from '../../components/ProjectTabs/ArchitectTab';
-import ProfessionalsTab from '../../components/ProjectTabs/ProfessionalsTab';
+import ProjectDetailsSection, { GeneralData } from '../../components/ProjectDetailsSection/ProjectDetailsSection';
+import Breadcrumb from '../../components/Breadcrumb/Breadcrumb';
 import { PropertyData, CIPData, OwnerData, ArchitectData, ProfessionalsData } from '../../types/property.types';
-
-type TabType = 'propiedad' | 'cip' | 'propietario' | 'arquitecto' | 'profesionales';
 
 const ProjectDetail: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -44,17 +39,11 @@ const ProjectDetail: React.FC = () => {
 
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabType>('propiedad');
   const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
-  const [isPropertyEditing, setIsPropertyEditing] = useState(false);
+  const [generalData, setGeneralData] = useState<GeneralData | undefined>(undefined);
   const [propertyData, setPropertyData] = useState<PropertyData | undefined>(undefined);
-  const [isCIPEditing, setIsCIPEditing] = useState(false);
   const [cipData, setCipData] = useState<CIPData | undefined>(undefined);
-  const [isOwnerEditing, setIsOwnerEditing] = useState(false);
   const [ownerData, setOwnerData] = useState<OwnerData | undefined>(undefined);
-  const [isArchitectEditing, setIsArchitectEditing] = useState(false);
-  const [architectData, setArchitectData] = useState<ArchitectData | undefined>(undefined);
-  const [isProfessionalsEditing, setIsProfessionalsEditing] = useState(false);
   const [professionalsData, setProfessionalsData] = useState<ProfessionalsData | undefined>(undefined);
   const [formData, setFormData] = useState({
     name: project?.name || '',
@@ -144,7 +133,28 @@ const ProjectDetail: React.FC = () => {
     }
   };
 
+  // Inicializar generalData cuando project esté disponible
+  useEffect(() => {
+    if (project) {
+      setGeneralData({
+        description: project.description,
+        status: project.status,
+        progress_percent: project.progress_percent,
+        start_date: project.start_date,
+        end_date: project.end_date,
+        created_at: project.created_at,
+        updated_at: project.updated_at,
+      });
+    }
+  }, [project]);
+
   const handleDelete = () => setDeleteModalOpen(true);
+
+  const handleGeneralSave = (data: GeneralData) => {
+    setGeneralData(data);
+    // Aquí se enviaría al backend cuando esté disponible
+    console.log('General data saved:', data);
+  };
 
   const handlePropertySave = (data: PropertyData) => {
     setPropertyData(data);
@@ -164,12 +174,6 @@ const ProjectDetail: React.FC = () => {
     console.log('Owner data saved:', data);
   };
 
-  const handleArchitectSave = (data: ArchitectData) => {
-    setArchitectData(data);
-    // Aquí se enviaría al backend cuando esté disponible
-    console.log('Architect data saved:', data);
-  };
-
   const handleProfessionalsSave = (data: ProfessionalsData) => {
     setProfessionalsData(data);
     // Aquí se enviaría al backend cuando esté disponible
@@ -179,27 +183,42 @@ const ProjectDetail: React.FC = () => {
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <div className={styles.headerContent}>
-          <h1>{project.name}</h1>
-          <div className={styles.status}>
-            Estado: {project.is_active ? 'Activo' : 'Inactivo'}
+        {/* Primera fila: Breadcrumb (izquierda) + Botón Volver (derecha) */}
+        <Breadcrumb
+          items={[
+            { label: 'Proyectos', path: '/proyectos/lista' },
+            { label: project.name },
+          ]}
+          backButton={{
+            label: 'Volver a Proyectos',
+            onClick: () => navigate('/proyectos/lista'),
+          }}
+        />
+
+        {/* Segunda fila: Nombre (izquierda) + Botones (derecha) */}
+        <div className={styles.titleRow}>
+          <div className={styles.headerContent}>
+            <h1>{project.name}</h1>
+            <div className={styles.status}>
+              Estado: {project.is_active ? 'Activo' : 'Inactivo'}
+            </div>
           </div>
-        </div>
-        <div className={styles.actions}>
-          {!isEditing ? (
-            <>
-              <button className={styles.editButton} onClick={() => setIsEditing(true)}>
-                <SettingsIcon /> Editar
+          <div className={styles.actions}>
+            {!isEditing ? (
+              <>
+                <button className={styles.editButton} onClick={() => setIsEditing(true)}>
+                  <SettingsIcon /> Editar
+                </button>
+                <button className={styles.deleteButton} onClick={handleDelete}>
+                  Eliminar
+                </button>
+              </>
+            ) : (
+              <button className={styles.cancelButton} onClick={() => setIsEditing(false)}>
+                Cancelar
               </button>
-              <button className={styles.deleteButton} onClick={handleDelete}>
-                Eliminar
-              </button>
-            </>
-          ) : (
-            <button className={styles.cancelButton} onClick={() => setIsEditing(false)}>
-              Cancelar
-            </button>
-          )}
+            )}
+          </div>
         </div>
       </header>
 
@@ -296,135 +315,20 @@ const ProjectDetail: React.FC = () => {
               </div>
             </form>
           ) : (
-            <section className={styles.infoSection}>
-              <h2>Estado del Proyecto</h2>
-              <div className={styles.projectDetails}>
-                <div className={styles.coverImage}>
-                  {project.cover_image_url ? (
-                    <img src={project.cover_image_url} alt="Portada del proyecto" />
-                  ) : (
-                    <div className={styles.noImage}>Sin imagen de portada</div>
-                  )}
-                </div>
-
-                <div className={styles.info}>
-                  <p><strong>Descripción:</strong> {project.description || 'Sin descripción'}</p>
-                  <p><strong>Estado:</strong> {project.status}</p>
-                  <p><strong>Progreso:</strong> {project.progress_percent}% completado</p>
-                  <p><strong>Fecha de inicio:</strong> {project.start_date ? new Date(project.start_date).toLocaleDateString() : 'No definida'}</p>
-                  <p><strong>Fecha de fin:</strong> {project.end_date ? new Date(project.end_date).toLocaleDateString() : 'No definida'}</p>
-                  <p><strong>Creado:</strong> {new Date(project.created_at).toLocaleDateString()}</p>
-                  <p><strong>Última actualización:</strong> {new Date(project.updated_at).toLocaleDateString()}</p>
-                </div>
-              </div>
-            </section>
+            <ProjectDetailsSection
+              coverImageUrl={project.cover_image_url}
+              generalData={generalData}
+              ownerData={ownerData}
+              propertyData={propertyData}
+              cipData={cipData}
+              professionalsData={professionalsData}
+              onGeneralSave={handleGeneralSave}
+              onOwnerSave={handleOwnerSave}
+              onPropertySave={handlePropertySave}
+              onCIPSave={handleCIPSave}
+              onProfessionalsSave={handleProfessionalsSave}
+            />
           )}
-
-          {/* Nueva sección colapsable: Detalles de Proyectos */}
-          <section className={styles.collapsibleSection}>
-            <div 
-              className={styles.collapsibleHeader}
-              onClick={() => setIsDetailsExpanded(!isDetailsExpanded)}
-            >
-              <h2>Detalles de Proyectos</h2>
-              <button className={styles.toggleButton}>
-                {isDetailsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-              </button>
-            </div>
-
-            {isDetailsExpanded && (
-              <div className={styles.collapsibleContent}>
-                {/* Pestañas de navegación */}
-                <div className={styles.tabsContainer}>
-                  <div className={styles.tabs}>
-                    <button
-                      className={`${styles.tab} ${activeTab === 'propiedad' ? styles.active : ''}`}
-                      onClick={() => setActiveTab('propiedad')}
-                    >
-                      Propiedad
-                    </button>
-                    <button
-                      className={`${styles.tab} ${activeTab === 'cip' ? styles.active : ''}`}
-                      onClick={() => setActiveTab('cip')}
-                    >
-                      CIP
-                    </button>
-                    <button
-                      className={`${styles.tab} ${activeTab === 'propietario' ? styles.active : ''}`}
-                      onClick={() => setActiveTab('propietario')}
-                    >
-                      Propietario
-                    </button>
-                    <button
-                      className={`${styles.tab} ${activeTab === 'arquitecto' ? styles.active : ''}`}
-                      onClick={() => setActiveTab('arquitecto')}
-                    >
-                      Arquitecto
-                    </button>
-                    <button
-                      className={`${styles.tab} ${activeTab === 'profesionales' ? styles.active : ''}`}
-                      onClick={() => setActiveTab('profesionales')}
-                    >
-                      Profesionales
-                    </button>
-                  </div>
-
-                  <div className={styles.tabContent}>
-                    {activeTab === 'propiedad' && (
-                      <div className={styles.tabPane}>
-                        <PropertyTab
-                          data={propertyData}
-                          onSave={handlePropertySave}
-                          isEditing={isPropertyEditing}
-                          onEditChange={setIsPropertyEditing}
-                        />
-                      </div>
-                    )}
-                    {activeTab === 'cip' && (
-                      <div className={styles.tabPane}>
-                        <CIPTab
-                          data={cipData}
-                          onSave={handleCIPSave}
-                          isEditing={isCIPEditing}
-                          onEditChange={setIsCIPEditing}
-                        />
-                      </div>
-                    )}
-                    {activeTab === 'propietario' && (
-                      <div className={styles.tabPane}>
-                        <OwnerTab
-                          data={ownerData}
-                          onSave={handleOwnerSave}
-                          isEditing={isOwnerEditing}
-                          onEditChange={setIsOwnerEditing}
-                        />
-                      </div>
-                    )}
-                    {activeTab === 'arquitecto' && (
-                      <div className={styles.tabPane}>
-                        <ArchitectTab
-                          data={architectData}
-                          onSave={handleArchitectSave}
-                          isEditing={isArchitectEditing}
-                          onEditChange={setIsArchitectEditing}
-                        />
-                      </div>
-                    )}
-                    {activeTab === 'profesionales' && (
-                      <div className={styles.tabPane}>
-                        <ProfessionalsTab
-                          data={professionalsData}
-                          onSave={handleProfessionalsSave}
-                          isEditing={isProfessionalsEditing}
-                          onEditChange={setIsProfessionalsEditing}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-          </section>
 
           <section className={styles.architectureSection}>
             <div className={styles.sectionHeader}>

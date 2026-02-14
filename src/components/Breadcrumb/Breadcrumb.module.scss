@@ -1,0 +1,43 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+@use 'sass:color';
+
+.breadcrumbRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+
+  .breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+    font-size: $font-size-sm;
+    color: $text-secondary;
+
+    .breadcrumbLink {
+      color: $primary-color;
+      text-decoration: none;
+      transition: color $transition-fast;
+
+      &:hover {
+        color: darken($primary-color, 10%);
+        text-decoration: underline;
+      }
+    }
+
+    .breadcrumbSeparator {
+      font-size: 1rem;
+      color: $text-secondary;
+    }
+
+    .breadcrumbCurrent {
+      color: $text-primary;
+      font-weight: 500;
+    }
+  }
+
+  .backButton {
+    @include secondary-button;
+  }
+}

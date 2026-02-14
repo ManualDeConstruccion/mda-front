@@ -10,47 +10,58 @@
 
 .header {
   @include page-header;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
 
-  .headerContent {
-    h1 {
-      margin: 0;
-      font-size: $font-size-xl * 1.25;
-      color: $text-primary;
-    }
+  // Segunda fila: Título (izquierda) + Botones (derecha)
+  .titleRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
 
-    .status {
-      margin-top: $spacing-xs;
-      font-size: $font-size-sm;
-      color: $text-secondary;
-    }
-  }
+    .headerContent {
+      h1 {
+        margin: 0;
+        font-size: $font-size-xl * 1.25;
+        color: $text-primary;
+      }
 
-  .actions {
-    @include flex-container(row, $spacing-md);
-
-    button {
-      @include flex-center();
-      gap: $spacing-xs;
-      padding: $spacing-xs $spacing-md;
-      border-radius: $border-radius-sm;
-      cursor: pointer;
-      transition: all $transition-fast;
-
-      svg {
-        font-size: 1.2rem;
+      .status {
+        margin-top: $spacing-xs;
+        font-size: $font-size-sm;
+        color: $text-secondary;
       }
     }
 
-    .editButton {
-      @include action-button($primary-color);
-    }
+    .actions {
+      @include flex-container(row, $spacing-md);
 
-    .deleteButton {
-      @include action-button($error-color);
-    }
+      button {
+        @include flex-center();
+        gap: $spacing-xs;
+        padding: $spacing-xs $spacing-md;
+        border-radius: $border-radius-sm;
+        cursor: pointer;
+        transition: all $transition-fast;
 
-    .cancelButton {
-      @include action-button($text-secondary);
+        svg {
+          font-size: 1.2rem;
+        }
+      }
+
+      .editButton {
+        @include action-button($primary-color);
+      }
+
+      .deleteButton {
+        @include action-button($error-color);
+      }
+
+      .cancelButton {
+        @include action-button($text-secondary);
+      }
     }
   }
 }
@@ -68,45 +79,74 @@
     @include card-container;
     margin-bottom: $spacing-xl;
 
-    h2 {
-      margin-top: 0;
-      margin-bottom: $spacing-lg;
-      color: $text-primary;
-    }
-
-    .projectDetails {
+    .projectDetailsGrid {
       display: grid;
-      grid-template-columns: 300px 1fr;
+      grid-template-columns: 1fr 2fr;
       gap: $spacing-xl;
-      margin-bottom: $spacing-xl;
+      align-items: start;
 
-      .coverImage {
-        img {
-          width: 100%;
-          height: 300px;
-          object-fit: cover;
-          border-radius: $border-radius-sm;
-        }
-
-        .noImage {
-          width: 100%;
-          height: 200px;
-          @include flex-center();
-          background: $background-light;
-          border: 1px dashed $border-color;
-          border-radius: $border-radius-sm;
-          color: $text-secondary;
-        }
+      // Responsive para tablets y móviles
+      @media (max-width: 968px) {
+        grid-template-columns: 1fr 1.5fr;
       }
 
-      .info {
-        p {
-          margin: $spacing-xs 0;
-          color: $text-secondary;
+      @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+        gap: $spacing-lg;
+      }
+    }
 
-          strong {
-            color: $text-primary;
-          }
+    .tabsContainer {
+      display: flex;
+      flex-direction: column;
+
+      h2 {
+        margin-top: 0;
+        margin-bottom: $spacing-lg;
+        color: $text-primary;
+      }
+    }
+
+    .coverImage {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 3 / 2;
+      overflow: hidden;
+
+      @media (max-width: 768px) {
+        aspect-ratio: 16 / 9;
+        order: -1; // Mostrar imagen arriba en móviles
+      }
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: $border-radius-sm;
+      }
+
+      .noImage {
+        width: 100%;
+        height: 100%;
+        @include flex-center();
+        background: $background-light;
+        border: 1px dashed $border-color;
+        border-radius: $border-radius-sm;
+        color: $text-secondary;
+        font-size: $font-size-lg;
+      }
+    }
+
+    .info {
+      p {
+        margin: $spacing-sm 0;
+        color: $text-secondary;
+        line-height: 1.8;
+        font-size: $font-size-md;
+
+        strong {
+          color: $text-primary;
+          margin-right: $spacing-xs;
         }
       }
     }
@@ -180,24 +220,20 @@
 }
 
 // Estilos para las pestañas
-.tabsContainer {
-  margin-top: $spacing-sm;
-  padding-top: $spacing-sm;
-}
-
 .tabs {
   display: flex;
   width: 100%;
   border-bottom: 2px solid $border-color;
-  margin-bottom: $spacing-sm;
+  margin-bottom: $spacing-md;
+  flex-wrap: wrap;
 }
 
 .tab {
   flex: 1;
   background: none;
   border: none;
-  padding: $spacing-sm $spacing-sm;
-  font-size: $font-size-md;
+  padding: $spacing-sm $spacing-xs;
+  font-size: $font-size-sm;
   font-weight: 500;
   color: $text-secondary;
   cursor: pointer;
@@ -205,6 +241,7 @@
   position: relative;
   border-bottom: 3px solid transparent;
   text-align: center;
+  min-width: 80px;
 
   &:hover {
     color: $primary-color;
@@ -219,7 +256,8 @@
 }
 
 .tabContent {
-  min-height: 200px;
+  flex: 1;
+  overflow-y: auto;
 }
 
 .tabPane {

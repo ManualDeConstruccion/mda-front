@@ -1,7 +1,7 @@
 // src/components/ProjectTabs/ArchitectTab.tsx
 
 import React, { useState } from 'react';
-import styles from './ArchitectTab.module.scss';
+import styles from './ProjectTabs.module.scss';
 
 export interface ArchitectData {
   // Información del arquitecto
@@ -86,8 +86,7 @@ const ArchitectTab: React.FC<ArchitectTabProps> = ({
 
   if (isEditing) {
     return (
-      <div className={styles.container}>
-        <form onSubmit={handleSubmit} className={styles.form}>
+      <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.formSection}>
             <h3>Información del Arquitecto</h3>
             <div className={styles.formGrid}>
@@ -239,12 +238,11 @@ const ArchitectTab: React.FC<ArchitectTabProps> = ({
             </button>
           </div>
         </form>
-      </div>
     );
   }
 
   return (
-    <div className={styles.container}>
+    <>
       <div className={styles.header}>
         <button 
           onClick={() => onEditChange?.(true)}
@@ -254,9 +252,7 @@ const ArchitectTab: React.FC<ArchitectTabProps> = ({
         </button>
       </div>
 
-      <div className={styles.content}>
-        <div className={styles.section}>
-          <h4>Información del Arquitecto</h4>
+      <h4>Información del Arquitecto</h4>
           <div className={styles.infoGrid}>
             <div className={styles.infoItem}>
               <span className={styles.label}>Nombre:</span>
@@ -287,10 +283,8 @@ const ArchitectTab: React.FC<ArchitectTabProps> = ({
               <span className={styles.value}>{data?.aa_patente_arq || 'No especificado'}</span>
             </div>
           </div>
-        </div>
 
-        <div className={styles.section}>
-          <h4>Oficina de Arquitectura</h4>
+      <h4>Oficina de Arquitectura</h4>
           <div className={styles.infoGrid}>
             <div className={styles.infoItem}>
               <span className={styles.label}>Razón Social:</span>
@@ -317,9 +311,7 @@ const ArchitectTab: React.FC<ArchitectTabProps> = ({
               <span className={styles.value}>{data?.comuna || 'No especificado'}</span>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
+    </>
   );
 };
 

@@ -11,30 +11,50 @@
 
 .header {
   @include page-header;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
 
-  .headerContent {
+  // Segunda fila: Título (izquierda) + Botones (derecha)
+  .titleRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+
     h1 {
       margin: 0;
       font-size: $font-size-xl * 1.25;
       color: $text-primary;
     }
 
-    .status {
-      margin-top: $spacing-xs;
-      font-size: $font-size-sm;
-      color: $text-secondary;
+    .headerActions {
+      @include flex-container(row, $spacing-md);
+
+      .editButton {
+        @include action-button($primary-color);
+      }
+
+      .deleteButton {
+        @include action-button($error-color);
+      }
     }
   }
 
-  .headerActions {
-    @include flex-container(row, $spacing-md);
+  // Tercera fila: Selector de versiones + Texto descriptivo
+  .versionRow {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+    width: 100%;
+    margin-top: $spacing-xs;
 
-    .editButton {
-      @include action-button($primary-color);
-    }
-
-    .backButton {
-      @include secondary-button;
+    .versionNote {
+      margin: 0;
+      font-size: $font-size-sm;
+      color: $text-secondary;
+      font-style: italic;
+      flex: 1;
     }
   }
 }

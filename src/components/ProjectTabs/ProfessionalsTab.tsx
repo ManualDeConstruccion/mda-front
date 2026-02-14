@@ -1,93 +1,20 @@
 // src/components/ProjectTabs/ProfessionalsTab.tsx
 
 import React, { useState } from 'react';
-import { ExpandMore as ExpandMoreIcon, ExpandLess as ExpandLessIcon } from '@mui/icons-material';
-import styles from './ProfessionalsTab.module.scss';
+import styles from './ProjectTabs.module.scss';
 
 export interface ProfessionalsData {
-  // Calculista
-  calculista_nombre: string;
-  calculista_rut: string;
-  calculista_email: string;
-  calculista_telefono: string;
-  calculista_celular: string;
-  calculista_patente: string;
+  // Oficina de Arquitectura
+  of_arquitectura_razon_social: string;
+  of_arquitectura_rut: string;
   
-  // Oficina de Cálculo
-  of_calculo_razon_social: string;
-  of_calculo_rut: string;
-  of_calculo_direccion: string;
-  of_calculo_direccion_numero: string;
-  of_calculo_direccion_depto: string;
-  
-  // Revisor Independiente
-  rev_independiente_nombre: string;
-  rev_independiente_rut: string;
-  rev_independiente_email: string;
-  rev_independiente_telefono: string;
-  rev_independiente_celular: string;
-  rev_independiente_categoria: string;
-  rev_independiente_registro: string;
-  rev_independiente_numero: string;
-  rev_independiente_fecha: string;
-  rev_independiente_direccion: string;
-  rev_independiente_dir_numero: string;
-  rev_independiente_dir_depto: string;
-  rev_independiente_comuna: string;
-  rev_independiente_si: string;
-  rev_independiente_no: string;
-  
-  // ITO
-  ito_nombre: string;
-  ito_rut: string;
-  ito_email: string;
-  ito_telefono: string;
-  ito_celular: string;
-  ito_categoria: string;
-  ito_registro_numero: string;
-  ito_razon_social: string;
-  ito_razon_social_rut: string;
-  ito_informe_numero: string;
-  ito_informe_fecha: string;
-  ito_direccion: string;
-  ito_direccion_numero: string;
-  ito_direccion_depto: string;
-  ito_si: string;
-  ito_no: string;
-  
-  // Revisor de Cálculo
-  rev_calculo_nombre: string;
-  rev_calculo_rut: string;
-  rev_calculo_email: string;
-  rev_calculo_telefono: string;
-  rev_calculo_celular: string;
-  rev_calculo_categoria: string;
-  rev_calculo_registro: string;
-  rev_calculo_numero: string;
-  rev_calculo_fecha: string;
-  rev_calculo_razon_social: string;
-  rev_calculo_razon_social_rut: string;
-  rev_calculo_direccion: string;
-  rev_calculo_dir_numero: string;
-  rev_calculo_dir_depto: string;
-  rev_calculo_si: string;
-  rev_calculo_no: string;
-  
-  // Constructor
-  constructor_nombre: string;
-  constructor_rut: string;
-  constructor_email: string;
-  constructor_telefono: string;
-  constructor_celular: string;
-  constructor_patente: string;
-  
-  // Constructora
-  constructora_razon_social: string;
-  constructora_rut: string;
-  constructora_direccion: string;
-  constructora_direccion_numero: string;
-  constructora_direccion_depto: string;
-  constructora_comuna: string;
+  // Arquitecto
+  arquitecto_nombre: string;
+  arquitecto_rut: string;
+  arquitecto_email: string;
+  arquitecto_telefono: string;
+  arquitecto_celular: string;
+  arquitecto_patente: string;
 }
 
 interface ProfessionalsTabProps {
@@ -103,110 +30,18 @@ const ProfessionalsTab: React.FC<ProfessionalsTabProps> = ({
   isEditing = false,
   onEditChange
 }) => {
-  // Estado para manejar las secciones colapsables
-  const [expandedSections, setExpandedSections] = useState<{[key: string]: boolean}>({
-    calculista: false,
-    of_calculo: false,
-    rev_independiente: false,
-    ito: false,
-    rev_calculo: false,
-    constructor: false,
-    constructora: false,
-  });
-
-  const toggleSection = (section: string) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
-  };
   const [formData, setFormData] = useState<ProfessionalsData>({
-    // Calculista
-    calculista_nombre: data?.calculista_nombre || '',
-    calculista_rut: data?.calculista_rut || '',
-    calculista_email: data?.calculista_email || '',
-    calculista_telefono: data?.calculista_telefono || '',
-    calculista_celular: data?.calculista_celular || '',
-    calculista_patente: data?.calculista_patente || '',
-    
-    // Oficina de Cálculo
-    of_calculo_razon_social: data?.of_calculo_razon_social || '',
-    of_calculo_rut: data?.of_calculo_rut || '',
-    of_calculo_direccion: data?.of_calculo_direccion || '',
-    of_calculo_direccion_numero: data?.of_calculo_direccion_numero || '',
-    of_calculo_direccion_depto: data?.of_calculo_direccion_depto || '',
-    
-    // Revisor Independiente
-    rev_independiente_nombre: data?.rev_independiente_nombre || '',
-    rev_independiente_rut: data?.rev_independiente_rut || '',
-    rev_independiente_email: data?.rev_independiente_email || '',
-    rev_independiente_telefono: data?.rev_independiente_telefono || '',
-    rev_independiente_celular: data?.rev_independiente_celular || '',
-    rev_independiente_categoria: data?.rev_independiente_categoria || '',
-    rev_independiente_registro: data?.rev_independiente_registro || '',
-    rev_independiente_numero: data?.rev_independiente_numero || '',
-    rev_independiente_fecha: data?.rev_independiente_fecha || '',
-    rev_independiente_direccion: data?.rev_independiente_direccion || '',
-    rev_independiente_dir_numero: data?.rev_independiente_dir_numero || '',
-    rev_independiente_dir_depto: data?.rev_independiente_dir_depto || '',
-    rev_independiente_comuna: data?.rev_independiente_comuna || '',
-    rev_independiente_si: data?.rev_independiente_si || '',
-    rev_independiente_no: data?.rev_independiente_no || '',
-    
-    // ITO
-    ito_nombre: data?.ito_nombre || '',
-    ito_rut: data?.ito_rut || '',
-    ito_email: data?.ito_email || '',
-    ito_telefono: data?.ito_telefono || '',
-    ito_celular: data?.ito_celular || '',
-    ito_categoria: data?.ito_categoria || '',
-    ito_registro_numero: data?.ito_registro_numero || '',
-    ito_razon_social: data?.ito_razon_social || '',
-    ito_razon_social_rut: data?.ito_razon_social_rut || '',
-    ito_informe_numero: data?.ito_informe_numero || '',
-    ito_informe_fecha: data?.ito_informe_fecha || '',
-    ito_direccion: data?.ito_direccion || '',
-    ito_direccion_numero: data?.ito_direccion_numero || '',
-    ito_direccion_depto: data?.ito_direccion_depto || '',
-    ito_si: data?.ito_si || '',
-    ito_no: data?.ito_no || '',
-    
-    // Revisor de Cálculo
-    rev_calculo_nombre: data?.rev_calculo_nombre || '',
-    rev_calculo_rut: data?.rev_calculo_rut || '',
-    rev_calculo_email: data?.rev_calculo_email || '',
-    rev_calculo_telefono: data?.rev_calculo_telefono || '',
-    rev_calculo_celular: data?.rev_calculo_celular || '',
-    rev_calculo_categoria: data?.rev_calculo_categoria || '',
-    rev_calculo_registro: data?.rev_calculo_registro || '',
-    rev_calculo_numero: data?.rev_calculo_numero || '',
-    rev_calculo_fecha: data?.rev_calculo_fecha || '',
-    rev_calculo_razon_social: data?.rev_calculo_razon_social || '',
-    rev_calculo_razon_social_rut: data?.rev_calculo_razon_social_rut || '',
-    rev_calculo_direccion: data?.rev_calculo_direccion || '',
-    rev_calculo_dir_numero: data?.rev_calculo_dir_numero || '',
-    rev_calculo_dir_depto: data?.rev_calculo_dir_depto || '',
-    rev_calculo_si: data?.rev_calculo_si || '',
-    rev_calculo_no: data?.rev_calculo_no || '',
-    
-    // Constructor
-    constructor_nombre: data?.constructor_nombre || '',
-    constructor_rut: data?.constructor_rut || '',
-    constructor_email: data?.constructor_email || '',
-    constructor_telefono: data?.constructor_telefono || '',
-    constructor_celular: data?.constructor_celular || '',
-    constructor_patente: data?.constructor_patente || '',
-    
-    // Constructora
-    constructora_razon_social: data?.constructora_razon_social || '',
-    constructora_rut: data?.constructora_rut || '',
-    constructora_direccion: data?.constructora_direccion || '',
-    constructora_direccion_numero: data?.constructora_direccion_numero || '',
-    constructora_direccion_depto: data?.constructora_direccion_depto || '',
-    constructora_comuna: data?.constructora_comuna || '',
+    of_arquitectura_razon_social: data?.of_arquitectura_razon_social || '',
+    of_arquitectura_rut: data?.of_arquitectura_rut || '',
+    arquitecto_nombre: data?.arquitecto_nombre || '',
+    arquitecto_rut: data?.arquitecto_rut || '',
+    arquitecto_email: data?.arquitecto_email || '',
+    arquitecto_telefono: data?.arquitecto_telefono || '',
+    arquitecto_celular: data?.arquitecto_celular || '',
+    arquitecto_patente: data?.arquitecto_patente || '',
   });
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -214,1198 +49,187 @@ const ProfessionalsTab: React.FC<ProfessionalsTabProps> = ({
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = () => {
     onSave?.(formData);
     onEditChange?.(false);
   };
 
   const handleCancel = () => {
     setFormData(data || {
-      // Calculista
-      calculista_nombre: '',
-      calculista_rut: '',
-      calculista_email: '',
-      calculista_telefono: '',
-      calculista_celular: '',
-      calculista_patente: '',
-      
-      // Oficina de Cálculo
-      of_calculo_razon_social: '',
-      of_calculo_rut: '',
-      of_calculo_direccion: '',
-      of_calculo_direccion_numero: '',
-      of_calculo_direccion_depto: '',
-      
-      // Revisor Independiente
-      rev_independiente_nombre: '',
-      rev_independiente_rut: '',
-      rev_independiente_email: '',
-      rev_independiente_telefono: '',
-      rev_independiente_celular: '',
-      rev_independiente_categoria: '',
-      rev_independiente_registro: '',
-      rev_independiente_numero: '',
-      rev_independiente_fecha: '',
-      rev_independiente_direccion: '',
-      rev_independiente_dir_numero: '',
-      rev_independiente_dir_depto: '',
-      rev_independiente_comuna: '',
-      rev_independiente_si: '',
-      rev_independiente_no: '',
-      
-      // ITO
-      ito_nombre: '',
-      ito_rut: '',
-      ito_email: '',
-      ito_telefono: '',
-      ito_celular: '',
-      ito_categoria: '',
-      ito_registro_numero: '',
-      ito_razon_social: '',
-      ito_razon_social_rut: '',
-      ito_informe_numero: '',
-      ito_informe_fecha: '',
-      ito_direccion: '',
-      ito_direccion_numero: '',
-      ito_direccion_depto: '',
-      ito_si: '',
-      ito_no: '',
-      
-      // Revisor de Cálculo
-      rev_calculo_nombre: '',
-      rev_calculo_rut: '',
-      rev_calculo_email: '',
-      rev_calculo_telefono: '',
-      rev_calculo_celular: '',
-      rev_calculo_categoria: '',
-      rev_calculo_registro: '',
-      rev_calculo_numero: '',
-      rev_calculo_fecha: '',
-      rev_calculo_razon_social: '',
-      rev_calculo_razon_social_rut: '',
-      rev_calculo_direccion: '',
-      rev_calculo_dir_numero: '',
-      rev_calculo_dir_depto: '',
-      rev_calculo_si: '',
-      rev_calculo_no: '',
-      
-      // Constructor
-      constructor_nombre: '',
-      constructor_rut: '',
-      constructor_email: '',
-      constructor_telefono: '',
-      constructor_celular: '',
-      constructor_patente: '',
-      
-      // Constructora
-      constructora_razon_social: '',
-      constructora_rut: '',
-      constructora_direccion: '',
-      constructora_direccion_numero: '',
-      constructora_direccion_depto: '',
-      constructora_comuna: '',
+      of_arquitectura_razon_social: '',
+      of_arquitectura_rut: '',
+      arquitecto_nombre: '',
+      arquitecto_rut: '',
+      arquitecto_email: '',
+      arquitecto_telefono: '',
+      arquitecto_celular: '',
+      arquitecto_patente: '',
     });
     onEditChange?.(false);
   };
 
-  if (isEditing) {
-    return (
-      <div className={styles.container}>
-        <form onSubmit={handleSubmit} className={styles.form}>
-          {/* Calculista */}
-          <div className={styles.formSection}>
-            <h3>Calculista</h3>
-            <div className={styles.formGrid}>
-              <div className={styles.formGroup}>
-                <label>Nombre</label>
-                <input
-                  type="text"
-                  name="calculista_nombre"
-                  value={formData.calculista_nombre}
-                  onChange={handleInputChange}
-                  placeholder="Ej: Ana García López"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>RUT</label>
-                <input
-                  type="text"
-                  name="calculista_rut"
-                  value={formData.calculista_rut}
-                  onChange={handleInputChange}
-                  placeholder="Ej: 12.345.678-9"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Email</label>
-                <input
-                  type="email"
-                  name="calculista_email"
-                  value={formData.calculista_email}
-                  onChange={handleInputChange}
-                  placeholder="Ej: ana.garcia@calculos.cl"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Teléfono</label>
-                <input
-                  type="tel"
-                  name="calculista_telefono"
-                  value={formData.calculista_telefono}
-                  onChange={handleInputChange}
-                  placeholder="Ej: +56 2 2345 6789"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Celular</label>
-                <input
-                  type="tel"
-                  name="calculista_celular"
-                  value={formData.calculista_celular}
-                  onChange={handleInputChange}
-                  placeholder="Ej: +56 9 8765 4321"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Patente</label>
-                <input
-                  type="text"
-                  name="calculista_patente"
-                  value={formData.calculista_patente}
-                  onChange={handleInputChange}
-                  placeholder="Ej: 12345"
-                />
-                  </div>
-                </div>
-          </div>
-
-          {/* Oficina de Cálculo */}
-          <div className={styles.formSection}>
-            <h3>Oficina de Cálculo</h3>
-            <div className={styles.formGrid}>
-              <div className={styles.formGroup}>
-                <label>Razón Social</label>
-                <input
-                  type="text"
-                  name="of_calculo_razon_social"
-                  value={formData.of_calculo_razon_social}
-                  onChange={handleInputChange}
-                  placeholder="Ej: Estudio García Cálculos Ltda."
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>RUT</label>
-                <input
-                  type="text"
-                  name="of_calculo_rut"
-                  value={formData.of_calculo_rut}
-                  onChange={handleInputChange}
-                  placeholder="Ej: 76.123.456-7"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Calle</label>
-                <input
-                  type="text"
-                  name="of_calculo_direccion"
-                  value={formData.of_calculo_direccion}
-                  onChange={handleInputChange}
-                  placeholder="Ej: Av. Libertador"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Número</label>
-                <input
-                  type="text"
-                  name="of_calculo_direccion_numero"
-                  value={formData.of_calculo_direccion_numero}
-                  onChange={handleInputChange}
-                  placeholder="Ej: 1234"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Depto</label>
-                <input
-                  type="text"
-                  name="of_calculo_direccion_depto"
-                  value={formData.of_calculo_direccion_depto}
-                  onChange={handleInputChange}
-                  placeholder="Ej: 45 (opcional)"
-                />
-                  </div>
-                </div>
-          </div>
-
-          {/* Revisor Independiente */}
-          <div className={styles.formSection}>
-            <h3>Revisor Independiente</h3>
-            <div className={styles.formGrid}>
-              <div className={styles.formGroup}>
-                <label>Nombre</label>
-                <input
-                  type="text"
-                  name="rev_independiente_nombre"
-                  value={formData.rev_independiente_nombre}
-                  onChange={handleInputChange}
-                  placeholder="Ej: Roberto Silva Torres"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>RUT</label>
-                <input
-                  type="text"
-                  name="rev_independiente_rut"
-                  value={formData.rev_independiente_rut}
-                  onChange={handleInputChange}
-                  placeholder="Ej: 12.345.678-9"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Email</label>
-                <input
-                  type="email"
-                  name="rev_independiente_email"
-                  value={formData.rev_independiente_email}
-                  onChange={handleInputChange}
-                  placeholder="Ej: roberto.silva@revisor.cl"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Teléfono</label>
-                <input
-                  type="tel"
-                  name="rev_independiente_telefono"
-                  value={formData.rev_independiente_telefono}
-                  onChange={handleInputChange}
-                  placeholder="Ej: +56 2 2345 6789"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Celular</label>
-                <input
-                  type="tel"
-                  name="rev_independiente_celular"
-                  value={formData.rev_independiente_celular}
-                  onChange={handleInputChange}
-                  placeholder="Ej: +56 9 8765 4321"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Categoría</label>
-                <input
-                  type="text"
-                  name="rev_independiente_categoria"
-                  value={formData.rev_independiente_categoria}
-                  onChange={handleInputChange}
-                  placeholder="Ej: Estructural"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Registro</label>
-                <input
-                  type="text"
-                  name="rev_independiente_registro"
-                  value={formData.rev_independiente_registro}
-                  onChange={handleInputChange}
-                  placeholder="Ej: 12345"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Número</label>
-                <input
-                  type="text"
-                  name="rev_independiente_numero"
-                  value={formData.rev_independiente_numero}
-                  onChange={handleInputChange}
-                  placeholder="Ej: 67890"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Fecha</label>
-                <input
-                  type="date"
-                  name="rev_independiente_fecha"
-                  value={formData.rev_independiente_fecha}
-                  onChange={handleInputChange}
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Calle</label>
-                <input
-                  type="text"
-                  name="rev_independiente_direccion"
-                  value={formData.rev_independiente_direccion}
-                  onChange={handleInputChange}
-                  placeholder="Ej: Av. Independencia"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Número</label>
-                <input
-                  type="text"
-                  name="rev_independiente_dir_numero"
-                  value={formData.rev_independiente_dir_numero}
-                  onChange={handleInputChange}
-                  placeholder="Ej: 1234"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Depto</label>
-                <input
-                  type="text"
-                  name="rev_independiente_dir_depto"
-                  value={formData.rev_independiente_dir_depto}
-                  onChange={handleInputChange}
-                  placeholder="Ej: 45 (opcional)"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Comuna</label>
-                <input
-                  type="text"
-                  name="rev_independiente_comuna"
-                  value={formData.rev_independiente_comuna}
-                  onChange={handleInputChange}
-                  placeholder="Ej: Independencia"
-                />
-                  </div>
-                </div>
-          </div>
-
-          {/* ITO */}
-          <div className={styles.formSection}>
-            <h3>ITO (Inspector Técnico de Obra)</h3>
-            <div className={styles.formGrid}>
-              <div className={styles.formGroup}>
-                <label>Nombre</label>
-                <input
-                  type="text"
-                  name="ito_nombre"
-                  value={formData.ito_nombre}
-                  onChange={handleInputChange}
-                  placeholder="Ej: Luis Pérez González"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>RUT</label>
-                <input
-                  type="text"
-                  name="ito_rut"
-                  value={formData.ito_rut}
-                  onChange={handleInputChange}
-                  placeholder="Ej: 12.345.678-9"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Email</label>
-                <input
-                  type="email"
-                  name="ito_email"
-                  value={formData.ito_email}
-                  onChange={handleInputChange}
-                  placeholder="Ej: luis.perez@ito.cl"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Teléfono</label>
-                <input
-                  type="tel"
-                  name="ito_telefono"
-                  value={formData.ito_telefono}
-                  onChange={handleInputChange}
-                  placeholder="Ej: +56 2 2345 6789"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Celular</label>
-                <input
-                  type="tel"
-                  name="ito_celular"
-                  value={formData.ito_celular}
-                  onChange={handleInputChange}
-                  placeholder="Ej: +56 9 8765 4321"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Categoría</label>
-                <input
-                  type="text"
-                  name="ito_categoria"
-                  value={formData.ito_categoria}
-                  onChange={handleInputChange}
-                  placeholder="Ej: Estructural"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Número Registro</label>
-                <input
-                  type="text"
-                  name="ito_registro_numero"
-                  value={formData.ito_registro_numero}
-                  onChange={handleInputChange}
-                  placeholder="Ej: 12345"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Razón Social</label>
-                <input
-                  type="text"
-                  name="ito_razon_social"
-                  value={formData.ito_razon_social}
-                  onChange={handleInputChange}
-                  placeholder="Ej: ITO Pérez Ltda."
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>RUT Razón Social</label>
-                <input
-                  type="text"
-                  name="ito_razon_social_rut"
-                  value={formData.ito_razon_social_rut}
-                  onChange={handleInputChange}
-                  placeholder="Ej: 76.123.456-7"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Número Informe</label>
-                <input
-                  type="text"
-                  name="ito_informe_numero"
-                  value={formData.ito_informe_numero}
-                  onChange={handleInputChange}
-                  placeholder="Ej: INF-2024-001"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Fecha Informe</label>
-                <input
-                  type="date"
-                  name="ito_informe_fecha"
-                  value={formData.ito_informe_fecha}
-                  onChange={handleInputChange}
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Calle</label>
-                <input
-                  type="text"
-                  name="ito_direccion"
-                  value={formData.ito_direccion}
-                  onChange={handleInputChange}
-                  placeholder="Ej: Av. ITO"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Número</label>
-                <input
-                  type="text"
-                  name="ito_direccion_numero"
-                  value={formData.ito_direccion_numero}
-                  onChange={handleInputChange}
-                  placeholder="Ej: 1234"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Depto</label>
-                <input
-                  type="text"
-                  name="ito_direccion_depto"
-                  value={formData.ito_direccion_depto}
-                  onChange={handleInputChange}
-                  placeholder="Ej: 45 (opcional)"
-                />
-                  </div>
-                </div>
-          </div>
-
-          {/* Revisor de Cálculo */}
-          <div className={styles.formSection}>
-            <h3>Revisor de Cálculo</h3>
-            <div className={styles.formGrid}>
-              <div className={styles.formGroup}>
-                <label>Nombre</label>
-                <input
-                  type="text"
-                  name="rev_calculo_nombre"
-                  value={formData.rev_calculo_nombre}
-                  onChange={handleInputChange}
-                  placeholder="Ej: María Torres Ruiz"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>RUT</label>
-                <input
-                  type="text"
-                  name="rev_calculo_rut"
-                  value={formData.rev_calculo_rut}
-                  onChange={handleInputChange}
-                  placeholder="Ej: 12.345.678-9"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Email</label>
-                <input
-                  type="email"
-                  name="rev_calculo_email"
-                  value={formData.rev_calculo_email}
-                  onChange={handleInputChange}
-                  placeholder="Ej: maria.torres@revisor.cl"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Teléfono</label>
-                <input
-                  type="tel"
-                  name="rev_calculo_telefono"
-                  value={formData.rev_calculo_telefono}
-                  onChange={handleInputChange}
-                  placeholder="Ej: +56 2 2345 6789"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Celular</label>
-                <input
-                  type="tel"
-                  name="rev_calculo_celular"
-                  value={formData.rev_calculo_celular}
-                  onChange={handleInputChange}
-                  placeholder="Ej: +56 9 8765 4321"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Categoría</label>
-                <input
-                  type="text"
-                  name="rev_calculo_categoria"
-                  value={formData.rev_calculo_categoria}
-                  onChange={handleInputChange}
-                  placeholder="Ej: Estructural"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Registro</label>
-                <input
-                  type="text"
-                  name="rev_calculo_registro"
-                  value={formData.rev_calculo_registro}
-                  onChange={handleInputChange}
-                  placeholder="Ej: 12345"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Número</label>
-                <input
-                  type="text"
-                  name="rev_calculo_numero"
-                  value={formData.rev_calculo_numero}
-                  onChange={handleInputChange}
-                  placeholder="Ej: 67890"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Fecha</label>
-                <input
-                  type="date"
-                  name="rev_calculo_fecha"
-                  value={formData.rev_calculo_fecha}
-                  onChange={handleInputChange}
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Razón Social</label>
-                <input
-                  type="text"
-                  name="rev_calculo_razon_social"
-                  value={formData.rev_calculo_razon_social}
-                  onChange={handleInputChange}
-                  placeholder="Ej: Revisores Torres Ltda."
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>RUT Razón Social</label>
-                <input
-                  type="text"
-                  name="rev_calculo_razon_social_rut"
-                  value={formData.rev_calculo_razon_social_rut}
-                  onChange={handleInputChange}
-                  placeholder="Ej: 76.123.456-7"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Calle</label>
-                <input
-                  type="text"
-                  name="rev_calculo_direccion"
-                  value={formData.rev_calculo_direccion}
-                  onChange={handleInputChange}
-                  placeholder="Ej: Av. Revisión"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Número</label>
-                <input
-                  type="text"
-                  name="rev_calculo_dir_numero"
-                  value={formData.rev_calculo_dir_numero}
-                  onChange={handleInputChange}
-                  placeholder="Ej: 1234"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Depto</label>
-                <input
-                  type="text"
-                  name="rev_calculo_dir_depto"
-                  value={formData.rev_calculo_dir_depto}
-                  onChange={handleInputChange}
-                  placeholder="Ej: 45 (opcional)"
-                />
-                  </div>
-                </div>
-          </div>
-
-          {/* Constructor */}
-          <div className={styles.formSection}>
-            <h3>Constructor</h3>
-            <div className={styles.formGrid}>
-              <div className={styles.formGroup}>
-                <label>Nombre</label>
-                <input
-                  type="text"
-                  name="constructor_nombre"
-                  value={formData.constructor_nombre}
-                  onChange={handleInputChange}
-                  placeholder="Ej: Pedro Ramírez Vega"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>RUT</label>
-                <input
-                  type="text"
-                  name="constructor_rut"
-                  value={formData.constructor_rut}
-                  onChange={handleInputChange}
-                  placeholder="Ej: 12.345.678-9"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Email</label>
-                <input
-                  type="email"
-                  name="constructor_email"
-                  value={formData.constructor_email}
-                  onChange={handleInputChange}
-                  placeholder="Ej: pedro.ramirez@constructor.cl"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Teléfono</label>
-                <input
-                  type="tel"
-                  name="constructor_telefono"
-                  value={formData.constructor_telefono}
-                  onChange={handleInputChange}
-                  placeholder="Ej: +56 2 2345 6789"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Celular</label>
-                <input
-                  type="tel"
-                  name="constructor_celular"
-                  value={formData.constructor_celular}
-                  onChange={handleInputChange}
-                  placeholder="Ej: +56 9 8765 4321"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Patente</label>
-                <input
-                  type="text"
-                  name="constructor_patente"
-                  value={formData.constructor_patente}
-                  onChange={handleInputChange}
-                  placeholder="Ej: 12345"
-                />
-                  </div>
-                </div>
-          </div>
-
-          {/* Constructora */}
-          <div className={styles.formSection}>
-            <h3>Constructora</h3>
-            <div className={styles.formGrid}>
-              <div className={styles.formGroup}>
-                <label>Razón Social</label>
-                <input
-                  type="text"
-                  name="constructora_razon_social"
-                  value={formData.constructora_razon_social}
-                  onChange={handleInputChange}
-                  placeholder="Ej: Constructora Ramírez Ltda."
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>RUT</label>
-                <input
-                  type="text"
-                  name="constructora_rut"
-                  value={formData.constructora_rut}
-                  onChange={handleInputChange}
-                  placeholder="Ej: 76.123.456-7"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Calle</label>
-                <input
-                  type="text"
-                  name="constructora_direccion"
-                  value={formData.constructora_direccion}
-                  onChange={handleInputChange}
-                  placeholder="Ej: Av. Constructora"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Número</label>
-                <input
-                  type="text"
-                  name="constructora_direccion_numero"
-                  value={formData.constructora_direccion_numero}
-                  onChange={handleInputChange}
-                  placeholder="Ej: 1234"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Depto</label>
-                <input
-                  type="text"
-                  name="constructora_direccion_depto"
-                  value={formData.constructora_direccion_depto}
-                  onChange={handleInputChange}
-                  placeholder="Ej: 45 (opcional)"
-                />
-                  </div>
-              <div className={styles.formGroup}>
-                <label>Comuna</label>
-                <input
-                  type="text"
-                  name="constructora_comuna"
-                  value={formData.constructora_comuna}
-                  onChange={handleInputChange}
-                  placeholder="Ej: Las Condes"
-                />
-                  </div>
-                </div>
-          </div>
-
-          <div className={styles.formActions}>
-            <button type="button" onClick={handleCancel} className={styles.cancelButton}>
+  return (
+    <>
+      <div className={styles.header}>
+        <p>Información del arquitecto responsable y su oficina de arquitectura</p>
+        {!isEditing ? (
+          <button 
+            onClick={() => onEditChange?.(true)}
+            className={styles.editButton}
+          >
+            Editar Información
+          </button>
+        ) : (
+          <div className={styles.actionButtons}>
+            <button 
+              onClick={handleCancel}
+              className={styles.cancelButton}
+            >
               Cancelar
             </button>
-            <button type="submit" className={styles.saveButton}>
+            <button 
+              onClick={handleSave}
+              className={styles.saveButton}
+            >
               Guardar
             </button>
           </div>
-        </form>
-      </div>
-    );
-  }
-
-  return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <button 
-          onClick={() => onEditChange?.(true)}
-          className={styles.editButton}
-        >
-          Editar Información
-        </button>
+        )}
       </div>
 
-      <div className={styles.content}>
-        {/* Calculista */}
-        <div className={styles.collapsibleSection}>
-          <div 
-            className={styles.collapsibleHeader}
-            onClick={() => toggleSection('calculista')}
-          >
-            <h4>Calculista</h4>
-            <button className={styles.toggleButton}>
-              {expandedSections.calculista ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            </button>
-          </div>
-          {expandedSections.calculista && (
-            <div className={styles.collapsibleContent}>
-              <div className={styles.infoGrid}>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Nombre:</span>
-                  <span className={styles.value}>{data?.calculista_nombre || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>RUT:</span>
-                  <span className={styles.value}>{data?.calculista_rut || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Email:</span>
-                  <span className={styles.value}>{data?.calculista_email || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Teléfono:</span>
-                  <span className={styles.value}>{data?.calculista_telefono || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Celular:</span>
-                  <span className={styles.value}>{data?.calculista_celular || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Patente:</span>
-                  <span className={styles.value}>{data?.calculista_patente || 'No especificado'}</span>
-                </div>
-                  </div>
-                </div>
+      <div className={styles.infoGrid}>
+        {/* Oficina de Arquitectura */}
+        <div className={styles.infoItem}>
+          <span className={styles.label}>Razón Social Oficina:</span>
+          {isEditing ? (
+            <input
+              type="text"
+              name="of_arquitectura_razon_social"
+              value={formData.of_arquitectura_razon_social}
+              onChange={handleInputChange}
+              className={styles.input}
+              placeholder="Ej: Estudio García Arquitectos Ltda."
+            />
+          ) : (
+            <span className={styles.value}>{data?.of_arquitectura_razon_social || 'No especificado'}</span>
           )}
         </div>
 
-        {/* Oficina de Cálculo */}
-        <div className={styles.collapsibleSection}>
-          <div 
-            className={styles.collapsibleHeader}
-            onClick={() => toggleSection('of_calculo')}
-          >
-            <h4>Oficina de Cálculo</h4>
-            <button className={styles.toggleButton}>
-              {expandedSections.of_calculo ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            </button>
-          </div>
-          {expandedSections.of_calculo && (
-            <div className={styles.collapsibleContent}>
-              <div className={styles.infoGrid}>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Razón Social:</span>
-                  <span className={styles.value}>{data?.of_calculo_razon_social || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>RUT:</span>
-                  <span className={styles.value}>{data?.of_calculo_rut || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Dirección:</span>
-                  <span className={styles.value}>
-                    {data?.of_calculo_direccion && data?.of_calculo_direccion_numero 
-                      ? `${data.of_calculo_direccion} ${data.of_calculo_direccion_numero}${data.of_calculo_direccion_depto ? `, Depto ${data.of_calculo_direccion_depto}` : ''}`
-                      : 'No especificado'
-                    }
-                  </span>
-                </div>
-                  </div>
-                </div>
+        <div className={styles.infoItem}>
+          <span className={styles.label}>RUT Oficina:</span>
+          {isEditing ? (
+            <input
+              type="text"
+              name="of_arquitectura_rut"
+              value={formData.of_arquitectura_rut}
+              onChange={handleInputChange}
+              className={styles.input}
+              placeholder="Ej: 76.123.456-7"
+            />
+          ) : (
+            <span className={styles.value}>{data?.of_arquitectura_rut || 'No especificado'}</span>
+          )}
+        </div>
+        {/* Arquitecto */}
+        <div className={styles.infoItem}>
+          <span className={styles.label}>Nombre Arquitecto:</span>
+          {isEditing ? (
+            <input
+              type="text"
+              name="arquitecto_nombre"
+              value={formData.arquitecto_nombre}
+              onChange={handleInputChange}
+              className={styles.input}
+              placeholder="Ej: Ana García López"
+            />
+          ) : (
+            <span className={styles.value}>{data?.arquitecto_nombre || 'No especificado'}</span>
           )}
         </div>
 
-        {/* Revisor Independiente */}
-        <div className={styles.collapsibleSection}>
-          <div 
-            className={styles.collapsibleHeader}
-            onClick={() => toggleSection('rev_independiente')}
-          >
-            <h4>Revisor Independiente</h4>
-            <button className={styles.toggleButton}>
-              {expandedSections.rev_independiente ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            </button>
-          </div>
-          {expandedSections.rev_independiente && (
-            <div className={styles.collapsibleContent}>
-              <div className={styles.infoGrid}>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Nombre:</span>
-                  <span className={styles.value}>{data?.rev_independiente_nombre || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>RUT:</span>
-                  <span className={styles.value}>{data?.rev_independiente_rut || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Email:</span>
-                  <span className={styles.value}>{data?.rev_independiente_email || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Teléfono:</span>
-                  <span className={styles.value}>{data?.rev_independiente_telefono || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Celular:</span>
-                  <span className={styles.value}>{data?.rev_independiente_celular || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Categoría:</span>
-                  <span className={styles.value}>{data?.rev_independiente_categoria || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Registro:</span>
-                  <span className={styles.value}>{data?.rev_independiente_registro || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Número:</span>
-                  <span className={styles.value}>{data?.rev_independiente_numero || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Fecha:</span>
-                  <span className={styles.value}>
-                {data?.rev_independiente_fecha 
-                  ? new Date(data.rev_independiente_fecha).toLocaleDateString('es-CL')
-                  : 'No especificado'
-                }
-              </span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Dirección:</span>
-                  <span className={styles.value}>
-                {data?.rev_independiente_direccion && data?.rev_independiente_dir_numero 
-                  ? `${data.rev_independiente_direccion} ${data.rev_independiente_dir_numero}${data.rev_independiente_dir_depto ? `, Depto ${data.rev_independiente_dir_depto}` : ''}${data.rev_independiente_comuna ? `, ${data.rev_independiente_comuna}` : ''}`
-                  : 'No especificado'
-                }
-              </span>
-            </div>
-              </div>
-            </div>
+        <div className={styles.infoItem}>
+          <span className={styles.label}>RUT Arquitecto:</span>
+          {isEditing ? (
+            <input
+              type="text"
+              name="arquitecto_rut"
+              value={formData.arquitecto_rut}
+              onChange={handleInputChange}
+              className={styles.input}
+              placeholder="Ej: 12.345.678-9"
+            />
+          ) : (
+            <span className={styles.value}>{data?.arquitecto_rut || 'No especificado'}</span>
           )}
         </div>
 
-        {/* ITO */}
-        <div className={styles.collapsibleSection}>
-          <div 
-            className={styles.collapsibleHeader}
-            onClick={() => toggleSection('ito')}
-          >
-            <h4>ITO (Inspector Técnico de Obra)</h4>
-            <button className={styles.toggleButton}>
-              {expandedSections.ito ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            </button>
-          </div>
-          {expandedSections.ito && (
-            <div className={styles.collapsibleContent}>
-              <div className={styles.infoGrid}>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Nombre:</span>
-                  <span className={styles.value}>{data?.ito_nombre || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>RUT:</span>
-                  <span className={styles.value}>{data?.ito_rut || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Email:</span>
-                  <span className={styles.value}>{data?.ito_email || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Teléfono:</span>
-                  <span className={styles.value}>{data?.ito_telefono || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Celular:</span>
-                  <span className={styles.value}>{data?.ito_celular || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Categoría:</span>
-                  <span className={styles.value}>{data?.ito_categoria || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Número Registro:</span>
-                  <span className={styles.value}>{data?.ito_registro_numero || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Razón Social:</span>
-                  <span className={styles.value}>{data?.ito_razon_social || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>RUT Razón Social:</span>
-                  <span className={styles.value}>{data?.ito_razon_social_rut || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Número Informe:</span>
-                  <span className={styles.value}>{data?.ito_informe_numero || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Fecha Informe:</span>
-                  <span className={styles.value}>
-                {data?.ito_informe_fecha 
-                  ? new Date(data.ito_informe_fecha).toLocaleDateString('es-CL')
-                  : 'No especificado'
-                }
-              </span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Dirección:</span>
-                  <span className={styles.value}>
-                {data?.ito_direccion && data?.ito_direccion_numero 
-                  ? `${data.ito_direccion} ${data.ito_direccion_numero}${data.ito_direccion_depto ? `, Depto ${data.ito_direccion_depto}` : ''}`
-                  : 'No especificado'
-                }
-              </span>
-            </div>
-              </div>
-            </div>
+        <div className={styles.infoItem}>
+          <span className={styles.label}>Email:</span>
+          {isEditing ? (
+            <input
+              type="email"
+              name="arquitecto_email"
+              value={formData.arquitecto_email}
+              onChange={handleInputChange}
+              className={styles.input}
+              placeholder="Ej: ana.garcia@arquitectura.cl"
+            />
+          ) : (
+            <span className={styles.value}>{data?.arquitecto_email || 'No especificado'}</span>
           )}
         </div>
 
-        {/* Revisor de Cálculo */}
-        <div className={styles.collapsibleSection}>
-          <div 
-            className={styles.collapsibleHeader}
-            onClick={() => toggleSection('rev_calculo')}
-          >
-            <h4>Revisor de Cálculo</h4>
-            <button className={styles.toggleButton}>
-              {expandedSections.rev_calculo ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            </button>
-          </div>
-          {expandedSections.rev_calculo && (
-            <div className={styles.collapsibleContent}>
-              <div className={styles.infoGrid}>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Nombre:</span>
-                  <span className={styles.value}>{data?.rev_calculo_nombre || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>RUT:</span>
-                  <span className={styles.value}>{data?.rev_calculo_rut || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Email:</span>
-                  <span className={styles.value}>{data?.rev_calculo_email || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Teléfono:</span>
-                  <span className={styles.value}>{data?.rev_calculo_telefono || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Celular:</span>
-                  <span className={styles.value}>{data?.rev_calculo_celular || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Categoría:</span>
-                  <span className={styles.value}>{data?.rev_calculo_categoria || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Registro:</span>
-                  <span className={styles.value}>{data?.rev_calculo_registro || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Número:</span>
-                  <span className={styles.value}>{data?.rev_calculo_numero || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Fecha:</span>
-                  <span className={styles.value}>
-                {data?.rev_calculo_fecha 
-                  ? new Date(data.rev_calculo_fecha).toLocaleDateString('es-CL')
-                  : 'No especificado'
-                }
-              </span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Razón Social:</span>
-                  <span className={styles.value}>{data?.rev_calculo_razon_social || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>RUT Razón Social:</span>
-                  <span className={styles.value}>{data?.rev_calculo_razon_social_rut || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Dirección:</span>
-                  <span className={styles.value}>
-                {data?.rev_calculo_direccion && data?.rev_calculo_dir_numero 
-                  ? `${data.rev_calculo_direccion} ${data.rev_calculo_dir_numero}${data.rev_calculo_dir_depto ? `, Depto ${data.rev_calculo_dir_depto}` : ''}`
-                  : 'No especificado'
-                }
-              </span>
-            </div>
-              </div>
-            </div>
+        <div className={styles.infoItem}>
+          <span className={styles.label}>Teléfono:</span>
+          {isEditing ? (
+            <input
+              type="tel"
+              name="arquitecto_telefono"
+              value={formData.arquitecto_telefono}
+              onChange={handleInputChange}
+              className={styles.input}
+              placeholder="Ej: +56 2 2345 6789"
+            />
+          ) : (
+            <span className={styles.value}>{data?.arquitecto_telefono || 'No especificado'}</span>
           )}
         </div>
 
-        {/* Constructor */}
-        <div className={styles.collapsibleSection}>
-          <div 
-            className={styles.collapsibleHeader}
-            onClick={() => toggleSection('constructor')}
-          >
-            <h4>Constructor</h4>
-            <button className={styles.toggleButton}>
-              {expandedSections.constructor ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            </button>
-          </div>
-          {expandedSections.constructor && (
-            <div className={styles.collapsibleContent}>
-              <div className={styles.infoGrid}>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Nombre:</span>
-                  <span className={styles.value}>{data?.constructor_nombre || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>RUT:</span>
-                  <span className={styles.value}>{data?.constructor_rut || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Email:</span>
-                  <span className={styles.value}>{data?.constructor_email || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Teléfono:</span>
-                  <span className={styles.value}>{data?.constructor_telefono || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Celular:</span>
-                  <span className={styles.value}>{data?.constructor_celular || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Patente:</span>
-                  <span className={styles.value}>{data?.constructor_patente || 'No especificado'}</span>
-                </div>
-              </div>
-            </div>
+        <div className={styles.infoItem}>
+          <span className={styles.label}>Celular:</span>
+          {isEditing ? (
+            <input
+              type="tel"
+              name="arquitecto_celular"
+              value={formData.arquitecto_celular}
+              onChange={handleInputChange}
+              className={styles.input}
+              placeholder="Ej: +56 9 8765 4321"
+            />
+          ) : (
+            <span className={styles.value}>{data?.arquitecto_celular || 'No especificado'}</span>
           )}
         </div>
 
-        {/* Constructora */}
-        <div className={styles.collapsibleSection}>
-          <div 
-            className={styles.collapsibleHeader}
-            onClick={() => toggleSection('constructora')}
-          >
-            <h4>Constructora</h4>
-            <button className={styles.toggleButton}>
-              {expandedSections.constructora ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            </button>
-          </div>
-          {expandedSections.constructora && (
-            <div className={styles.collapsibleContent}>
-              <div className={styles.infoGrid}>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Razón Social:</span>
-                  <span className={styles.value}>{data?.constructora_razon_social || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>RUT:</span>
-                  <span className={styles.value}>{data?.constructora_rut || 'No especificado'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Dirección:</span>
-                  <span className={styles.value}>
-                    {data?.constructora_direccion && data?.constructora_direccion_numero 
-                      ? `${data.constructora_direccion} ${data.constructora_direccion_numero}${data.constructora_direccion_depto ? `, Depto ${data.constructora_direccion_depto}` : ''}${data.constructora_comuna ? `, ${data.constructora_comuna}` : ''}`
-                      : 'No especificado'
-                    }
-                  </span>
-                </div>
-              </div>
-            </div>
+        <div className={styles.infoItem}>
+          <span className={styles.label}>Patente:</span>
+          {isEditing ? (
+            <input
+              type="text"
+              name="arquitecto_patente"
+              value={formData.arquitecto_patente}
+              onChange={handleInputChange}
+              className={styles.input}
+              placeholder="Ej: 12345"
+            />
+          ) : (
+            <span className={styles.value}>{data?.arquitecto_patente || 'No especificado'}</span>
           )}
-        </div>
+        </div>        
+
+        
       </div>
-    </div>
+    </>
   );
 };
 
