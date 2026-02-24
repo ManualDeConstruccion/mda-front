@@ -28,10 +28,26 @@ import CreateParameterCategoryModal from './CreateParameterCategoryModal';
 interface ParameterDefinition {
   id: number;
   code: string;
+  form_pdf_code?: string;
   name: string;
+  description?: string;
+  category?: number;
+  category_name?: string;
   data_type: string;
   unit?: string;
-  category?: number;
+  help_text?: string;
+  is_active?: boolean;
+  is_key_compliance?: boolean;
+  is_calculated?: boolean;
+  include_in_snapshot?: boolean;
+  validation_rules?: any;
+  calculation_formula?: string;
+  calculation_inputs?: any;
+  calculation_method?: string;
+  snapshot_source?: string;
+  source_field?: string;
+  update_policy?: string;
+  regulation_articles?: any[];
 }
 
 interface ParameterCategory {
@@ -176,28 +192,30 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
     }
     
     if (parameter) {
-      setCode(parameter.code || '');
-      setFormPdfCode(parameter.form_pdf_code || '');
-      setName(parameter.name || '');
-      setDescription(parameter.description || '');
-      setCategory(parameter.category || null);
-      setDataType(parameter.data_type || 'text');
-      setUnit(parameter.unit || '');
-      setHelpText(parameter.help_text || '');
-      setIsActive(parameter.is_active !== undefined ? parameter.is_active : true);
-      setIsKeyCompliance(parameter.is_key_compliance || false);
-      setIsCalculated(parameter.is_calculated || false);
-      setIncludeInSnapshot(parameter.include_in_snapshot || false);
-      setValidationRules(parameter.validation_rules ? JSON.stringify(parameter.validation_rules, null, 2) : '');
-      setCalculationFormula(parameter.calculation_formula || '');
-      setCalculationInputs(parameter.calculation_inputs ? JSON.stringify(parameter.calculation_inputs, null, 2) : '');
-      setCalculationMethod(parameter.calculation_method || '');
-      setSnapshotSource(parameter.snapshot_source || 'none');
-      setSourceField(parameter.source_field || '');
-      setUpdatePolicy(parameter.update_policy || 'manual');
+      const param = parameter as ParameterDefinition & Record<string, unknown>;
+      setCode((param.code as string) || '');
+      setFormPdfCode((param.form_pdf_code as string | undefined) || '');
+      setName((param.name as string) || '');
+      setDescription((param.description as string | undefined) || '');
+      setCategory((param.category as number | undefined) ?? null);
+      setDataType((param.data_type as string) || 'text');
+      setUnit((param.unit as string | undefined) || '');
+      setHelpText((param.help_text as string | undefined) || '');
+      setIsActive(param.is_active !== undefined ? (param.is_active as boolean) : true);
+      setIsKeyCompliance((param.is_key_compliance as boolean | undefined) || false);
+      setIsCalculated((param.is_calculated as boolean | undefined) || false);
+      setIncludeInSnapshot((param.include_in_snapshot as boolean | undefined) || false);
+      setValidationRules(param.validation_rules ? JSON.stringify(param.validation_rules, null, 2) : '');
+      setCalculationFormula((param.calculation_formula as string | undefined) || '');
+      setCalculationInputs(param.calculation_inputs ? JSON.stringify(param.calculation_inputs, null, 2) : '');
+      setCalculationMethod((param.calculation_method as string | undefined) || '');
+      setSnapshotSource((param.snapshot_source as string | undefined) || 'none');
+      setSourceField((param.source_field as string | undefined) || '');
+      setUpdatePolicy((param.update_policy as string | undefined) || 'manual');
       // regulation_articles viene como array de IDs o objetos con id
-      if (parameter.regulation_articles) {
-        const articleIds = parameter.regulation_articles.map((art: any) => typeof art === 'number' ? art : art.id);
+      const regArticles = param.regulation_articles as unknown[] | undefined;
+      if (regArticles && Array.isArray(regArticles)) {
+        const articleIds = regArticles.map((art: unknown) => (typeof art === 'number' ? art : (art as { id: number }).id));
         setSelectedRegulationArticles(articleIds);
       } else {
         setSelectedRegulationArticles([]);

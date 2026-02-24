@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import styles from './DynamicField.module.css';
-import type { FormParameter } from '../../hooks/useFormParameters';
+import type { FormParameter } from '../../types/formParameters.types';
 
 interface DynamicFieldProps {
   formParameter: FormParameter;
@@ -19,8 +19,16 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({
   disabled = false,
   error,
 }) => {
-  const { parameter_definition, is_required, display_config } = formParameter;
-  const { code, name, data_type, unit, help_text } = parameter_definition;
+  const { parameter_definition, is_required } = formParameter;
+  const display_config = (formParameter as FormParameter & { display_config?: unknown }).display_config;
+  const paramDef = typeof parameter_definition === 'object' && parameter_definition !== null
+    ? parameter_definition as { id: number; code: string; name: string; data_type: string; unit?: string; help_text?: string; is_calculated?: boolean }
+    : null;
+  const code = paramDef?.code ?? (formParameter.parameter_definition_code ?? '');
+  const name = paramDef?.name ?? (formParameter.parameter_definition_name ?? '');
+  const data_type = paramDef?.data_type ?? 'text';
+  const unit = paramDef?.unit;
+  const help_text = paramDef?.help_text;
 
   const [localValue, setLocalValue] = useState(value ?? '');
 

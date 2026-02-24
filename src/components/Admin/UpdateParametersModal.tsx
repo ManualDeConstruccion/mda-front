@@ -157,7 +157,7 @@ const UpdateParametersModal: React.FC<UpdateParametersModalProps> = ({
               )}
               <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
                 Creado: {new Date(latestSnapshot.created_at).toLocaleString('es-CL')}
-                {latestSnapshot.created_by_name && ` por ${latestSnapshot.created_by_name}`}
+                {latestSnapshot.created_by?.username && ` por ${latestSnapshot.created_by.username}`}
               </Typography>
             </Alert>
           )}

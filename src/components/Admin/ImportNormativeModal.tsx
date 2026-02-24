@@ -98,8 +98,8 @@ const ImportNormativeModal: React.FC<ImportNormativeModalProps> = ({
     }
   };
 
-  const getTotalStats = (stats?: ImportStats) => {
-    if (!stats) return { created: 0, updated: 0, errors: 0 };
+  const getTotalStats = (stats?: ImportStats): { created: number; updated: number; errors: string[] } => {
+    if (!stats) return { created: 0, updated: 0, errors: [] };
     return {
       created: stats.types.created + stats.publications.created + stats.sections.created + stats.articles.created,
       updated: stats.types.updated + stats.publications.updated + stats.sections.updated + stats.articles.updated,
@@ -113,6 +113,7 @@ const ImportNormativeModal: React.FC<ImportNormativeModalProps> = ({
   };
 
   const totalStats = getTotalStats(result?.stats);
+  const errorList: string[] = Array.isArray(totalStats.errors) ? totalStats.errors : [];
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
@@ -205,21 +206,21 @@ const ImportNormativeModal: React.FC<ImportNormativeModalProps> = ({
                     </Typography>
                   </Box>
 
-                  {totalStats.errors.length > 0 && (
+                  {errorList.length > 0 && (
                     <Box sx={{ mt: 2 }}>
                       <Alert severity="warning">
                         <Typography variant="subtitle2" gutterBottom>
-                          Errores encontrados ({totalStats.errors.length}):
+                          Errores encontrados ({errorList.length}):
                         </Typography>
                         <Box component="ul" sx={{ pl: 2, m: 0, maxHeight: 200, overflow: 'auto' }}>
-                          {totalStats.errors.slice(0, 10).map((error, idx) => (
+                          {errorList.slice(0, 10).map((error: string, idx: number) => (
                             <li key={idx}>
                               <Typography variant="caption">{error}</Typography>
                             </li>
                           ))}
-                          {totalStats.errors.length > 10 && (
+                          {errorList.length > 10 && (
                             <Typography variant="caption" color="text.secondary">
-                              ... y {totalStats.errors.length - 10} errores más
+                              ... y {errorList.length - 10} errores más
                             </Typography>
                           )}
                         </Box>

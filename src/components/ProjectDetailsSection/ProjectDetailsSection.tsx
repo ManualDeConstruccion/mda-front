@@ -137,8 +137,8 @@ const ProjectDetailsSection: React.FC<ProjectDetailsSectionProps> = ({
             {activeTab === 'propietario' && (
               <div className={styles.tabPane}>
                 <OwnerTab
-                  data={ownerData}
-                  onSave={onOwnerSave}
+                  data={ownerData as any}
+                  onSave={onOwnerSave as any}
                   isEditing={isOwnerEditing}
                   onEditChange={setIsOwnerEditing}
                 />
@@ -148,8 +148,8 @@ const ProjectDetailsSection: React.FC<ProjectDetailsSectionProps> = ({
             {activeTab === 'propiedad' && (
               <div className={styles.tabPane}>
                 <PropertyTab
-                  data={propertyData}
-                  onSave={onPropertySave}
+                  data={propertyData as any}
+                  onSave={onPropertySave as any}
                   isEditing={isPropertyEditing}
                   onEditChange={setIsPropertyEditing}
                 />
@@ -170,8 +170,8 @@ const ProjectDetailsSection: React.FC<ProjectDetailsSectionProps> = ({
             {activeTab === 'profesional' && (
               <div className={styles.tabPane}>
                 <ProfessionalsTab
-                  data={professionalsData}
-                  onSave={onProfessionalsSave}
+                  data={professionalsData as any}
+                  onSave={onProfessionalsSave as any}
                   isEditing={isProfessionalsEditing}
                   onEditChange={setIsProfessionalsEditing}
                 />

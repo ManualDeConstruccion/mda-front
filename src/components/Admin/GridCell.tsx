@@ -198,7 +198,7 @@ const GridCell: React.FC<GridCellProps> = ({
               </>
             )}
             {/* En modo editable, mostrar el input correspondiente (inline o en modal si la celda es estrecha). Parámetros calculados: solo lectura, sin modal. */}
-            {mode === 'editable' && cellCode && paramDef && (() => {
+            {mode === 'editable' && cellCode && paramDef && onChange && (() => {
               const handleChange = onChange;
               const useModalForInput = !isCalculated && cellWidth !== null && cellWidth < MIN_CELL_WIDTH_FOR_INLINE_INPUT;
               const currentValue = values?.[cellCode];
@@ -254,7 +254,7 @@ const GridCell: React.FC<GridCellProps> = ({
                   </Box>
                 );
               }
-              if (useModalForInput && onChange) {
+              if (useModalForInput) {
                 return (
                   <>
                     <Box
@@ -296,7 +296,7 @@ const GridCell: React.FC<GridCellProps> = ({
                       <DialogActions>
                         <Button
                           onClick={() => {
-                            handleChange(cellCode, modalValue);
+                            handleChange?.(cellCode, modalValue);
                             setInputModalOpen(false);
                           }}
                           variant="contained"
@@ -308,15 +308,14 @@ const GridCell: React.FC<GridCellProps> = ({
                   </>
                 );
               }
-              if (onChange) {
-                return (
-                  <Box sx={{ mt: 1 }}>
-                    <ParameterInput
-                      dataType={dataType as any}
-                      value={values?.[cellCode]}
-                      onChange={(newValue) => {
-                        handleChange(cellCode, newValue);
-                      }}
+              return (
+                <Box sx={{ mt: 1 }}>
+                  <ParameterInput
+                    dataType={dataType as any}
+                    value={values?.[cellCode]}
+                    onChange={(newValue) => {
+                      handleChange?.(cellCode, newValue);
+                    }}
                       label={undefined}
                       unit={unit}
                       required={isRequired}
@@ -325,8 +324,6 @@ const GridCell: React.FC<GridCellProps> = ({
                     />
                   </Box>
                 );
-              }
-              return null;
             })()}
             {/* En modo vista, mostrar solo el valor formateado, grande y centrado */}
             {mode === 'view' && cellCode && (() => {
