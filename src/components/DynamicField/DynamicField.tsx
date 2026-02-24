@@ -4,6 +4,13 @@ import React, { useState, useEffect } from 'react';
 import styles from './DynamicField.module.css';
 import type { FormParameter } from '../../types/formParameters.types';
 
+/** Configuración de visualización del campo (opcional en FormParameter) */
+interface DisplayConfig {
+  checkbox_label?: string;
+  maxLength?: number;
+  rows?: number;
+}
+
 interface DynamicFieldProps {
   formParameter: FormParameter;
   value: any;
@@ -20,7 +27,7 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({
   error,
 }) => {
   const { parameter_definition, is_required } = formParameter;
-  const display_config = (formParameter as FormParameter & { display_config?: unknown }).display_config;
+  const display_config = (formParameter as FormParameter & { display_config?: DisplayConfig }).display_config;
   const paramDef = typeof parameter_definition === 'object' && parameter_definition !== null
     ? parameter_definition as { id: number; code: string; name: string; data_type: string; unit?: string; help_text?: string; is_calculated?: boolean }
     : null;
