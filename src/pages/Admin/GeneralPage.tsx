@@ -316,6 +316,7 @@ const GeneralPage: React.FC = () => {
             <Typography variant="body2" color="text.secondary" paragraph>
               Sube un JSON generado por la exportación. Se comparará con los datos actuales: los nuevos se añadirán;
               los ítems modificados se listarán para que aceptes o rechaces cada cambio.
+              Tras importar, se reajustan automáticamente las secuencias de la base de datos para que puedas crear nuevos registros sin errores de clave duplicada.
             </Typography>
             {importError && (
               <Alert severity="error" sx={{ mb: 2 }} onClose={() => setImportError(null)}>
@@ -344,15 +345,8 @@ const GeneralPage: React.FC = () => {
                   variant="contained"
                   color="secondary"
                   component="span"
-                  startIcon={
-                    importStep === 'preview' ? (
-                      <CircularProgress size={20} color="inherit" />
-                    ) : (
-                      <CloudUploadIcon />
-                    )
-                  }
+                  startIcon={<CloudUploadIcon />}
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={importStep === 'preview'}
                 >
                   Seleccionar archivo y comparar
                 </Button>
