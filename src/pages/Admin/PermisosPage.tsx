@@ -51,19 +51,24 @@ const PermisosPage: React.FC = () => {
   const [selectedProjectType, setSelectedProjectType] = useState<ArchitectureProjectType | null>(null);
   const [selectedProjectTypeForList, setSelectedProjectTypeForList] = useState<ArchitectureProjectType | null>(null);
 
-  // Fetch categorías raíz con sus hijos y tipos de proyecto
+  // Código de la categoría raíz que muestra esta página (solo ella y sus dependencias)
+  const ROOT_CATEGORY_CODE = 'formularios_minvu';
+
+  // Fetch categoría raíz formularios_minvu con sus hijos y tipos de proyecto
   const { data: categories, isLoading, error } = useQuery<Category[]>({
-    queryKey: ['categories-tree'],
+    queryKey: ['categories-tree', ROOT_CATEGORY_CODE],
     queryFn: async () => {
-      // El backend no usa prefijo v1, así que construimos la URL manualmente
       const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
-      const response = await axios.get(`${API_URL}/api/architecture/categories/admin_tree/`, {
-        withCredentials: true,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-        },
-      });
+      const response = await axios.get(
+        `${API_URL}/api/architecture/categories/admin_tree/?root_code=${encodeURIComponent(ROOT_CATEGORY_CODE)}`,
+        {
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          },
+        }
+      );
       return response.data;
     },
   });
@@ -155,15 +160,14 @@ const PermisosPage: React.FC = () => {
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => handleCreateCategory(null)}
+            onClick={() => handleCreateCategory(categories?.length === 1 ? categories[0].id : null)}
           >
             Nueva Categoría
           </Button>
         </Box>
 
         <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-          Gestiona las categorías y tipos de permisos. Las categorías pueden tener subcategorías
-          y tipos de proyecto asociados.
+          Gestiona la categoría Formularios MINVU y sus subcategorías y tipos de proyecto.
         </Typography>
 
         {categories && categories.length > 0 ? (
@@ -191,16 +195,8 @@ const PermisosPage: React.FC = () => {
             }}
           >
             <Typography variant="body1" color="text.secondary" gutterBottom>
-              No hay categorías creadas aún.
+              No se encontró la categoría con código &quot;formularios_minvu&quot;. Créala desde Administración general o verifica que exista en el sistema.
             </Typography>
-            <Button
-              variant="outlined"
-              startIcon={<AddIcon />}
-              onClick={() => handleCreateCategory(null)}
-              sx={{ mt: 2 }}
-            >
-              Crear Primera Categoría
-            </Button>
           </Box>
         )}
       </Box>
