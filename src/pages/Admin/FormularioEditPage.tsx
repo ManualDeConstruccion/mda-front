@@ -22,18 +22,18 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import EditFormParameterCategoryModal from '../../components/Admin/EditFormParameterCategoryModal';
 import AddFormParameterModal from '../../components/Admin/AddFormParameterModal';
 import EditFormParameterModal from '../../components/Admin/EditFormParameterModal';
 import SectionTreeWithModes from '../../components/Admin/SectionTreeWithModes';
-import UpdateParametersModal from '../../components/Admin/UpdateParametersModal';
+import LoadPdfTemplateModal from '../../components/Admin/LoadPdfTemplateModal';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import EditNoteIcon from '@mui/icons-material/EditNote';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
-import UpdateIcon from '@mui/icons-material/Update';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 
 interface FormParameterCategory {
   id: number;
@@ -307,12 +307,23 @@ const SectionTree: React.FC<SectionTreeProps> = ({
 
 type SectionTreeMode = 'view' | 'editable' | 'admin';
 
+interface PdfTemplateItem {
+  id: number;
+  name: string;
+  is_active: boolean;
+  uploaded_at: string;
+  architecture_project_type: number;
+  architecture_project_type_name?: string;
+  architecture_project_type_code?: string;
+}
+
 const FormularioEditPage: React.FC = () => {
   const { projectTypeId } = useParams<{ projectTypeId: string }>();
   const navigate = useNavigate();
   const { accessToken } = useAuth();
+  const queryClient = useQueryClient();
   const [addSectionModalOpen, setAddSectionModalOpen] = useState(false);
-  const [updateParametersModalOpen, setUpdateParametersModalOpen] = useState(false);
+  const [loadPdfTemplateModalOpen, setLoadPdfTemplateModalOpen] = useState(false);
   const [mode, setMode] = useState<SectionTreeMode>('admin');
 
   // Función para obtener todas las secciones de forma plana
@@ -345,6 +356,26 @@ const FormularioEditPage: React.FC = () => {
     },
     enabled: !!projectTypeId && !!accessToken,
   });
+
+  // Templates PDF del tipo de proyecto (para etiqueta del botón y modal)
+  const projectTypeCode = formStructure?.project_type?.code;
+  const { data: pdfTemplatesData } = useQuery<PdfTemplateItem[] | { results: PdfTemplateItem[] }>({
+    queryKey: ['pdf-templates', projectTypeCode],
+    queryFn: async () => {
+      const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+      const response = await axios.get(
+        `${API_URL}/api/formpdf/templates/?project_type=${encodeURIComponent(projectTypeCode!)}`,
+        {
+          withCredentials: true,
+          headers: { Authorization: accessToken ? `Bearer ${accessToken}` : undefined },
+        }
+      );
+      return response.data;
+    },
+    enabled: !!projectTypeCode && !!accessToken && !!formStructure,
+  });
+  const pdfTemplatesList = Array.isArray(pdfTemplatesData) ? pdfTemplatesData : pdfTemplatesData?.results ?? [];
+  const hasPdfTemplates = pdfTemplatesList.length > 0;
 
   if (isLoading) {
     return (
@@ -467,10 +498,10 @@ const FormularioEditPage: React.FC = () => {
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
                   variant="outlined"
-                  startIcon={<UpdateIcon />}
-                  onClick={() => setUpdateParametersModalOpen(true)}
+                  startIcon={<PictureAsPdfIcon />}
+                  onClick={() => setLoadPdfTemplateModalOpen(true)}
                 >
-                  Actualizar Parámetros
+                  {hasPdfTemplates ? 'Editar template PDF' : 'Cargar template PDF'}
                 </Button>
                 <Button
                   variant="contained"
@@ -520,13 +551,16 @@ const FormularioEditPage: React.FC = () => {
           parentCategories={getAllSections(formStructure.sections)}
         />
 
-        {/* Modal para actualizar parámetros */}
-        <UpdateParametersModal
-          open={updateParametersModalOpen}
-          onClose={() => setUpdateParametersModalOpen(false)}
+        {/* Modal para cargar/editar template PDF */}
+        <LoadPdfTemplateModal
+          open={loadPdfTemplateModalOpen}
+          onClose={() => setLoadPdfTemplateModalOpen(false)}
           onSuccess={() => {
-            // Opcional: refrescar la página o invalidar queries
+            queryClient.invalidateQueries({ queryKey: ['pdf-templates', projectTypeCode] });
           }}
+          architectureProjectTypeId={formStructure.project_type.id}
+          architectureProjectTypeName={formStructure.project_type.name}
+          architectureProjectTypeCode={formStructure.project_type.code}
         />
       </Box>
     </Container>

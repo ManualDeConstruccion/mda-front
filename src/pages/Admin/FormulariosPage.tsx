@@ -33,8 +33,33 @@ interface ArchitectureProjectType {
   is_active: boolean;
 }
 
+interface PdfTemplateItem {
+  id: number;
+  architecture_project_type_code?: string;
+}
+
 const FormulariosPage: React.FC = () => {
   const { accessToken } = useAuth();
+
+  // Códigos de tipos de proyecto que ya tienen al menos un template PDF (para botón Editar vs Cargar)
+  const { data: pdfTemplatesData } = useQuery<PdfTemplateItem[] | { results: PdfTemplateItem[] }>({
+    queryKey: ['pdf-templates-all'],
+    queryFn: async () => {
+      const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+      const response = await axios.get(`${API_URL}/api/formpdf/templates/`, {
+        withCredentials: true,
+        headers: { Authorization: accessToken ? `Bearer ${accessToken}` : undefined },
+      });
+      return response.data;
+    },
+    enabled: !!accessToken,
+  });
+  const pdfTemplatesList = Array.isArray(pdfTemplatesData) ? pdfTemplatesData : pdfTemplatesData?.results ?? [];
+  const projectTypeCodesWithPdf = new Set(
+    pdfTemplatesList
+      .map((t) => t.architecture_project_type_code)
+      .filter((c): c is string => !!c)
+  );
   
   // Fetch categorías SOLO con aquellas que contienen tipos de proyecto
   const { data: categories, isLoading, error } = useQuery<Category[]>({
@@ -91,6 +116,7 @@ const FormulariosPage: React.FC = () => {
               <CategoryTreeFormularios
                 key={category.id}
                 category={category}
+                projectTypeCodesWithPdf={projectTypeCodesWithPdf}
               />
             ))}
           </Box>

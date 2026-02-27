@@ -7,12 +7,15 @@ import {
   Collapse,
   Chip,
   Tooltip,
+  Button,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import FolderIcon from '@mui/icons-material/Folder';
 import DescriptionIcon from '@mui/icons-material/Description';
 import EditIcon from '@mui/icons-material/Edit';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import LoadPdfTemplateModal from './LoadPdfTemplateModal';
 
 interface Category {
   id: number;
@@ -39,14 +42,18 @@ interface ArchitectureProjectType {
 interface CategoryTreeFormulariosProps {
   category: Category;
   level?: number;
+  /** Códigos de tipos de proyecto que ya tienen template PDF (para mostrar "Editar" y color) */
+  projectTypeCodesWithPdf?: Set<string>;
 }
 
 const CategoryTreeFormularios: React.FC<CategoryTreeFormulariosProps> = ({
   category,
   level = 0,
+  projectTypeCodesWithPdf,
 }) => {
   const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(level === 0);
+  const [projectTypeForPdfModal, setProjectTypeForPdfModal] = useState<ArchitectureProjectType | null>(null);
   const hasChildren = category.children && category.children.length > 0;
   const hasProjectTypes = category.project_types && category.project_types.length > 0;
   const hasContent = hasChildren || hasProjectTypes;
@@ -62,6 +69,7 @@ const CategoryTreeFormularios: React.FC<CategoryTreeFormulariosProps> = ({
   };
 
   return (
+    <>
     <Box
       sx={{
         ml: level * 3,
@@ -146,6 +154,7 @@ const CategoryTreeFormularios: React.FC<CategoryTreeFormulariosProps> = ({
                 key={child.id}
                 category={child}
                 level={level + 1}
+                projectTypeCodesWithPdf={projectTypeCodesWithPdf}
               />
             ))}
 
@@ -183,11 +192,21 @@ const CategoryTreeFormularios: React.FC<CategoryTreeFormulariosProps> = ({
                       </Typography>
                     )}
                   </Box>
-                  <Chip
-                    label={projectType.code}
-                    size="small"
-                    variant="outlined"
-                  />
+                  <Tooltip title={projectTypeCodesWithPdf?.has(projectType.code) ? 'Editar template PDF' : 'Cargar template PDF'}>
+                    <Button
+                      size="small"
+                      variant={projectTypeCodesWithPdf?.has(projectType.code) ? 'contained' : 'outlined'}
+                      color={projectTypeCodesWithPdf?.has(projectType.code) ? 'secondary' : 'primary'}
+                      startIcon={<PictureAsPdfIcon />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setProjectTypeForPdfModal(projectType);
+                      }}
+                      sx={{ mr: 1 }}
+                    >
+                      {projectTypeCodesWithPdf?.has(projectType.code) ? 'Editar template PDF' : 'Cargar template PDF'}
+                    </Button>
+                  </Tooltip>
                   <Tooltip title="Editar formulario">
                     <IconButton
                       size="small"
@@ -196,7 +215,6 @@ const CategoryTreeFormularios: React.FC<CategoryTreeFormulariosProps> = ({
                         handleProjectTypeClick(projectType);
                       }}
                       sx={{
-                        ml: 1,
                         '&:hover': {
                           bgcolor: 'rgba(0, 0, 0, 0.04)',
                         },
@@ -212,6 +230,18 @@ const CategoryTreeFormularios: React.FC<CategoryTreeFormulariosProps> = ({
         </Box>
       </Collapse>
     </Box>
+
+    {projectTypeForPdfModal && (
+      <LoadPdfTemplateModal
+        open={!!projectTypeForPdfModal}
+        onClose={() => setProjectTypeForPdfModal(null)}
+        onSuccess={() => setProjectTypeForPdfModal(null)}
+        architectureProjectTypeId={projectTypeForPdfModal.id}
+        architectureProjectTypeName={projectTypeForPdfModal.name}
+        architectureProjectTypeCode={projectTypeForPdfModal.code}
+      />
+    )}
+    </>
   );
 };
 
