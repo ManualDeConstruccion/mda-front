@@ -37,6 +37,10 @@ export interface FormCategoryBlock {
   order: number;
   block_type: 'grid' | 'engine';
   section_engine?: SectionEngine | null;
+  /** Nombre del bloque (en motores: se muestra cuando está colapsado). */
+  name?: string;
+  /** Si es true, en vista usuario final el bloque se muestra colapsable. */
+  is_collapsible?: boolean;
 }
 
 export interface FormParameterCategory {

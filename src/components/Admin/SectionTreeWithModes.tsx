@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { Box, Typography, Collapse, Button, IconButton } from '@mui/material';
+import { Box, Typography, Collapse, Button, IconButton, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
 import {
   KeyboardSensor,
@@ -17,6 +19,7 @@ import { useSectionValues } from '../../hooks/useSectionValues';
 import { useGridLayout } from '../../hooks/useGridLayout';
 import { useFormCategoryMutations } from '../../hooks/useFormCategoryMutations';
 import EditFormParameterCategoryModal from './EditFormParameterCategoryModal';
+import EditEngineBlockModal from './EditEngineBlockModal';
 import AddFormParameterModal from './AddFormParameterModal';
 import EditFormParameterModal from './EditFormParameterModal';
 import AddEditFormGridCellModal from './AddEditFormGridCellModal';
@@ -223,6 +226,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
   const [selectedParameter, setSelectedParameter] = useState<FormParameter | null>(null);
   const [creatingSubcategory, setCreatingSubcategory] = useState(false);
   const [currentBlockIdForNewParam, setCurrentBlockIdForNewParam] = useState<number | null>(null);
+  const [engineBlockToEdit, setEngineBlockToEdit] = useState<FormCategoryBlock | null>(null);
   const { sectionEngines } = useSectionEngines({ enabled: mode === 'admin' });
   
   const [gridCells, setGridCells] = useState<FormGridCell[]>(section.grid_cells || []);
@@ -683,9 +687,22 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
             const isLastBlock = blockIndex === sortedBlocks.length - 1;
             const blockContent =
               block.block_type === 'engine' && block.section_engine?.code === 'superficies' && subprojectId && mode !== 'admin' ? (
-                <Box sx={{ mt: 2, ml: 0 }}>
-                  <SuperficiesSectionContent subprojectId={subprojectId} />
-                </Box>
+                block.is_collapsible ? (
+                  <Accordion sx={{ mt: 2, ml: 0, '&:before': { display: 'none' }, boxShadow: 'none', border: '1px solid', borderColor: 'divider', borderRadius: 1 }} defaultExpanded={false}>
+                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                      <Typography variant="body2">
+                        {block.name || block.section_engine?.name || block.section_engine?.code || 'Motor'}
+                      </Typography>
+                    </AccordionSummary>
+                    <AccordionDetails sx={{ pt: 0 }}>
+                      <SuperficiesSectionContent subprojectId={subprojectId} />
+                    </AccordionDetails>
+                  </Accordion>
+                ) : (
+                  <Box sx={{ mt: 2, ml: 0 }}>
+                    <SuperficiesSectionContent subprojectId={subprojectId} />
+                  </Box>
+                )
               ) : block.block_type === 'grid' ? (
                 (() => {
                   const filteredParams = (section.form_parameters ?? []).filter(
@@ -736,20 +753,29 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
               ) : block.block_type === 'engine' && mode === 'admin' ? (
                 <Box sx={{ mt: 2, ml: 0, p: 2, bgcolor: 'action.hover', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
                   <Typography variant="body2" color="text.secondary">
-                    Motor: {block.section_engine?.name ?? block.section_engine?.code ?? '—'}
+                    Motor: {block.name || (block.section_engine?.name ?? block.section_engine?.code ?? '—')}
                   </Typography>
-                  <IconButton
-                    size="small"
-                    color="error"
-                    title="Eliminar bloque"
-                    onClick={() => {
-                      if (window.confirm('¿Eliminar este bloque de motor?')) {
-                        mutations.deleteBlock(block.id);
-                      }
-                    }}
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
+                  <Box sx={{ display: 'flex', gap: 0.5 }}>
+                    <IconButton
+                      size="small"
+                      title="Editar nombre y colapsable"
+                      onClick={() => setEngineBlockToEdit(block)}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      color="error"
+                      title="Eliminar bloque"
+                      onClick={() => {
+                        if (window.confirm('¿Eliminar este bloque de motor?')) {
+                          mutations.deleteBlock(block.id);
+                        }
+                      }}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
                 </Box>
               ) : null;
 
@@ -771,8 +797,8 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
           {/* Sin bloques pero con contenido: una sola grilla legacy */}
           {!hasBlocks && (useGridInterface || hasParameters || hasSubcategories || hasGridCells) && renderContent()}
 
-          {/* Subcategorías (no en sección superficies) */}
-          {hasSubcategories && !isSuperficiesSection && (
+          {/* Subcategorías: siempre visibles si existen (también cuando la sección tiene bloque motor) */}
+          {hasSubcategories && (
             <Box sx={{ mt: 2 }}>
               {section.subcategories?.map((subcategory) => (
                 <SectionTreeWithModes
@@ -837,6 +863,14 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
         projectTypeId={projectTypeId}
         parentCategories={allSections}
         defaultParentId={creatingSubcategory ? section.id : undefined}
+      />
+
+      <EditEngineBlockModal
+        open={!!engineBlockToEdit}
+        onClose={() => setEngineBlockToEdit(null)}
+        onSuccess={onSectionUpdated}
+        block={engineBlockToEdit}
+        projectTypeId={projectTypeId}
       />
 
         <AddFormParameterModal

@@ -85,6 +85,21 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
   const isSubsection = selectedSourceCategory?.parent != null;
   const sortedBlocks = (category?.blocks ?? []).slice().sort((a, b) => a.order - b.order);
 
+  const [blockEngineEdits, setBlockEngineEdits] = useState<Record<number, { name: string; is_collapsible: boolean }>>({});
+  useEffect(() => {
+    if (!category?.blocks) {
+      setBlockEngineEdits({});
+      return;
+    }
+    const edits: Record<number, { name: string; is_collapsible: boolean }> = {};
+    category.blocks.forEach((b) => {
+      if (b.block_type === 'engine') {
+        edits[b.id] = { name: b.name ?? '', is_collapsible: b.is_collapsible ?? false };
+      }
+    });
+    setBlockEngineEdits(edits);
+  }, [category?.id, open, category?.blocks]);
+
   // Categorías de otros tipos de proyecto para copiar (solo cuando modo copia y modal abierto)
   const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
   const { data: categoriesForCopy = [], isLoading: loadingCategoriesForCopy } = useQuery({
@@ -229,21 +244,38 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
     },
   });
 
-  const handleSubmit = () => {
+  const [isSaving, setIsSaving] = useState(false);
+  const handleSubmit = async () => {
     setError(null);
     if (!code.trim() || !number.trim() || !name.trim()) {
       setError('Código, número y nombre son requeridos');
       return;
     }
 
-    updateMutation.mutate({
-      code: code.trim(),
-      number: number.trim(),
-      name: name.trim(),
-      description: description.trim() || '',
-      parent: parent || null,
-      is_active: isActive,
-    });
+    setIsSaving(true);
+    try {
+      await updateMutation.mutateAsync({
+        code: code.trim(),
+        number: number.trim(),
+        name: name.trim(),
+        description: description.trim() || '',
+        parent: parent || null,
+        is_active: isActive,
+      });
+      for (const [blockIdStr, data] of Object.entries(blockEngineEdits)) {
+        await axios.patch(
+          `${API_URL}/api/parameters/form-category-blocks/${blockIdStr}/`,
+          { name: data.name, is_collapsible: data.is_collapsible },
+          { withCredentials: true, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` } }
+        );
+      }
+      queryClient.invalidateQueries({ queryKey: ['form-structure', projectTypeId] });
+      onSuccess();
+    } catch (err: any) {
+      setError(err.response?.data?.detail || err.response?.data?.code?.[0] || 'Error al guardar');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Filtrar categorías padre válidas (excluir la actual y sus descendientes)
@@ -403,11 +435,36 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
                         <DeleteIcon fontSize="small" />
                       </IconButton>
                     }
+                    sx={{ flexDirection: 'column', alignItems: 'stretch', gap: 1 }}
                   >
-                    <ListItemText
-                      primary={b.block_type === 'grid' ? 'Grilla' : (b.section_engine?.name ?? b.section_engine?.code ?? 'Motor')}
-                      secondary={`Orden ${b.order}`}
-                    />
+                    {b.block_type === 'grid' ? (
+                      <ListItemText
+                        primary="Grilla"
+                        secondary={`Orden ${b.order}`}
+                      />
+                    ) : (
+                      <>
+                        <ListItemText secondary={`Orden ${b.order} · Motor`} />
+                        <TextField
+                          size="small"
+                          label="Nombre (se muestra al colapsar)"
+                          value={blockEngineEdits[b.id]?.name ?? ''}
+                          onChange={(e) => setBlockEngineEdits((prev) => ({ ...prev, [b.id]: { ...(prev[b.id] ?? { name: '', is_collapsible: false }), name: e.target.value } }))}
+                          fullWidth
+                          placeholder={b.section_engine?.name ?? b.section_engine?.code ?? ''}
+                        />
+                        <FormControlLabel
+                          control={
+                            <Switch
+                              size="small"
+                              checked={blockEngineEdits[b.id]?.is_collapsible ?? false}
+                              onChange={(e) => setBlockEngineEdits((prev) => ({ ...prev, [b.id]: { ...(prev[b.id] ?? { name: '', is_collapsible: false }), is_collapsible: e.target.checked } }))}
+                            />
+                          }
+                          label="Colapsable en vista de usuario final"
+                        />
+                      </>
+                    )}
                   </ListItem>
                 ))}
               </List>
@@ -450,9 +507,9 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
             <Button
               onClick={handleSubmit}
               variant="contained"
-              disabled={updateMutation.isPending}
+              disabled={isSaving || updateMutation.isPending}
             >
-              {updateMutation.isPending ? 'Guardando...' : 'Guardar'}
+              {isSaving ? 'Guardando...' : 'Guardar'}
             </Button>
           </>
         )}
