@@ -25,6 +25,7 @@ import EditFormParameterModal from './EditFormParameterModal';
 import AddEditFormGridCellModal from './AddEditFormGridCellModal';
 import GridRow from './GridRow';
 import SuperficiesSectionContent from './SuperficiesSectionContent';
+import OcupacionSectionContent from './OcupacionSectionContent';
 import {
   CategoryAlertsBlock,
   EmptyGridState,
@@ -688,24 +689,28 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
           {/* Con bloques: renderizar cada bloque (motor superficies o grilla) */}
           {hasBlocks && sortedBlocks.map((block, blockIndex) => {
             const isLastBlock = blockIndex === sortedBlocks.length - 1;
+            const renderEngineContent = (Component: React.ComponentType<{ subprojectId: number }>, sid: number) =>
+              block.is_collapsible ? (
+                <Accordion sx={{ mt: 2, ml: 0, '&:before': { display: 'none' }, boxShadow: 'none', border: '1px solid', borderColor: 'divider', borderRadius: 1 }} defaultExpanded={false}>
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Typography variant="body2">
+                      {block.name || block.section_engine?.name || block.section_engine?.code || 'Motor'}
+                    </Typography>
+                  </AccordionSummary>
+                  <AccordionDetails sx={{ pt: 0 }}>
+                    <Component subprojectId={sid} />
+                  </AccordionDetails>
+                </Accordion>
+              ) : (
+                <Box sx={{ mt: 2, ml: 0 }}>
+                  <Component subprojectId={sid} />
+                </Box>
+              );
             const blockContent =
-              block.block_type === 'engine' && block.section_engine?.code === 'superficies' && subprojectId && mode !== 'admin' ? (
-                block.is_collapsible ? (
-                  <Accordion sx={{ mt: 2, ml: 0, '&:before': { display: 'none' }, boxShadow: 'none', border: '1px solid', borderColor: 'divider', borderRadius: 1 }} defaultExpanded={false}>
-                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                      <Typography variant="body2">
-                        {block.name || block.section_engine?.name || block.section_engine?.code || 'Motor'}
-                      </Typography>
-                    </AccordionSummary>
-                    <AccordionDetails sx={{ pt: 0 }}>
-                      <SuperficiesSectionContent subprojectId={subprojectId} />
-                    </AccordionDetails>
-                  </Accordion>
-                ) : (
-                  <Box sx={{ mt: 2, ml: 0 }}>
-                    <SuperficiesSectionContent subprojectId={subprojectId} />
-                  </Box>
-                )
+              block.block_type === 'engine' && block.section_engine?.code === 'superficies' && subprojectId != null && mode !== 'admin' ? (
+                renderEngineContent(SuperficiesSectionContent, subprojectId)
+              ) : block.block_type === 'engine' && block.section_engine?.code === 'ocupacion' && subprojectId != null && mode !== 'admin' ? (
+                renderEngineContent(OcupacionSectionContent, subprojectId)
               ) : block.block_type === 'grid' ? (
                 (() => {
                   const filteredParams = (section.form_parameters ?? []).filter(

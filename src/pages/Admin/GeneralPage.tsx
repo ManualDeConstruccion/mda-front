@@ -55,6 +55,7 @@ export interface RestoreApplyResponse {
   errors?: string[];
 }
 
+/** Etiquetas para el preview de importación de backup; deben coincidir con BACKUP_MODELS del backend (incl. SectionEngine, FormCategoryBlock, etc.). */
 const MODEL_LABELS: Record<string, string> = {
   'normative.regulationtype': 'Tipo de documento',
   'normative.officialpublication': 'Publicación oficial',
