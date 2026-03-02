@@ -68,7 +68,9 @@ const MODEL_LABELS: Record<string, string> = {
   'parameters.parametercategory': 'Categoría de parámetro',
   'parameters.parameterdefinition': 'Definición de parámetro',
   'parameters.formtype': 'Tipo de formulario (parámetros)',
+  'parameters.sectionengine': 'Motor de sección',
   'parameters.formparametercategory': 'Sección de formulario',
+  'parameters.formcategoryblock': 'Bloque de sección',
   'parameters.formparameter': 'Parámetro de formulario',
   'parameters.formgridcell': 'Celda de grilla',
 };

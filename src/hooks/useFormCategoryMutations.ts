@@ -35,11 +35,69 @@ export function useFormCategoryMutations(
   );
 
   const patchCategory = useCallback(
-    async (payload: { display_config?: object; form_type?: number }) => {
+    async (payload: { display_config?: object }) => {
       await api.patch(categoryUrl, payload);
       onSectionUpdated();
     },
     [section.id, onSectionUpdated]
+  );
+
+  const createBlock = useCallback(
+    async (blockType: 'grid' | 'engine', sectionEngineId?: number) => {
+      const nextOrder = (section.blocks?.length ?? 0) + 1;
+      await api.post('parameters/form-category-blocks/', {
+        category: section.id,
+        order: nextOrder,
+        block_type: blockType,
+        section_engine_id: blockType === 'engine' ? sectionEngineId : null,
+      });
+      onSectionUpdated();
+    },
+    [section.id, section.blocks?.length, onSectionUpdated]
+  );
+
+  /** Inserta un bloque al inicio (orden 1); renumera el resto hacia abajo. */
+  const createBlockBefore = useCallback(
+    async (blockType: 'grid' | 'engine', sectionEngineId?: number) => {
+      const blocks = section.blocks ?? [];
+      const toShift = blocks.slice().sort((a, b) => b.order - a.order);
+      for (const b of toShift) {
+        await api.patch(`parameters/form-category-blocks/${b.id}/`, { order: b.order + 1 });
+      }
+      await api.post('parameters/form-category-blocks/', {
+        category: section.id,
+        order: 1,
+        block_type: blockType,
+        section_engine_id: blockType === 'engine' ? sectionEngineId : null,
+      });
+      onSectionUpdated();
+    },
+    [section.id, section.blocks, onSectionUpdated]
+  );
+
+  /** Inserta un bloque después del último (solo al final; no entre bloques). */
+  const createBlockAfter = useCallback(
+    async (blockType: 'grid' | 'engine', sectionEngineId?: number) => {
+      const blocks = section.blocks ?? [];
+      const nextOrder = blocks.length + 1;
+      await api.post('parameters/form-category-blocks/', {
+        category: section.id,
+        order: nextOrder,
+        block_type: blockType,
+        section_engine_id: blockType === 'engine' ? sectionEngineId : null,
+      });
+      onSectionUpdated();
+    },
+    [section.id, section.blocks?.length, onSectionUpdated]
+  );
+
+  /** Elimina un bloque (grilla o motor) de la sección. */
+  const deleteBlock = useCallback(
+    async (blockId: number) => {
+      await api.delete(`parameters/form-category-blocks/${blockId}/`);
+      onSectionUpdated();
+    },
+    [onSectionUpdated]
   );
 
   const deleteCategory = useCallback(async () => {
@@ -247,6 +305,10 @@ export function useFormCategoryMutations(
     updateDisplayConfig,
     patchCategory,
     deleteCategory,
+    createBlock,
+    createBlockBefore,
+    createBlockAfter,
+    deleteBlock,
     addRowBefore,
     addRowAfter,
     deleteRow,

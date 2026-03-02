@@ -16,14 +16,24 @@ import {
   MenuItem,
   Typography,
   Autocomplete,
+  List,
+  ListItem,
+  ListItemText,
+  IconButton,
 } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
-import { useFormTypes } from '../../hooks/useFormTypes';
-import type { FormType } from '../../types/formParameters.types';
+
+interface FormCategoryBlock {
+  id: number;
+  order: number;
+  block_type: 'grid' | 'engine';
+  section_engine?: { id: number; code: string; name: string } | null;
+}
 
 interface FormParameterCategory {
   id: number;
@@ -33,10 +43,9 @@ interface FormParameterCategory {
   description?: string;
   parent?: number | null;
   is_active: boolean;
-  form_type?: number | FormType | null;
-  form_type_name?: string | null;
   project_type?: number;
   project_type_name?: string | null;
+  blocks?: FormCategoryBlock[];
 }
 
 interface EditFormParameterCategoryModalProps {
@@ -46,8 +55,7 @@ interface EditFormParameterCategoryModalProps {
   category: FormParameterCategory | null;
   projectTypeId: number;
   parentCategories?: FormParameterCategory[];
-  defaultParentId?: number; // ID de la categoría padre por defecto (para crear subcategorías)
-  blockFormTypeChange?: boolean; // Bloquear cambio de form_type si ya tiene uno
+  defaultParentId?: number;
 }
 
 const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalProps> = ({
@@ -58,7 +66,6 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
   projectTypeId,
   parentCategories = [],
   defaultParentId,
-  blockFormTypeChange = false,
 }) => {
   const { accessToken } = useAuth();
   const queryClient = useQueryClient();
@@ -68,9 +75,7 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
   const [description, setDescription] = useState('');
   const [parent, setParent] = useState<number | null>(null);
   const [isActive, setIsActive] = useState(true);
-  const [formType, setFormType] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { formTypes } = useFormTypes({ enabled: open });
   type ModalMode = 'create' | 'copy';
   const [mode, setMode] = useState<ModalMode>('create');
   const [selectedSourceCategory, setSelectedSourceCategory] = useState<FormParameterCategory | null>(null);
@@ -78,6 +83,7 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
 
   const isNewSection = !category && !defaultParentId;
   const isSubsection = selectedSourceCategory?.parent != null;
+  const sortedBlocks = (category?.blocks ?? []).slice().sort((a, b) => a.order - b.order);
 
   // Categorías de otros tipos de proyecto para copiar (solo cuando modo copia y modal abierto)
   const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
@@ -153,22 +159,13 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
       setDescription(category.description || '');
       setParent(category.parent || null);
       setIsActive(category.is_active);
-      // Establecer form_type
-      if (category.form_type) {
-        const formTypeId = typeof category.form_type === 'object' ? category.form_type.id : category.form_type;
-        setFormType(formTypeId);
-      } else {
-        setFormType(null);
-      }
     } else {
-      // Reset para crear nuevo
       setCode('');
       setNumber('');
       setName('');
       setDescription('');
-      setParent(defaultParentId || null); // Usar defaultParentId si está disponible
+      setParent(defaultParentId || null);
       setIsActive(true);
-      setFormType(null);
     }
   }, [category, open, defaultParentId]);
 
@@ -216,6 +213,22 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
     },
   });
 
+  const deleteBlockMutation = useMutation({
+    mutationFn: async (blockId: number) => {
+      await axios.delete(`${API_URL}/api/parameters/form-category-blocks/${blockId}/`, {
+        withCredentials: true,
+        headers: { 'Authorization': `Bearer ${accessToken}` },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['form-structure', projectTypeId] });
+      onSuccess();
+    },
+    onError: (err: any) => {
+      setError(err.response?.data?.detail || 'Error al eliminar bloque');
+    },
+  });
+
   const handleSubmit = () => {
     setError(null);
     if (!code.trim() || !number.trim() || !name.trim()) {
@@ -223,23 +236,14 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
       return;
     }
 
-    const mutationData: any = {
+    updateMutation.mutate({
       code: code.trim(),
       number: number.trim(),
       name: name.trim(),
       description: description.trim() || '',
       parent: parent || null,
       is_active: isActive,
-    };
-    
-    // Solo incluir form_type si no está bloqueado o si es una nueva categoría
-    if (!blockFormTypeChange || !category) {
-      if (formType) {
-        mutationData.form_type = formType;
-      }
-    }
-
-    updateMutation.mutate(mutationData);
+    });
   };
 
   // Filtrar categorías padre válidas (excluir la actual y sus descendientes)
@@ -382,33 +386,35 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
             </TextField>
           )}
 
-          {/* Selector de tipo de formulario (solo si no está bloqueado o es nueva categoría) */}
-          {(!blockFormTypeChange || !category) && (
-            <FormControl fullWidth>
-              <InputLabel>Tipo de Formulario</InputLabel>
-              <Select
-                value={formType || ''}
-                label="Tipo de Formulario"
-                onChange={(e) => setFormType(e.target.value ? Number(e.target.value) : null)}
-                disabled={blockFormTypeChange && !!category}
-              >
-                <MenuItem value="">
-                  <em>Ninguno (usar grilla por defecto)</em>
-                </MenuItem>
-                {formTypes.map((type) => (
-                  <MenuItem key={type.id} value={type.id}>
-                    {type.name}
-                  </MenuItem>
+          {category && (
+            <Box>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>Bloques de la sección</Typography>
+              <List dense sx={{ bgcolor: 'action.hover', borderRadius: 1, mb: 1 }}>
+                {sortedBlocks.map((b) => (
+                  <ListItem
+                    key={b.id}
+                    secondaryAction={
+                      <IconButton
+                        edge="end"
+                        size="small"
+                        onClick={() => window.confirm('¿Eliminar este bloque?') && deleteBlockMutation.mutate(b.id)}
+                        disabled={deleteBlockMutation.isPending}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    }
+                  >
+                    <ListItemText
+                      primary={b.block_type === 'grid' ? 'Grilla' : (b.section_engine?.name ?? b.section_engine?.code ?? 'Motor')}
+                      secondary={`Orden ${b.order}`}
+                    />
+                  </ListItem>
                 ))}
-              </Select>
-              {blockFormTypeChange && category && (
-                <Box sx={{ mt: 0.5 }}>
-                  <Typography variant="caption" color="text.secondary">
-                    El tipo no puede cambiarse una vez establecido
-                  </Typography>
-                </Box>
-              )}
-            </FormControl>
+              </List>
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+                Para agregar bloques (grilla o motor), usa el botón «Agregar bloque debajo» bajo cada bloque en el árbol de secciones.
+              </Typography>
+            </Box>
           )}
 
           <FormControlLabel
