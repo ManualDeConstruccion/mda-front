@@ -61,6 +61,8 @@ export function useGridLayout(
           });
           return max;
         }
+        // Bloque/sección vacía en admin: mostrar al menos 1 fila para poder agregar contenido
+        return 1;
       }
       return 0;
     }

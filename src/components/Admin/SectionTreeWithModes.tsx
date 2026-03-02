@@ -82,7 +82,7 @@ interface GridBlockViewProps {
   onEditParameter: (param: FormParameter) => void;
   onEditTextCell: (cell: FormGridCell) => void;
   onDeleteCell: (cell: FormParameter | FormGridCell, isParameter: boolean) => Promise<void>;
-  onAddTextCell: (row: number, column: number) => void;
+  onAddTextCell: (row: number, column: number, blockId?: number) => void;
   addRowBefore: (targetRow: number) => Promise<void>;
   addRowAfter: (targetRow: number) => Promise<void>;
   deleteRow: (targetRow: number) => Promise<void>;
@@ -307,6 +307,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
   const [addTextCellModalOpen, setAddTextCellModalOpen] = useState(false);
   const [textCellInitialData, setTextCellInitialData] = useState<{ row: number; column: number; span: number; content: string } | null>(null);
   const [editingTextCell, setEditingTextCell] = useState<FormGridCell | null>(null);
+  const [currentBlockIdForNewTextCell, setCurrentBlockIdForNewTextCell] = useState<number | null>(null);
 
   // Sensores para drag and drop (solo modo admin)
   const sensors = useSensors(
@@ -424,10 +425,11 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
     }
   };
 
-  // Handler para abrir modal de agregar celda de texto
-  const handleOpenAddTextCellModal = (row: number, column: number) => {
+  // Handler para abrir modal de agregar celda de texto (blockId cuando se agrega desde un bloque)
+  const handleOpenAddTextCellModal = (row: number, column: number, blockId?: number) => {
     setTextCellInitialData({ row, column, span: 1, content: '' });
     setEditingTextCell(null);
+    setCurrentBlockIdForNewTextCell(blockId ?? null);
     setAddTextCellModalOpen(true);
   };
 
@@ -443,6 +445,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
     setAddTextCellModalOpen(false);
     setEditingTextCell(null);
     setTextCellInitialData(null);
+    setCurrentBlockIdForNewTextCell(null);
   };
 
   // Handler para eliminar celda
@@ -722,10 +725,18 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
                     form_parameters: filteredParams,
                     grid_cells: filteredCells,
                   };
+                  const gridBlockCount = sortedBlocks.filter((b) => b.block_type === 'grid').length;
+                  const gridBlockNumber = sortedBlocks.slice(0, blockIndex).filter((b) => b.block_type === 'grid').length + 1;
                   return (
-                    <GridBlockView
-                      section={virtualSection}
-                      gridCells={filteredCells}
+                    <Box sx={{ mt: blockIndex > 0 ? 3 : 2, ml: 0 }}>
+                      {mode === 'admin' && gridBlockCount > 1 && (
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                          Bloque de grilla {gridBlockNumber}
+                        </Typography>
+                      )}
+                      <GridBlockView
+                        section={virtualSection}
+                        gridCells={filteredCells}
                       mode={mode}
                       effectiveMode={effectiveMode}
                       values={values}
@@ -742,12 +753,13 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
                       }}
                       onEditTextCell={handleOpenEditTextCellModal}
                       onDeleteCell={handleDeleteCell}
-                      onAddTextCell={handleOpenAddTextCellModal}
+                      onAddTextCell={(row, column) => handleOpenAddTextCellModal(row, column, block.id)}
                       addRowBefore={addRowBefore}
                       addRowAfter={addRowAfter}
                       deleteRow={deleteRow}
                       updateDisplayConfig={updateDisplayConfig}
                     />
+                    </Box>
                   );
                 })()
               ) : block.block_type === 'engine' && mode === 'admin' ? (
@@ -904,6 +916,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
         onClose={handleCloseTextCellModal}
         onSuccess={onSectionUpdated}
         categoryId={section.id}
+        blockId={currentBlockIdForNewTextCell}
         maxRow={maxRow}
         initialData={textCellInitialData}
         editingCell={editingTextCell}
