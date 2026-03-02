@@ -67,7 +67,7 @@ const OcupacionSectionContent: React.FC<OcupacionSectionContentProps> = ({ subpr
           )}
           {activeTab === 'poligonos' && (
             <div className={styles.tabPane}>
-              <PolygonsTab projectNodeId={subprojectId} />
+              <PolygonsTab projectNodeId={subprojectId} usageType="occupancy" />
             </div>
           )}
         </div>

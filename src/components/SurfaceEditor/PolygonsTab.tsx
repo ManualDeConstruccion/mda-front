@@ -17,11 +17,16 @@ import { useModalHelpTexts } from '../../hooks/useModalHelpTexts';
 import { validatePolygonData } from '../../validation/polygonSchemas';
 import styles from './PolygonsTab.module.scss';
 
+/** Si se indica, solo se listan y crean polígonos de ese tipo: superficie construida o carga de ocupación. */
+export type PolygonsTabUsageType = 'surface' | 'occupancy';
+
 interface PolygonsTabProps {
   projectNodeId: number;
+  /** Filtro por tipo de uso. 'surface' = polígonos de superficie construida; 'occupancy' = polígonos de carga de ocupación. Por defecto no filtra (muestra todos). */
+  usageType?: PolygonsTabUsageType;
 }
 
-const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
+const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId, usageType }) => {
   const { accessToken } = useAuth();
   const API_URL = import.meta.env.VITE_API_URL?.replace(/\/$/, '') || '';
   
@@ -31,6 +36,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
   });
   const { polygons, isLoadingPolygons, createPolygon, updatePolygon, deletePolygon } = useSurfacePolygons({
     project_node: projectNodeId,
+    ...(usageType && { usage_type: usageType }),
   });
 
   // Cargar todos los textos de ayuda necesarios para los modales en una sola llamada
@@ -56,7 +62,9 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
   const [newPolygonCountAsHalf, setNewPolygonCountAsHalf] = useState(false);
   const [newPolygonIsUtil, setNewPolygonIsUtil] = useState(true);
   const [newPolygonManualTotal, setNewPolygonManualTotal] = useState('');
+  const [newPolygonOccupancyDestination, setNewPolygonOccupancyDestination] = useState('');
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const isOccupancyTab = usageType === 'occupancy';
 
   // Agrupar polígonos por nivel
   const polygonsByLevel = polygons.reduce((acc, polygon) => {
@@ -232,6 +240,8 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
         count_as_half: newPolygonCountAsHalf,
         is_util: newPolygonIsUtil,
         manual_total: newPolygonManualTotal ? parseFloat(newPolygonManualTotal) : null,
+        ...(usageType && { usage_type: usageType }),
+        ...(isOccupancyTab && { occupancy_destination: newPolygonOccupancyDestination.trim() || undefined }),
       });
       setNewPolygonName('');
       setNewPolygonWidth('');
@@ -240,6 +250,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
       setNewPolygonCountAsHalf(false);
       setNewPolygonIsUtil(true);
       setNewPolygonManualTotal('');
+      setNewPolygonOccupancyDestination('');
       setValidationErrors({});
       setShowAddPolygonModal(null);
       
@@ -274,6 +285,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
     setNewPolygonCountAsHalf(polygon.count_as_half || false);
     setNewPolygonIsUtil(polygon.is_util !== undefined ? polygon.is_util : true);
     setNewPolygonManualTotal(polygon.manual_total?.toString() || '');
+    setNewPolygonOccupancyDestination(polygon.occupancy_destination || '');
     setValidationErrors({}); // Limpiar errores al editar
   };
 
@@ -313,6 +325,8 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
           count_as_half: newPolygonCountAsHalf,
           is_util: newPolygonIsUtil,
           manual_total: newPolygonManualTotal ? parseFloat(newPolygonManualTotal) : null,
+          ...(usageType && { usage_type: usageType }),
+          ...(isOccupancyTab && { occupancy_destination: newPolygonOccupancyDestination.trim() || undefined }),
         },
       });
       setNewPolygonName('');
@@ -322,6 +336,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
       setNewPolygonCountAsHalf(false);
       setNewPolygonIsUtil(true);
       setNewPolygonManualTotal('');
+      setNewPolygonOccupancyDestination('');
       setValidationErrors({});
       setEditingPolygon(null);
       
@@ -350,6 +365,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
   const renderPolygonRow = (polygon: SurfacePolygon) => (
     <tr key={polygon.id}>
       <td>{polygon.name}</td>
+      {isOccupancyTab && <td>{polygon.occupancy_destination || '-'}</td>}
       <td className={styles.numberCell}>{formatNumber(polygon.width)}</td>
       <td className={styles.numberCell}>{formatNumber(polygon.length)}</td>
       <td className={styles.centerCell}>
@@ -446,6 +462,7 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                   <thead>
                     <tr>
                       <th>Nombre</th>
+                      {isOccupancyTab && <th>Destino ocupación</th>}
                       <th>Ancho (m)</th>
                       <th>Largo (m)</th>
                       <th>Media Superficie</th>
@@ -571,6 +588,24 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                   <small className={styles.errorText}>{validationErrors.name}</small>
                 )}
               </div>
+              {isOccupancyTab && (
+                <div className={styles.formGroup}>
+                  <label>Destino de ocupación *</label>
+                  <input
+                    type="text"
+                    value={newPolygonOccupancyDestination}
+                    onChange={(e) => {
+                      setNewPolygonOccupancyDestination(e.target.value);
+                      clearFieldError('occupancy_destination');
+                    }}
+                    placeholder="ej: oficinas, comercio"
+                    className={validationErrors.occupancy_destination ? styles.inputError : ''}
+                  />
+                  {validationErrors.occupancy_destination && (
+                    <small className={styles.errorText}>{validationErrors.occupancy_destination}</small>
+                  )}
+                </div>
+              )}
               <div className={styles.formGroup}>
                 <label>
                   Total Manual (m²)
@@ -817,6 +852,24 @@ const PolygonsTab: React.FC<PolygonsTabProps> = ({ projectNodeId }) => {
                   <small className={styles.errorText}>{validationErrors.name}</small>
                 )}
               </div>
+              {isOccupancyTab && (
+                <div className={styles.formGroup}>
+                  <label>Destino de ocupación *</label>
+                  <input
+                    type="text"
+                    value={newPolygonOccupancyDestination}
+                    onChange={(e) => {
+                      setNewPolygonOccupancyDestination(e.target.value);
+                      clearFieldError('occupancy_destination');
+                    }}
+                    placeholder="ej: oficinas, comercio"
+                    className={validationErrors.occupancy_destination ? styles.inputError : ''}
+                  />
+                  {validationErrors.occupancy_destination && (
+                    <small className={styles.errorText}>{validationErrors.occupancy_destination}</small>
+                  )}
+                </div>
+              )}
               <div className={styles.formGroup}>
                 <label>
                   Total Manual (m²)

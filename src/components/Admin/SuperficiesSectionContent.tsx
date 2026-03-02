@@ -68,7 +68,7 @@ const SuperficiesSectionContent: React.FC<SuperficiesSectionContentProps> = ({ s
           )}
           {activeTab === 'poligonos' && (
             <div className={styles.tabPane}>
-              <PolygonsTab projectNodeId={subprojectId} />
+              <PolygonsTab projectNodeId={subprojectId} usageType="surface" />
             </div>
           )}
         </div>
