@@ -724,8 +724,9 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
                   };
                   const gridBlockCount = sortedBlocks.filter((b) => b.block_type === 'grid').length;
                   const gridBlockNumber = sortedBlocks.slice(0, blockIndex).filter((b) => b.block_type === 'grid').length + 1;
+                  const blockSpacing = mode === 'admin' ? (blockIndex > 0 ? 3 : 2) : 0.5;
                   return (
-                    <Box sx={{ mt: blockIndex > 0 ? 3 : 2, ml: 0 }}>
+                    <Box sx={{ mt: blockSpacing, ml: 0 }}>
                       {mode === 'admin' && gridBlockCount > 1 && (
                         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
                           Bloque de grilla {gridBlockNumber}

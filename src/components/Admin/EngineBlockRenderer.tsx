@@ -25,26 +25,46 @@ const EngineBlockRenderer: React.FC<EngineBlockRendererProps> = ({
   const Component = engineCode ? ENGINE_COMPONENTS[engineCode] : undefined;
 
   if (Component && subprojectId != null && mode !== 'admin') {
+    const engineLabel = block.name || block.section_engine?.name || engineCode || 'Motor';
     const content = <Component subprojectId={subprojectId} />;
+    const userBlockSx = {
+      mt: 0.5,
+      ml: 0,
+      bgcolor: 'rgba(129, 199, 132, 0.18)',
+      borderRadius: 1,
+      border: '1px solid rgba(129, 199, 132, 0.4)',
+      overflow: 'hidden',
+    };
+    const titleSx = { fontWeight: 700, fontSize: '0.875rem' };
     if (block.is_collapsible) {
       return (
         <Accordion
           sx={{
-            mt: 2, ml: 0, '&:before': { display: 'none' },
-            boxShadow: 'none', border: '1px solid', borderColor: 'divider', borderRadius: 1,
+            ...userBlockSx,
+            '&:before': { display: 'none' },
+            boxShadow: 'none',
           }}
           defaultExpanded={false}
         >
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography variant="body2">
-              {block.name || block.section_engine?.name || engineCode || 'Motor'}
+          <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ py: 0.75, minHeight: 40, '& .MuiAccordionSummary-content': { my: 0.75 } }}>
+            <Typography variant="body2" sx={titleSx}>
+              {engineLabel}
             </Typography>
           </AccordionSummary>
-          <AccordionDetails sx={{ pt: 0 }}>{content}</AccordionDetails>
+          <AccordionDetails sx={{ pt: 0, pb: 1.5, px: 2 }}>{content}</AccordionDetails>
         </Accordion>
       );
     }
-    return <Box sx={{ mt: 2, ml: 0 }}>{content}</Box>;
+    return (
+      <Box sx={userBlockSx}>
+        <Box sx={{ px: 2, py: 0.75, borderBottom: '1px solid rgba(129, 199, 132, 0.3)' }}>
+          <Typography variant="body2" sx={titleSx}>
+            {engineLabel}
+          </Typography>
+        </Box>
+        <Box sx={{ px: 2, py: 1.5 }}>{content}</Box>
+      </Box>
+    );
   }
 
   if (mode === 'admin') {
