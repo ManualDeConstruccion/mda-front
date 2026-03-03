@@ -1,8 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { Box, Typography, Collapse, Button, IconButton, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import DeleteIcon from '@mui/icons-material/Delete';
-import EditIcon from '@mui/icons-material/Edit';
+import { Box, Typography, Collapse, Button } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import {
   KeyboardSensor,
@@ -24,8 +21,8 @@ import AddFormParameterModal from './AddFormParameterModal';
 import EditFormParameterModal from './EditFormParameterModal';
 import AddEditFormGridCellModal from './AddEditFormGridCellModal';
 import GridRow from './GridRow';
-import SuperficiesSectionContent from './SuperficiesSectionContent';
-import OcupacionSectionContent from './OcupacionSectionContent';
+import EngineBlockRenderer from './EngineBlockRenderer';
+import ENGINE_COMPONENTS from './engineRegistry';
 import {
   CategoryAlertsBlock,
   EmptyGridState,
@@ -243,19 +240,27 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
     return blocks.slice().sort((a, b) => a.order - b.order);
   }, [section.blocks]);
   const hasBlocks = sortedBlocks.length > 0;
-  const hasEngineBlockSuperficies = hasBlocks && sortedBlocks.some(
-    (b) => b.block_type === 'engine' && b.section_engine?.code === 'superficies'
+  const hasEngineBlockWithComponent = hasBlocks && sortedBlocks.some(
+    (b) => b.block_type === 'engine' && b.section_engine?.code && ENGINE_COMPONENTS[b.section_engine.code]
   );
 
+  const shouldUseTopLevelGrid = !hasBlocks;
+  const gridHookResult = useGridLayout(
+    shouldUseTopLevelGrid ? section : { ...section, form_parameters: [], grid_cells: [] },
+    shouldUseTopLevelGrid ? gridCells : [],
+    mode,
+  );
   const {
     maxRow,
     gridLayout,
     allCells,
     getColumnsForRow,
-    hasParameters,
-    hasGridCells,
+    hasParameters: hasParametersRaw,
+    hasGridCells: hasGridCellsRaw,
     isCellParameter,
-  } = useGridLayout(section, gridCells, mode);
+  } = gridHookResult;
+  const hasParameters = shouldUseTopLevelGrid ? hasParametersRaw : (section.form_parameters?.length ?? 0) > 0;
+  const hasGridCells = shouldUseTopLevelGrid ? hasGridCellsRaw : (gridCells?.length ?? 0) > 0;
   
   const hasSubcategories = section.subcategories && section.subcategories.length > 0;
   /** Si la sección no tiene parámetros ni celdas, solo se muestra el botón de agregar bloque (no "Agregar primera fila"). */
@@ -263,7 +268,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
   
   // Cuando hay bloques: contenido por bloque (grilla filtrada o motor). Sin bloques: una sola grilla con todo.
   const useGridInterface = !hasBlocks || sortedBlocks.some((b) => b.block_type === 'grid');
-  const isSuperficiesSection = hasEngineBlockSuperficies && mode !== 'admin' && !!subprojectId;
+  const isSuperficiesSection = hasEngineBlockWithComponent && mode !== 'admin' && !!subprojectId;
   const isFormTypeUndefined = !hasBlocks;
 
   const updateDisplayConfig = useCallback(async (row: number, columns: number) => {
@@ -689,28 +694,15 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
           {/* Con bloques: renderizar cada bloque (motor superficies o grilla) */}
           {hasBlocks && sortedBlocks.map((block, blockIndex) => {
             const isLastBlock = blockIndex === sortedBlocks.length - 1;
-            const renderEngineContent = (Component: React.ComponentType<{ subprojectId: number }>, sid: number) =>
-              block.is_collapsible ? (
-                <Accordion sx={{ mt: 2, ml: 0, '&:before': { display: 'none' }, boxShadow: 'none', border: '1px solid', borderColor: 'divider', borderRadius: 1 }} defaultExpanded={false}>
-                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Typography variant="body2">
-                      {block.name || block.section_engine?.name || block.section_engine?.code || 'Motor'}
-                    </Typography>
-                  </AccordionSummary>
-                  <AccordionDetails sx={{ pt: 0 }}>
-                    <Component subprojectId={sid} />
-                  </AccordionDetails>
-                </Accordion>
-              ) : (
-                <Box sx={{ mt: 2, ml: 0 }}>
-                  <Component subprojectId={sid} />
-                </Box>
-              );
             const blockContent =
-              block.block_type === 'engine' && block.section_engine?.code === 'superficies' && subprojectId != null && mode !== 'admin' ? (
-                renderEngineContent(SuperficiesSectionContent, subprojectId)
-              ) : block.block_type === 'engine' && block.section_engine?.code === 'ocupacion' && subprojectId != null && mode !== 'admin' ? (
-                renderEngineContent(OcupacionSectionContent, subprojectId)
+              block.block_type === 'engine' ? (
+                <EngineBlockRenderer
+                  block={block}
+                  mode={mode}
+                  subprojectId={subprojectId}
+                  onEdit={(b) => setEngineBlockToEdit(b)}
+                  onDelete={(id) => mutations.deleteBlock(id)}
+                />
               ) : block.block_type === 'grid' ? (
                 (() => {
                   const filteredParams = (section.form_parameters ?? []).filter(
@@ -767,33 +759,6 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
                     </Box>
                   );
                 })()
-              ) : block.block_type === 'engine' && mode === 'admin' ? (
-                <Box sx={{ mt: 2, ml: 0, p: 2, bgcolor: 'action.hover', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Motor: {block.name || (block.section_engine?.name ?? block.section_engine?.code ?? '—')}
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 0.5 }}>
-                    <IconButton
-                      size="small"
-                      title="Editar nombre y colapsable"
-                      onClick={() => setEngineBlockToEdit(block)}
-                    >
-                      <EditIcon fontSize="small" />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      color="error"
-                      title="Eliminar bloque"
-                      onClick={() => {
-                        if (window.confirm('¿Eliminar este bloque de motor?')) {
-                          mutations.deleteBlock(block.id);
-                        }
-                      }}
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  </Box>
-                </Box>
               ) : null;
 
             return (
