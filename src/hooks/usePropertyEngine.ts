@@ -81,6 +81,19 @@ export function usePropertyEngine(subprojectId: number) {
     },
   });
 
+  const unlinkPropertyMutation = useMutation({
+    mutationFn: async () => {
+      await api.patch(`projects/project-nodes/${subprojectId}/`, { properties: [] });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project-node-properties', subprojectId] });
+    },
+  });
+
+  const invalidateLinkedProperty = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['project-node-properties', subprojectId] });
+  }, [queryClient, subprojectId]);
+
   return {
     searchResults: searchQuery.data ?? [],
     isSearching: searchQuery.isLoading,
@@ -94,5 +107,10 @@ export function usePropertyEngine(subprojectId: number) {
 
     linkProperty: linkPropertyMutation.mutateAsync,
     isLinking: linkPropertyMutation.isPending,
+
+    unlinkProperty: unlinkPropertyMutation.mutateAsync,
+    isUnlinking: unlinkPropertyMutation.isPending,
+
+    invalidateLinkedProperty,
   };
 }

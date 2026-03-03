@@ -1,25 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Button, TextField, Grid, CircularProgress,
 } from '@mui/material';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../../services/api';
 
 interface CreatePropertyModalProps {
   open: boolean;
   onClose: () => void;
   onCreated: (property: { id: number }) => void;
   initialRol?: string;
+  initialRegionId?: number | null;
   initialComunaId?: number | null;
-  comunas: { id: number; comuna: string }[];
   regiones: { id: number; region: string }[];
   createProperty: (data: any) => Promise<any>;
   isCreating: boolean;
 }
 
+interface ComunaItem {
+  id: number;
+  comuna: string;
+}
+
 const CreatePropertyModal: React.FC<CreatePropertyModalProps> = ({
   open, onClose, onCreated,
-  initialRol, initialComunaId,
-  comunas, regiones,
+  initialRol, initialRegionId, initialComunaId,
+  regiones,
   createProperty, isCreating,
 }) => {
   const [form, setForm] = useState({
@@ -27,8 +34,8 @@ const CreatePropertyModal: React.FC<CreatePropertyModalProps> = ({
     rol: initialRol ?? '',
     description: '',
     address: '',
-    region: '' as string,
-    comuna: initialComunaId ? String(initialComunaId) : '',
+    region: (initialRegionId != null ? String(initialRegionId) : '') as string,
+    comuna: (initialComunaId != null ? String(initialComunaId) : '') as string,
     localidad: '',
     neighborhood: '',
     allotment: '',
@@ -36,8 +43,39 @@ const CreatePropertyModal: React.FC<CreatePropertyModalProps> = ({
     subdivision_plan: '',
   });
 
+  useEffect(() => {
+    if (!open) return;
+    setForm(prev => ({
+      ...prev,
+      rol: initialRol ?? prev.rol,
+      region: initialRegionId != null ? String(initialRegionId) : prev.region,
+      comuna: initialComunaId != null ? String(initialComunaId) : (initialRegionId != null ? '' : prev.comuna),
+    }));
+  }, [open, initialRol, initialRegionId, initialComunaId]);
+
+  const regionIdForComunas = form.region ? Number(form.region) : null;
+  const comunasQuery = useQuery<ComunaItem[]>({
+    queryKey: ['comuna', 'v1', regionIdForComunas],
+    queryFn: async () => {
+      const res = await api.get<ComunaItem[]>('comuna/v1/', {
+        params: { region: regionIdForComunas },
+      });
+      return res.data;
+    },
+    enabled: !!regionIdForComunas && open,
+    staleTime: 5 * 60 * 1000,
+  });
+  const comunas = comunasQuery.data ?? [];
+
   const handleChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setForm(prev => ({ ...prev, [field]: e.target.value }));
+    const value = e.target.value;
+    setForm(prev => {
+      const next = { ...prev, [field]: value };
+      if (field === 'region') {
+        next.comuna = '';
+      }
+      return next;
+    });
   };
 
   const handleSubmit = async () => {
@@ -66,30 +104,39 @@ const CreatePropertyModal: React.FC<CreatePropertyModalProps> = ({
           </Grid>
           <Grid item xs={4}>
             <TextField
-              label="Comuna"
-              select
-              value={form.comuna}
-              onChange={handleChange('comuna')}
-              fullWidth
-              size="small"
-              SelectProps={{ native: true }}
-            >
-              <option value="" />
-              {comunas.map(c => <option key={c.id} value={c.id}>{c.comuna}</option>)}
-            </TextField>
-          </Grid>
-          <Grid item xs={4}>
-            <TextField
               label="Región"
               select
               value={form.region}
               onChange={handleChange('region')}
               fullWidth
               size="small"
-              SelectProps={{ native: true }}
+              InputLabelProps={{ shrink: true }}
+              SelectProps={{
+                native: true,
+                sx: { '& select': { minHeight: 40, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } },
+              }}
             >
-              <option value="" />
+              <option value="">Seleccionar región...</option>
               {regiones.map(r => <option key={r.id} value={r.id}>{r.region}</option>)}
+            </TextField>
+          </Grid>
+          <Grid item xs={4}>
+            <TextField
+              label="Comuna"
+              select
+              value={form.comuna}
+              onChange={handleChange('comuna')}
+              fullWidth
+              size="small"
+              disabled={!form.region}
+              InputLabelProps={{ shrink: true }}
+              SelectProps={{
+                native: true,
+                sx: { '& select': { minHeight: 40, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } },
+              }}
+            >
+              <option value="">{form.region ? 'Seleccionar comuna...' : 'Primero elija región'}</option>
+              {comunas.map(c => <option key={c.id} value={c.id}>{c.comuna}</option>)}
             </TextField>
           </Grid>
           <Grid item xs={4}>
