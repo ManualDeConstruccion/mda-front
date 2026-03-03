@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 import SuperficiesSectionContent from './SuperficiesSectionContent';
 import OcupacionSectionContent from './OcupacionSectionContent';
+import PropiedadSectionContent from './PropiedadSectionContent';
 
 interface EngineComponentProps {
   subprojectId: number;
@@ -13,6 +14,7 @@ interface EngineComponentProps {
 const ENGINE_COMPONENTS: Record<string, ComponentType<EngineComponentProps>> = {
   superficies: SuperficiesSectionContent,
   ocupacion: OcupacionSectionContent,
+  propiedad: PropiedadSectionContent,
 };
 
 export type { EngineComponentProps };
