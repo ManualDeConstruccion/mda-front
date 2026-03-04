@@ -5,6 +5,8 @@ import PropiedadSectionContent from './PropiedadSectionContent';
 
 interface EngineComponentProps {
   subprojectId: number;
+  /** Llamar cuando el motor aplica cambios (vincular/desvincular/guardar propiedad, etc.) para recargar el resto de formularios. */
+  onMotorAppliedChange?: () => void | Promise<void>;
 }
 
 /**

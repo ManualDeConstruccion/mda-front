@@ -4,11 +4,12 @@ import { api } from '../services/api';
 
 export interface PropertyData {
   id: number;
-  name: string;
+  name: string | null;
   rol: string;
-  description: string;
+  description: string | null;
   owner: number | null;
   address: string;
+  address_number: string | null;
   region: number | null;
   comuna: number | null;
   localidad: string | null;

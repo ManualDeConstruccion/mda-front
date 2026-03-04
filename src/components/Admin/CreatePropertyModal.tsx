@@ -34,6 +34,7 @@ const CreatePropertyModal: React.FC<CreatePropertyModalProps> = ({
     rol: initialRol ?? '',
     description: '',
     address: '',
+    address_number: '',
     region: (initialRegionId != null ? String(initialRegionId) : '') as string,
     comuna: (initialComunaId != null ? String(initialComunaId) : '') as string,
     localidad: '',
@@ -88,6 +89,12 @@ const CreatePropertyModal: React.FC<CreatePropertyModalProps> = ({
     onCreated(created);
   };
 
+  const canSubmit =
+    !!form.rol?.trim() &&
+    !!form.comuna &&
+    !!form.address?.trim() &&
+    !!form.address_number?.trim();
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>Crear nueva propiedad</DialogTitle>
@@ -97,10 +104,13 @@ const CreatePropertyModal: React.FC<CreatePropertyModalProps> = ({
             <TextField label="Rol" value={form.rol} onChange={handleChange('rol')} fullWidth required size="small" />
           </Grid>
           <Grid item xs={6}>
-            <TextField label="Nombre" value={form.name} onChange={handleChange('name')} fullWidth required size="small" />
+            <TextField label="Nombre" value={form.name} onChange={handleChange('name')} fullWidth size="small" placeholder="Opcional" />
           </Grid>
-          <Grid item xs={8}>
-            <TextField label="Dirección" value={form.address} onChange={handleChange('address')} fullWidth size="small" />
+          <Grid item xs={6}>
+            <TextField label="Dirección" value={form.address} onChange={handleChange('address')} fullWidth required size="small" />
+          </Grid>
+          <Grid item xs={6}>
+            <TextField label="Número" value={form.address_number} onChange={handleChange('address_number')} fullWidth required size="small" placeholder="Nº dirección" />
           </Grid>
           <Grid item xs={4}>
             <TextField
@@ -155,13 +165,13 @@ const CreatePropertyModal: React.FC<CreatePropertyModalProps> = ({
             <TextField label="N° Plano loteo" value={form.subdivision_plan} onChange={handleChange('subdivision_plan')} fullWidth size="small" />
           </Grid>
           <Grid item xs={12}>
-            <TextField label="Descripción" value={form.description} onChange={handleChange('description')} fullWidth multiline rows={2} size="small" />
+            <TextField label="Descripción" value={form.description} onChange={handleChange('description')} fullWidth multiline rows={2} size="small" placeholder="Opcional" />
           </Grid>
         </Grid>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancelar</Button>
-        <Button variant="contained" onClick={handleSubmit} disabled={isCreating || !form.rol || !form.name}>
+        <Button variant="contained" onClick={handleSubmit} disabled={isCreating || !canSubmit}>
           {isCreating ? <CircularProgress size={20} /> : 'Crear propiedad'}
         </Button>
       </DialogActions>

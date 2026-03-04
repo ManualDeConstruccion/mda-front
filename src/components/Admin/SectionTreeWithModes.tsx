@@ -62,6 +62,8 @@ interface SectionTreeWithModesProps {
   getSectionMode?: (sectionId: number) => 'view' | 'editable' | undefined; // Función para obtener el modo de cualquier sección (para subcategorías)
   /** Alertas por categoría (categoryId -> alertas). Se muestran bajo la descripción de la categoría. */
   categoryAlerts?: Record<number, UIAlert[]>;
+  /** Llamar cuando un motor aplica cambios (ej. propiedad vinculada/editada) para recargar el resto de formularios sin recargar la página. */
+  onMotorAppliedChange?: () => void | Promise<void>;
 }
 
 // Re-exportar GridCell y SortableGridCell para compatibilidad con importadores que usan SectionTreeWithModes
@@ -200,6 +202,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
   onSectionModeChange,
   getSectionMode,
   categoryAlerts,
+  onMotorAppliedChange,
 }) => {
   const { values, onChange } = useSectionValues(externalValues, externalOnChange, section.id);
   const mutations = useFormCategoryMutations(section, onSectionUpdated);
@@ -702,6 +705,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
                   subprojectId={subprojectId}
                   onEdit={(b) => setEngineBlockToEdit(b)}
                   onDelete={(id) => mutations.deleteBlock(id)}
+                  onMotorAppliedChange={onMotorAppliedChange}
                 />
               ) : block.block_type === 'grid' ? (
                 (() => {
@@ -801,6 +805,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
                   onSectionModeChange={onSectionModeChange}
                   getSectionMode={getSectionMode}
                   categoryAlerts={categoryAlerts}
+                  onMotorAppliedChange={onMotorAppliedChange}
                 />
               ))}
             </Box>

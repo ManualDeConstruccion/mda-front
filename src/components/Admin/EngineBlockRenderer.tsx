@@ -12,6 +12,7 @@ interface EngineBlockRendererProps {
   subprojectId?: number;
   onEdit: (block: FormCategoryBlock) => void;
   onDelete: (blockId: number) => void;
+  onMotorAppliedChange?: () => void | Promise<void>;
 }
 
 const EngineBlockRenderer: React.FC<EngineBlockRendererProps> = ({
@@ -20,13 +21,14 @@ const EngineBlockRenderer: React.FC<EngineBlockRendererProps> = ({
   subprojectId,
   onEdit,
   onDelete,
+  onMotorAppliedChange,
 }) => {
   const engineCode = block.section_engine?.code;
   const Component = engineCode ? ENGINE_COMPONENTS[engineCode] : undefined;
 
   if (Component && subprojectId != null && mode !== 'admin') {
     const engineLabel = block.name || block.section_engine?.name || engineCode || 'Motor';
-    const content = <Component subprojectId={subprojectId} />;
+    const content = <Component subprojectId={subprojectId} onMotorAppliedChange={onMotorAppliedChange} />;
     const userBlockSx = {
       mt: 0.5,
       ml: 0,

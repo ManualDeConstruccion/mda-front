@@ -226,6 +226,13 @@ const ArchitectureProjectDetail: React.FC = () => {
     }
   }, [architectureId]);
 
+  // Recargar valores de todas las secciones ya abiertas (p. ej. tras cambios en un motor como Propiedad)
+  const refreshAllSectionValues = useCallback(async () => {
+    if (!architectureId) return;
+    const categoryIds = Object.keys(formValues).map(Number);
+    await Promise.all(categoryIds.map((catId) => refetchCategoryData(catId)));
+  }, [architectureId, formValues, refetchCategoryData]);
+
   // Mutation para actualizar un valor
   const updateValueMutation = useMutation({
     mutationFn: async ({ categoryId, parameterCode, value }: { categoryId: number; parameterCode: string; value: any }) => {
@@ -602,6 +609,7 @@ const ArchitectureProjectDetail: React.FC = () => {
                                 return sectionModesAny[String(sectionId)] || sectionModesAny[sectionId];
                               }}
                               categoryAlerts={categoryAlerts}
+                              onMotorAppliedChange={refreshAllSectionValues}
                             />
                           );
                         })}

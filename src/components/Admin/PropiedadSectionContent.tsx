@@ -16,6 +16,7 @@ export type PropiedadTabType = 'resumen' | 'editar';
 
 export interface PropiedadSectionContentProps {
   subprojectId: number;
+  onMotorAppliedChange?: () => void | Promise<void>;
 }
 
 interface RegionItem {
@@ -47,6 +48,10 @@ function PropertySummary({
       <Grid item xs={12}>
         <Typography variant="caption" color="text.secondary">Dirección</Typography>
         <Typography variant="body1">{property.address || '—'}</Typography>
+      </Grid>
+      <Grid item xs={12}>
+        <Typography variant="caption" color="text.secondary">Número</Typography>
+        <Typography variant="body1">{property.address_number ?? '—'}</Typography>
       </Grid>
       <Grid item xs={12}>
         <Typography variant="caption" color="text.secondary">Comuna</Typography>
@@ -118,16 +123,19 @@ function PropertyEditForm({
     setConfirmOpen(false);
     setSaving(true);
     try {
+      // PATCH con solo los campos del formulario; el backend acepta actualización parcial
       await api.patch(`properties/${property.id}/`, {
-        name: form.name,
-        address: form.address,
+        rol: form.rol?.trim() ?? '',
+        name: form.name ?? null,
+        address: form.address ?? '',
+        address_number: form.address_number?.trim() ?? '',
         region: form.region ? Number(form.region) : null,
         comuna: form.comuna ? Number(form.comuna) : null,
-        localidad: form.localidad,
-        neighborhood: form.neighborhood,
-        block: form.block,
-        allotment: form.allotment,
-        subdivision_plan: form.subdivision_plan,
+        localidad: form.localidad ?? null,
+        neighborhood: form.neighborhood ?? null,
+        block: form.block ?? null,
+        allotment: form.allotment ?? null,
+        subdivision_plan: form.subdivision_plan ?? null,
       });
       onSaved();
     } finally {
@@ -139,13 +147,16 @@ function PropertyEditForm({
     <>
       <Grid container spacing={2}>
         <Grid item xs={6}>
-          <TextField label="Nombre" value={form.name ?? ''} onChange={handleChange('name')} fullWidth size="small" />
+          <TextField label="Nombre" value={form.name ?? ''} onChange={handleChange('name')} fullWidth size="small" placeholder="Opcional" />
         </Grid>
         <Grid item xs={6}>
-          <TextField label="Rol" value={form.rol ?? ''} disabled fullWidth size="small" />
+          <TextField label="Rol" value={form.rol ?? ''} onChange={handleChange('rol')} fullWidth size="small" required placeholder="Ej: 161-13" />
         </Grid>
-        <Grid item xs={8}>
-          <TextField label="Dirección" value={form.address ?? ''} onChange={handleChange('address')} fullWidth size="small" />
+        <Grid item xs={6}>
+          <TextField label="Dirección" value={form.address ?? ''} onChange={handleChange('address')} fullWidth size="small" required />
+        </Grid>
+        <Grid item xs={6}>
+          <TextField label="Número" value={form.address_number ?? ''} onChange={handleChange('address_number')} fullWidth size="small" required placeholder="Nº dirección" />
         </Grid>
         <Grid item xs={4}>
             <TextField
@@ -222,7 +233,7 @@ function PropertyEditForm({
   );
 }
 
-const PropiedadSectionContent: React.FC<PropiedadSectionContentProps> = ({ subprojectId }) => {
+const PropiedadSectionContent: React.FC<PropiedadSectionContentProps> = ({ subprojectId, onMotorAppliedChange }) => {
   const [activeTab, setActiveTab] = useState<PropiedadTabType>('resumen');
   const [regionId, setRegionId] = useState<number | null>(null);
   const [comunaId, setComunaId] = useState<number | null>(null);
@@ -319,6 +330,7 @@ const PropiedadSectionContent: React.FC<PropiedadSectionContentProps> = ({ subpr
     if (!candidatePropertyForLink) return;
     await linkProperty(candidatePropertyForLink.id);
     setCandidatePropertyForLink(null);
+    await onMotorAppliedChange?.();
   };
 
   const handleConfirmLinkCancel = () => setCandidatePropertyForLink(null);
@@ -328,6 +340,7 @@ const PropiedadSectionContent: React.FC<PropiedadSectionContentProps> = ({ subpr
   const handleUnlinkAccept = async () => {
     await unlinkProperty();
     setShowUnlinkConfirm(false);
+    await onMotorAppliedChange?.();
   };
 
   const handleUnlinkCancel = () => setShowUnlinkConfirm(false);
@@ -335,6 +348,7 @@ const PropiedadSectionContent: React.FC<PropiedadSectionContentProps> = ({ subpr
   const handlePropertyCreated = async (created: { id: number }) => {
     setCreateModalOpen(false);
     await linkProperty(created.id);
+    await onMotorAppliedChange?.();
   };
 
   if (isLoadingLinked) {
@@ -441,6 +455,7 @@ const PropiedadSectionContent: React.FC<PropiedadSectionContentProps> = ({ subpr
                 {[
                   { label: 'Rol', value: candidatePropertyForLink.rol },
                   { label: 'Dirección', value: candidatePropertyForLink.address },
+                  { label: 'Número', value: candidatePropertyForLink.address_number },
                   { label: 'Región', value: candidateRegionName ?? '' },
                   { label: 'Comuna', value: candidateComunaName ?? '' },
                   { label: 'Localidad', value: candidatePropertyForLink.localidad },
@@ -509,7 +524,10 @@ const PropiedadSectionContent: React.FC<PropiedadSectionContentProps> = ({ subpr
             <PropertyEditForm
               property={linkedProperty}
               regiones={regiones}
-              onSaved={invalidateLinkedProperty}
+              onSaved={() => {
+                invalidateLinkedProperty();
+                onMotorAppliedChange?.();
+              }}
             />
           </div>
         )}
