@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Typography, Button, Divider } from '@mui/material';
 import { useCAMApi } from '../../../../../hooks/FormHooks/useCAMApi';
 import { PrintPreviewLayout } from '../../../../../components/common/PrintPreviewLayout';
-import { formRegistry } from '../../../formRegistry';
 import { useFormNode } from '../../../../../context/FormNodeContext';
 import { useAuth } from '../../../../../context/AuthContext';
 import { useReportConfigurations } from '../../../../../hooks/useReportConfigurations';
@@ -72,7 +71,6 @@ function buildReportHtml(innerHtml: string, css: string, fontsLinks: string) {
 
 const CAMReportView: React.FC = () => {
   const { formTypeModel, nodeId } = useParams<{ formTypeModel: string, nodeId: string }>();
-  const registry = formRegistry[formTypeModel || 'analyzedsolution'];
   const { data: analyzedSolution, isLoading } = useCAMApi().useRetrieve(Number(nodeId));
   const { nodeData } = useFormNode();
   const { user } = useAuth();
