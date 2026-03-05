@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import axios from 'axios';
+import { api, getCsrfToken } from '../../context/AuthContext';
 import FormInput, { defaultPasswordRules } from '../../components/common/FormInput/FormInput';
 import PrimaryButton from '../../components/common/PrimaryButton/PrimaryButton';
 import styles from './ResetPassword.module.scss';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const ResetPassword: React.FC = () => {
   const navigate = useNavigate();
@@ -43,16 +41,17 @@ const ResetPassword: React.FC = () => {
     }
     setLoading(true);
     try {
-      await axios.post(`${API_URL}/api/auth/password/reset/confirm/`, {
+      const csrfToken = await getCsrfToken();
+      await api.post('/api/auth/password/reset/confirm/', {
         uid,
         token,
         new_password1: password,
         new_password2: password2,
-      });
+      }, { headers: { 'X-CSRFToken': csrfToken } });
       navigate('/login', { state: { passwordReset: true } });
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        const data = err.response?.data;
+      if ((err as any)?.isAxiosError) {
+        const data = (err as any).response?.data;
         const msg =
           data?.new_password1?.[0] ??
           data?.new_password2?.[0] ??

@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import { api, getCsrfToken } from '../../context/AuthContext';
 import FormInput from '../../components/common/FormInput/FormInput';
 import PrimaryButton from '../../components/common/PrimaryButton/PrimaryButton';
 import styles from './ForgotPassword.module.scss';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const ForgotPassword: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -22,15 +20,16 @@ const ForgotPassword: React.FC = () => {
     }
     setLoading(true);
     try {
-      await axios.post(`${API_URL}/api/auth/password/reset/`, {
+      const csrfToken = await getCsrfToken();
+      await api.post('/api/auth/password/reset/', {
         email: email.trim(),
-      });
+      }, { headers: { 'X-CSRFToken': csrfToken } });
       setSuccess(true);
     } catch (err) {
-      if (axios.isAxiosError(err)) {
+      if ((err as any)?.isAxiosError) {
         const msg =
-          err.response?.data?.email?.[0] ??
-          err.response?.data?.detail ??
+          (err as any).response?.data?.email?.[0] ??
+          (err as any).response?.data?.detail ??
           'No pudimos enviar el enlace. Revisa el correo o intenta más tarde.';
         setError(Array.isArray(msg) ? msg[0] : msg);
       } else {

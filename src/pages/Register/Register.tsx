@@ -1,16 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { useGoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../../context/AuthContext';
+import { api, getCsrfToken } from '../../context/AuthContext';
 import FormInput, { defaultPasswordRules } from '../../components/common/FormInput/FormInput';
 import PasswordRulesList from '../../components/common/FormInput/PasswordRulesList';
 import PrimaryButton from '../../components/common/PrimaryButton/PrimaryButton';
 import GoogleSignInButton from '../../components/GoogleSignInButton/GoogleSignInButton';
 import LinkedInSignInButton from '../../components/LinkedInSignInButton/LinkedInSignInButton';
 import styles from './Register.module.scss';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
@@ -70,7 +68,7 @@ const Register: React.FC = () => {
     const left = window.screenX + (window.outerWidth - width) / 2;
     const top = window.screenY + (window.outerHeight - height) / 2;
     window.open(
-      `${API_URL}/api/auth/social/linkedin/authorize/`,
+      `${api.defaults.baseURL}/api/auth/social/linkedin/authorize/`,
       'LinkedIn Login',
       `width=${width},height=${height},left=${left},top=${top}`,
     );
@@ -106,17 +104,18 @@ const Register: React.FC = () => {
     }
     setLoading(true);
     try {
-      await axios.post(`${API_URL}/api/auth/registration/`, {
+      const csrfToken = await getCsrfToken();
+      await api.post('/api/auth/registration/', {
         email: email.trim(),
         password1: password,
         password2: password2,
         first_name: firstName.trim() || undefined,
         last_name: lastName.trim() || undefined,
-      });
+      }, { headers: { 'X-CSRFToken': csrfToken } });
       navigate('/login', { state: { registered: true } });
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        const data = err.response?.data;
+      if ((err as any)?.isAxiosError) {
+        const data = (err as any).response?.data;
         const msg =
           data?.email?.[0] ??
           data?.password1?.[0] ??
