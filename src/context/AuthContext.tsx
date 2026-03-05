@@ -21,6 +21,7 @@ interface AuthContextType {
   user: User | null;
   accessToken: string | null;
   loginWithGoogle: (token: string) => Promise<void>;
+  loginWithEmail: (email: string, password: string) => Promise<void>;
   logout: () => void;
   refreshAccessToken: () => Promise<string | null>;
 }
@@ -354,6 +355,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const loginWithEmail = async (email: string, password: string) => {
+    try {
+      const response = await api.post('/api/auth/login/', { email, password });
+      const access = response.data.access ?? response.data.access_token;
+      const refresh = response.data.refresh ?? response.data.refresh_token;
+      if (!access || !refresh) {
+        throw new Error('Respuesta de login inválida');
+      }
+      localStorage.setItem('access_token', access);
+      localStorage.setItem('refresh_token', refresh);
+      setAccessToken(access);
+      const userPayload = response.data.user;
+      if (userPayload) {
+        const userData: User = {
+          id: userPayload.id,
+          email: userPayload.email,
+          first_name: userPayload.first_name,
+          last_name: userPayload.last_name,
+          is_staff: userPayload.is_staff,
+        };
+        setUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
+      }
+      navigate('/');
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        const msg = err.response?.data?.non_field_errors?.[0]
+          ?? err.response?.data?.detail
+          ?? (err.response?.status === 400 ? 'Correo o contraseña incorrectos' : 'Error al iniciar sesión');
+        throw new Error(msg);
+      }
+      throw err;
+    }
+  };
+
   const checkAuthStatus = useCallback(async () => {
     try {
       const response = await axios.get(`${API_URL}/api/auth/user/`, {
@@ -383,7 +419,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       value={{ 
         user: user ?? null, 
         accessToken, 
-        loginWithGoogle, 
+        loginWithGoogle,
+        loginWithEmail, 
         logout,
         refreshAccessToken
       }}
