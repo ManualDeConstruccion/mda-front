@@ -46,7 +46,7 @@ const ForgotPassword: React.FC = () => {
         <div className={styles.box}>
           <h1 className={styles.title}>Revisa tu correo</h1>
           <p className={styles.message}>
-            Si existe una cuenta con ese correo, te hemos enviado un enlace para restablecer tu contraseña.
+            Te hemos enviado un enlace para restablecer tu contraseña a <strong>{email}</strong>.
           </p>
           <Link to="/login" className={styles.linkButton}>
             Volver al inicio de sesión
