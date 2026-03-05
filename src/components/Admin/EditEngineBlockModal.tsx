@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -87,7 +87,14 @@ export default function EditEngineBlockModal({
     }
   };
 
-  const selectedEngine = sectionEngines.find((e) => e.id === sectionEngineId);
+  // Incluir el motor actual del bloque si no está en la lista (ej. es_formulario_minvu=false)
+  const enginesForSelect = useMemo(() => {
+    if (!block?.section_engine) return sectionEngines;
+    const exists = sectionEngines.some((e) => e.id === block.section_engine?.id);
+    return exists ? sectionEngines : [...sectionEngines, block.section_engine];
+  }, [sectionEngines, block?.section_engine]);
+
+  const selectedEngine = enginesForSelect.find((e) => e.id === sectionEngineId);
   const motorLabel = selectedEngine?.name ?? selectedEngine?.code ?? block?.section_engine?.name ?? block?.section_engine?.code ?? 'Motor';
 
   return (
@@ -108,7 +115,7 @@ export default function EditEngineBlockModal({
                 label="Tipo de motor"
                 onChange={(e) => setSectionEngineId(e.target.value === '' ? null : Number(e.target.value))}
               >
-                {sectionEngines.map((eng) => (
+                {enginesForSelect.map((eng) => (
                   <MenuItem key={eng.id} value={eng.id}>
                     {eng.name}
                   </MenuItem>

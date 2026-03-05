@@ -29,6 +29,8 @@ export interface SectionEngine {
   code: string;
   name: string;
   description?: string | null;
+  /** Si es true, se ofrece al agregar bloques en secciones (solo se listan los que tienen true). */
+  es_formulario_minvu?: boolean;
 }
 
 /** Bloque dentro de una sección: grilla o motor. */
