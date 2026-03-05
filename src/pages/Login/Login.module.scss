@@ -76,9 +76,11 @@
   }
 }
 
-.googleButton {
+.socialButtons {
   @include flex-center();
+  gap: $spacing-md;
   margin-bottom: $spacing-lg;
+  flex-wrap: wrap;
 }
 
 .registerHint {

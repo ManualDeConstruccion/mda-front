@@ -20,6 +20,7 @@ import Login from "./pages/Login/Login";
 import Register from "./pages/Register/Register";
 import ForgotPassword from "./pages/ForgotPassword/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword/ResetPassword";
+import AuthCallback from "./pages/AuthCallback/AuthCallback";
 import Landing from "./pages/Landing/Landing";
 import CreateProject from "./pages/Projects/CreateProject";
 import ProjectList from "./pages/Projects/ProjectList";
@@ -106,6 +107,7 @@ const App: React.FC = () => {
                   <Route path="/login/recuperar-contrasena" element={<ForgotPassword />} />
                   <Route path="/login/restablecer-contrasena" element={<ResetPassword />} />
                   <Route path="/registro" element={<Register />} />
+                  <Route path="/auth/callback" element={<AuthCallback />} />
 
                   {/* ───────── Protected ‐‐ todo lo demás ───────── */}
                   <Route element={<ProtectedLayout />}>

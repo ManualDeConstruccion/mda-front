@@ -1,14 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useGoogleLogin } from '@react-oauth/google';
 import GoogleSignInButton from '../../components/GoogleSignInButton/GoogleSignInButton';
+import LinkedInSignInButton from '../../components/LinkedInSignInButton/LinkedInSignInButton';
 import FormInput from '../../components/common/FormInput/FormInput';
 import PrimaryButton from '../../components/common/PrimaryButton/PrimaryButton';
 import styles from './Login.module.scss';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 const Login: React.FC = () => {
-  const { loginWithGoogle, loginWithEmail } = useAuth();
+  const { loginWithGoogle, loginWithEmail, completeSocialLogin } = useAuth();
   const location = useLocation();
   const state = location.state as { registered?: boolean; passwordReset?: boolean } | null;
   const [email, setEmail] = useState('');
@@ -24,6 +27,50 @@ const Login: React.FC = () => {
       setError('Error al iniciar sesión con Google');
     },
   });
+
+  const handleLinkedInMessage = useCallback((event: MessageEvent) => {
+    if (event.origin !== window.location.origin) return;
+    if (event.data?.type === 'social-auth-success') {
+      const { accessToken, refreshToken, user } = event.data;
+      completeSocialLogin(accessToken, refreshToken, user);
+    } else if (event.data?.type === 'social-auth-error') {
+      setError('Error al iniciar sesión con LinkedIn');
+    }
+  }, [completeSocialLogin]);
+
+  useEffect(() => {
+    window.addEventListener('message', handleLinkedInMessage);
+    return () => window.removeEventListener('message', handleLinkedInMessage);
+  }, [handleLinkedInMessage]);
+
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'social_auth_complete' && e.newValue) {
+        localStorage.removeItem('social_auth_complete');
+        const access = localStorage.getItem('access_token');
+        const refresh = localStorage.getItem('refresh_token');
+        const userStr = localStorage.getItem('user');
+        if (access && refresh) {
+          const user = userStr ? JSON.parse(userStr) : undefined;
+          completeSocialLogin(access, refresh, user);
+        }
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [completeSocialLogin]);
+
+  const handleLinkedInLogin = () => {
+    const width = 500;
+    const height = 600;
+    const left = window.screenX + (window.outerWidth - width) / 2;
+    const top = window.screenY + (window.outerHeight - height) / 2;
+    window.open(
+      `${API_URL}/api/auth/social/linkedin/authorize/`,
+      'LinkedIn Login',
+      `width=${width},height=${height},left=${left},top=${top}`,
+    );
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,8 +138,9 @@ const Login: React.FC = () => {
           <span>o continúa con</span>
         </div>
 
-        <div className={styles.googleButton}>
+        <div className={styles.socialButtons}>
           <GoogleSignInButton onClick={() => googleLogin()} />
+          <LinkedInSignInButton onClick={handleLinkedInLogin} />
         </div>
 
         <p className={styles.registerHint}>

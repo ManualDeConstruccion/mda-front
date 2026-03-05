@@ -1,0 +1,39 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.container {
+  min-height: 100vh;
+  @include flex-center();
+  background-color: $light-bg-primary;
+}
+
+.box {
+  @include card-container;
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+  background-color: $background-paper;
+  border-radius: $border-radius-lg;
+  box-shadow: $shadow-lg;
+
+  p {
+    color: $text-secondary;
+    margin-top: $spacing-md;
+  }
+}
+
+.spinner {
+  display: inline-block;
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid $border-color;
+  border-top-color: $primary-color;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

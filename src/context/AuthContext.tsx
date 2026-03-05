@@ -22,6 +22,7 @@ interface AuthContextType {
   accessToken: string | null;
   loginWithGoogle: (token: string) => Promise<void>;
   loginWithEmail: (email: string, password: string) => Promise<void>;
+  completeSocialLogin: (access: string, refresh: string, userData?: Partial<User>) => void;
   logout: () => void;
   refreshAccessToken: () => Promise<string | null>;
 }
@@ -390,6 +391,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const completeSocialLogin = useCallback((access: string, refresh: string, userData?: Partial<User>) => {
+    localStorage.setItem('access_token', access);
+    localStorage.setItem('refresh_token', refresh);
+    setAccessToken(access);
+    if (userData?.id && userData?.email) {
+      const u: User = {
+        id: userData.id,
+        email: userData.email,
+        first_name: userData.first_name,
+        last_name: userData.last_name,
+        is_staff: userData.is_staff,
+      };
+      setUser(u);
+      localStorage.setItem('user', JSON.stringify(u));
+    }
+    navigate('/');
+  }, [navigate]);
+
   const checkAuthStatus = useCallback(async () => {
     try {
       const response = await axios.get(`${API_URL}/api/auth/user/`, {
@@ -420,7 +439,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         user: user ?? null, 
         accessToken, 
         loginWithGoogle,
-        loginWithEmail, 
+        loginWithEmail,
+        completeSocialLogin,
         logout,
         refreshAccessToken
       }}
