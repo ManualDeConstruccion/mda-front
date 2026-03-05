@@ -55,11 +55,12 @@ export function useUserEngine(subprojectId: number) {
   const collaboratorsQuery = useQuery({
     queryKey: [QUERY_KEY_COLLABORATORS, subprojectId],
     queryFn: async () => {
-      const res = await api.get<{ collaborators: CollaboratorItem[] }>(
-        `projects/project-nodes/${subprojectId}/`
+      const res = await api.get<CollaboratorItem[]>(
+        `projects/project-nodes/${subprojectId}/node-collaborators/`
       );
-      return res.data.collaborators ?? [];
+      return res.data ?? [];
     },
+    staleTime: 60_000,
   });
 
   const searchByRut = useCallback((rut: string) => {
@@ -72,16 +73,11 @@ export function useUserEngine(subprojectId: number) {
       roleId,
       companyId,
     }: { userId: number; roleId: number; companyId?: number }) => {
-      const nodeRes = await api.get<{ collaborators: CollaboratorItem[] }>(
-        `projects/project-nodes/${subprojectId}/`
-      );
-      const current = nodeRes.data.collaborators ?? [];
-      const rest = current.filter((c) => c.role?.id !== roleId);
-      const next = [
-        ...rest,
-        { user_id: userId, collaborator_id: userId, role_id: roleId, company_id: companyId ?? null },
-      ];
-      await api.patch(`projects/project-nodes/${subprojectId}/`, { collaborators: next });
+      await api.post(`projects/project-nodes/${subprojectId}/node-collaborators/`, {
+        user_id: userId,
+        role_id: roleId,
+        company_id: companyId ?? null,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY_COLLABORATORS, subprojectId] });
@@ -90,17 +86,9 @@ export function useUserEngine(subprojectId: number) {
 
   const unassignRoleMutation = useMutation({
     mutationFn: async (roleId: number) => {
-      const nodeRes = await api.get<{ collaborators: CollaboratorItem[] }>(
-        `projects/project-nodes/${subprojectId}/`
-      );
-      const current = nodeRes.data.collaborators ?? [];
-      const next = current.filter((c) => c.role?.id !== roleId).map((c) => ({
-        user_id: c.collaborator.id,
-        collaborator_id: c.collaborator.id,
-        role_id: c.role!.id,
-        company_id: c.company?.id ?? null,
-      }));
-      await api.patch(`projects/project-nodes/${subprojectId}/`, { collaborators: next });
+      await api.delete(`projects/project-nodes/${subprojectId}/node-collaborators/`, {
+        data: { role_id: roleId },
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY_COLLABORATORS, subprojectId] });

@@ -1,13 +1,12 @@
 // src/hooks/useProjectNodes.ts
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
+import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { mapProjectNode } from '../mappers/project_node_mapper';
 import { ProjectNode, CreateProjectNodeDto, UpdateProjectNodeDto, TypeCode } from '../types/project_nodes.types';
 
-// Normalize API_URL to remove trailing slash
-const API_URL = import.meta.env.VITE_API_URL?.replace(/\/$/, '') || '';
+const STALE_TIME = 60 * 1000;
 
 interface ProjectNodesFilters {
   parent?: number;
@@ -18,29 +17,23 @@ export const useProjectNodes = <T extends ProjectNode = ProjectNode>(filters?: P
   const { accessToken } = useAuth();
   const queryClient = useQueryClient();
 
-  const axiosConfig = {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  };
-
   const getProjects = useQuery<T[]>({
     queryKey: ['projectNodes', filters],
     queryFn: async (): Promise<T[]> => {
       const params = new URLSearchParams();
       if (filters?.parent) params.append('parent', filters.parent.toString());
       if (filters?.type) params.append('type', filters.type);
-      const response = await axios.get(`${API_URL}/api/projects/project-nodes/?${params.toString()}`, axiosConfig);
-      return Array.isArray(response.data) ? response.data.map(mapProjectNode) as T[] : [];
+      const response = await api.get(`projects/project-nodes/?${params.toString()}`);
+      const results = response.data?.results ?? response.data;
+      return Array.isArray(results) ? results.map(mapProjectNode) as T[] : [];
     },
     enabled: !!accessToken && (!!filters?.parent || !!filters?.type),
+    staleTime: STALE_TIME,
   });
 
   const createProject = useMutation({
     mutationFn: async (data: CreateProjectNodeDto) => {
-      // Check if there are any File objects in the data
       const hasFiles = Object.values(data).some(value => value instanceof File);
-      
-      console.log('Data being sent to backend:', data);
-      
       if (hasFiles) {
         const formData = new FormData();
         Object.entries(data).forEach(([key, value]) => {
@@ -54,26 +47,12 @@ export const useProjectNodes = <T extends ProjectNode = ProjectNode>(filters?: P
             }
           }
         });
-
-        console.log('FormData being sent:', Object.fromEntries(formData));
-
-        const response = await axios.post(`${API_URL}/api/projects/project-nodes/`, formData, {
-          ...axiosConfig,
-          headers: {
-            ...axiosConfig.headers,
-            'Content-Type': 'multipart/form-data',
-          },
+        const response = await api.post('projects/project-nodes/', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
         });
         return response.data;
       } else {
-        // If no files, send as JSON
-        const response = await axios.post(`${API_URL}/api/projects/project-nodes/`, data, {
-          ...axiosConfig,
-          headers: {
-            ...axiosConfig.headers,
-            'Content-Type': 'application/json',
-          },
-        });
+        const response = await api.post('projects/project-nodes/', data);
         return response.data;
       }
     },
@@ -85,37 +64,20 @@ export const useProjectNodes = <T extends ProjectNode = ProjectNode>(filters?: P
   const updateProject = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: FormData | UpdateProjectNodeDto | string }) => {
       const isFormData = data instanceof FormData;
-      let body: FormData | UpdateProjectNodeDto | string = data;
-      const config = {
-        ...axiosConfig,
-        headers: {
-          ...axiosConfig.headers,
-          'Content-Type': isFormData ? 'multipart/form-data' : 'application/json',
-        },
-      };
-      // Si no es FormData y el content-type es JSON, serializa el body
-      if (!isFormData && config.headers['Content-Type'] === 'application/json' && typeof data === 'object') {
-        body = JSON.stringify(data);
-      }
-      const response = await axios.patch(`${API_URL}/api/projects/project-nodes/${id}/`, body, config);
+      const headers = isFormData ? { 'Content-Type': 'multipart/form-data' } : {};
+      const body = !isFormData && typeof data === 'object' ? JSON.stringify(data) : data;
+      const response = await api.patch(`projects/project-nodes/${id}/`, body, { headers });
       return response.data;
     },
     onSuccess: (_, variables) => {
-      // Solo invalidar las queries específicas que necesitan actualización
-      queryClient.invalidateQueries({ 
-        queryKey: ['projectNodes'],
-        exact: false 
-      });
-      queryClient.invalidateQueries({ 
-        queryKey: ['projectNode', variables.id],
-        exact: true 
-      });
+      queryClient.invalidateQueries({ queryKey: ['projectNodes'], exact: false });
+      queryClient.invalidateQueries({ queryKey: ['projectNode', variables.id], exact: true });
     },
   });
 
   const patchProject = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: Partial<UpdateProjectNodeDto> }) => {
-      const response = await axios.patch(`${API_URL}/api/projects/project-nodes/${id}/`, data, axiosConfig);
+      const response = await api.patch(`projects/project-nodes/${id}/`, data);
       return response.data;
     },
     onSuccess: (_, variables) => {
@@ -126,7 +88,7 @@ export const useProjectNodes = <T extends ProjectNode = ProjectNode>(filters?: P
 
   const deleteProject = useMutation({
     mutationFn: async (id: number) => {
-      await axios.delete(`${API_URL}/api/projects/project-nodes/${id}/`, axiosConfig);
+      await api.delete(`projects/project-nodes/${id}/`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projectNodes'] });
@@ -134,28 +96,12 @@ export const useProjectNodes = <T extends ProjectNode = ProjectNode>(filters?: P
   });
 
   const reorderNodes = async (parentId: number, nodeOrders: Array<{ id: number; order: number }>) => {
-    try {
-      const response = await axios.post(`${API_URL}/api/projects/project-nodes/reorder_with_numbering/`, {
-        parent_id: parentId,
-        node_orders: nodeOrders
-      }, axiosConfig);
-
-      if (response.status !== 200) {
-        throw new Error('Error al reordenar los nodos');
-      }
-
-      // Refrescar los datos después del reordenamiento
-      // Invalidar todas las queries relacionadas con projectNodes para asegurar que se actualicen
-      queryClient.invalidateQueries({ 
-        queryKey: ['projectNodes'],
-        exact: false 
-      });
-      
-      return response.data;
-    } catch (error) {
-      console.error('Error al reordenar nodos:', error);
-      throw error;
-    }
+    const response = await api.post('projects/project-nodes/reorder_with_numbering/', {
+      parent_id: parentId,
+      node_orders: nodeOrders,
+    });
+    queryClient.invalidateQueries({ queryKey: ['projectNodes'], exact: false });
+    return response.data;
   };
 
   return {
@@ -171,17 +117,15 @@ export const useProjectNodes = <T extends ProjectNode = ProjectNode>(filters?: P
 
 export const useProjectNodeTree = (nodeId?: number | null) => {
   const { accessToken } = useAuth();
-  const axiosConfig = {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  };
   return useQuery({
     queryKey: ['projectNodeTree', nodeId],
     queryFn: async () => {
       if (!nodeId) return null;
-      const { data } = await axios.get(`${API_URL}/api/projects/project-nodes/${nodeId}/tree/`, axiosConfig);
+      const { data } = await api.get(`projects/project-nodes/${nodeId}/tree/`);
       return data;
     },
     enabled: !!nodeId && !!accessToken,
+    staleTime: STALE_TIME,
   });
 };
 
@@ -191,11 +135,10 @@ export const useProjectNode = <T extends ProjectNode = ProjectNode>(id?: number)
     queryKey: ['projectNode', id],
     queryFn: async () => {
       if (!id) return null;
-      const { data } = await axios.get(`${API_URL}/api/projects/project-nodes/${id}/`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
+      const { data } = await api.get(`projects/project-nodes/${id}/`);
       return mapProjectNode(data) as T;
     },
     enabled: !!id && !!accessToken,
+    staleTime: STALE_TIME,
   });
 };

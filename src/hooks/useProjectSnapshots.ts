@@ -122,30 +122,17 @@ export const useProjectSnapshots = (projectNodeId: number | null) => {
       queryClient.invalidateQueries({ queryKey: ['projectSnapshots', variables.projectNodeId] });
       
       // Invalidar datos del proyecto que pueden haber cambiado
-      queryClient.invalidateQueries({ queryKey: ['projectNode', variables.projectNodeId] });
+      const nodeId = variables.projectNodeId;
+      queryClient.invalidateQueries({ queryKey: ['projectSnapshots', nodeId] });
+      queryClient.invalidateQueries({ queryKey: ['projectNode', nodeId] });
       queryClient.invalidateQueries({ queryKey: ['projectNodes'] });
-      queryClient.invalidateQueries({ queryKey: ['projectNodeTree'] });
-      
-      // Invalidar datos de estructura que pueden haber sido restaurados
+      queryClient.invalidateQueries({ queryKey: ['projectNodeTree', nodeId] });
       queryClient.invalidateQueries({ queryKey: ['projectLevels'] });
       queryClient.invalidateQueries({ queryKey: ['projectLevelsByType'] });
       queryClient.invalidateQueries({ queryKey: ['buildings'] });
       queryClient.invalidateQueries({ queryKey: ['surfacePolygons'] });
-      
-      // Invalidar todas las queries que puedan estar relacionadas con el proyecto
-      // Esto asegura que todos los componentes se actualicen con los nuevos datos
-      queryClient.invalidateQueries({ 
-        predicate: (query) => {
-          const key = query.queryKey;
-          // Invalidar cualquier query que contenga el projectNodeId
-          return JSON.stringify(key).includes(String(variables.projectNodeId));
-        }
-      });
-      
-      // Forzar refresh de la página para reflejar todos los cambios
-      setTimeout(() => {
-        window.location.reload();
-      }, 300);
+      queryClient.invalidateQueries({ queryKey: ['project-node-properties', nodeId] });
+      queryClient.invalidateQueries({ queryKey: ['node-collaborators', nodeId] });
     },
   });
 

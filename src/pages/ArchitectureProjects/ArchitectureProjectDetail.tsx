@@ -100,35 +100,16 @@ const ArchitectureProjectDetail: React.FC = () => {
   const { projects: mainProjects } = useProjectNodes<ProjectNode>({ type: 'project' as TypeCode });
   const mainProject = mainProjects?.find(p => p.id === Number(projectId));
 
-  const { projects: architectureProjects, deleteProject } = useProjectNodes<ProjectNode>({ type: 'architecture_subproject' });
+  const { projects: architectureProjects, deleteProject, isLoadingProjects: isLoadingProject } = useProjectNodes<ProjectNode>({ parent: Number(projectId), type: 'architecture_subproject' });
   const architectureProject = architectureProjects?.find(p => p.id === Number(architectureId));
-  
-  // Obtener project_type_id del architectureProject
-  // Necesitamos hacer fetch del nodo completo para obtener architecture_project_type
-  const { data: fullArchitectureProject, error: projectError, isLoading: isLoadingProject } = useQuery<ProjectNode & { architecture_project_type?: number }>({
-    queryKey: ['architecture-project', architectureId],
-    queryFn: async () => {
-      if (!architectureId) return null;
-      const response = await api.get(`projects/project-nodes/${architectureId}/`);
-      return response.data;
-    },
-    enabled: !!architectureId && !!accessToken,
-  });
-  
-  // Log errores cuando ocurran
-  useEffect(() => {
-    if (projectError) {
-      console.error('Error loading architecture project:', projectError);
-    }
-  }, [projectError]);
-  
-  // Obtener el project_type_id - puede venir como número (ID) o como objeto con id
-  const projectTypeId = 
-    typeof (fullArchitectureProject as any)?.architecture_project_type === 'number'
-      ? (fullArchitectureProject as any)?.architecture_project_type
-      : typeof (fullArchitectureProject as any)?.architecture_project_type === 'object' && (fullArchitectureProject as any)?.architecture_project_type?.id
-      ? (fullArchitectureProject as any)?.architecture_project_type.id
-      : (fullArchitectureProject as any)?.architecture_project_type || null;
+  const projectError: Error | null | unknown = null;
+
+  const projectTypeId = (() => {
+    const apt = (architectureProject as any)?.architecture_project_type;
+    if (typeof apt === 'number') return apt;
+    if (typeof apt === 'object' && apt?.id) return apt.id;
+    return apt || null;
+  })();
 
   // Función para obtener todas las secciones de forma plana
   const getAllSections = useCallback((sections: FormParameterCategory[]): FormParameterCategory[] => {

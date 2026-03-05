@@ -45,12 +45,11 @@ export function usePropertyEngine(subprojectId: number) {
   const linkedPropertyQuery = useQuery({
     queryKey: ['project-node-properties', subprojectId],
     queryFn: async () => {
-      const res = await api.get(`projects/project-nodes/${subprojectId}/`);
-      const propertyIds: number[] = res.data.properties ?? [];
-      if (propertyIds.length === 0) return null;
-      const propRes = await api.get<PropertyData>(`properties/${propertyIds[0]}/`);
-      return propRes.data;
+      const res = await api.get<PropertyData[]>(`projects/project-nodes/${subprojectId}/node-properties/`);
+      if (!res.data || res.data.length === 0) return null;
+      return res.data[0];
     },
+    staleTime: 60_000,
   });
 
   const searchProperty = useCallback((rol: string, comunaId: number) => {
