@@ -23,6 +23,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import { useSnapshotSourceFields } from '../../hooks/useSnapshotSourceFields';
 import CreateParameterCategoryModal from './CreateParameterCategoryModal';
 
 interface ParameterDefinition {
@@ -78,6 +79,10 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
   const [error, setError] = useState<string | null>(null);
   const [createCategoryModalOpen, setCreateCategoryModalOpen] = useState(false);
   const [tabValue, setTabValue] = useState(0);
+
+  const { fields: snapshotSourceFields, isLoading: snapshotFieldsLoading } = useSnapshotSourceFields(
+    snapshotSource as 'property' | 'user' | 'none' | 'manual'
+  );
 
   // Funciones auxiliares para validar JSON
   const isValidJSON = (str: string): boolean => {
@@ -682,14 +687,47 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
             </FormControl>
 
             {snapshotSource !== 'none' && (
-              <TextField
-                label="Campo Fuente"
-                value={sourceField}
-                onChange={(e) => setSourceField(e.target.value)}
-                fullWidth
-                helperText='Campo del modelo fuente para snapshot (ej: "rol_number", "sector", "address")'
-                placeholder='rol_number'
-              />
+              snapshotSource === 'property' || snapshotSource === 'user' ? (
+                <FormControl fullWidth>
+                  <InputLabel>Campo Fuente</InputLabel>
+                  <Select
+                    label="Campo Fuente"
+                    value={sourceField}
+                    onChange={(e) => setSourceField(e.target.value)}
+                    disabled={snapshotFieldsLoading}
+                    displayEmpty
+                    renderValue={(v) => v || ''}
+                  >
+                    <MenuItem value="">
+                      <em>Ninguno</em>
+                    </MenuItem>
+                    {[
+                      ...snapshotSourceFields,
+                      ...(sourceField && !snapshotSourceFields.some((f) => f.value === sourceField)
+                        ? [{ value: sourceField, label: sourceField }]
+                        : []),
+                    ]
+                      .sort((a, b) => a.value.localeCompare(b.value))
+                      .map((f) => (
+                        <MenuItem key={f.value} value={f.value}>
+                          {f.label}
+                        </MenuItem>
+                      ))}
+                  </Select>
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                    Campos disponibles desde el modelo {snapshotSource === 'property' ? 'Property' : 'ProjectCollaborator'}
+                  </Typography>
+                </FormControl>
+              ) : (
+                <TextField
+                  label="Campo Fuente"
+                  value={sourceField}
+                  onChange={(e) => setSourceField(e.target.value)}
+                  fullWidth
+                  helperText="Snapshot manual: campo fuente opcional"
+                  placeholder="rol_number"
+                />
+              )
             )}
 
             <FormControl fullWidth>
