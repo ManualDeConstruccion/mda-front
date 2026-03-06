@@ -44,6 +44,7 @@ import ParametersPage from './pages/Admin/ParametersPage';
 import FormularioEditPage from './pages/Admin/FormularioEditPage';
 import NormativesPage from './pages/Admin/NormativesPage';
 import PublicationEditorPage from './pages/Admin/PublicationEditorPage';
+import Profile from './pages/Profile/Profile';
 
 /** ────────────────────────────────────────────────────────────────────────────
  *  🎛️  React‑Query client (sin refetch on focus)
@@ -112,6 +113,7 @@ const App: React.FC = () => {
                   {/* ───────── Protected ‐‐ todo lo demás ───────── */}
                   <Route element={<ProtectedLayout />}>
                     <Route path="home" element={<Home />} />
+                    <Route path="perfil" element={<Profile />} />
 
                     {/*  Agrupamos las rutas de proyectos  */}
                     <Route path="proyectos">
