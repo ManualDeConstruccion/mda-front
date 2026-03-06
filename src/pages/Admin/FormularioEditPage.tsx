@@ -189,7 +189,7 @@ const SectionTree: React.FC<SectionTreeProps> = ({
                   gap: 1,
                 }}
               >
-                {section.form_parameters.map((param) => (
+                {(section.form_parameters ?? []).map((param) => (
                   <Box
                     key={param.id}
                     sx={{
@@ -222,10 +222,14 @@ const SectionTree: React.FC<SectionTreeProps> = ({
                       <EditIcon fontSize="small" />
                     </IconButton>
                     <Typography variant="body2" fontWeight="medium">
-                      {param.parameter_definition.name}
+                      {typeof param.parameter_definition === 'object' && param.parameter_definition !== null
+                        ? (param.parameter_definition as { name: string }).name
+                        : 'Parámetro'}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      Código: {param.parameter_definition.code}
+                      Código: {typeof param.parameter_definition === 'object' && param.parameter_definition !== null
+                        ? (param.parameter_definition as { code: string }).code
+                        : String(param.parameter_definition)}
                     </Typography>
                     <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap' }}>
                       {param.is_required && (
@@ -234,13 +238,15 @@ const SectionTree: React.FC<SectionTreeProps> = ({
                       {!param.is_visible && (
                         <Chip label="Oculto" size="small" variant="outlined" />
                       )}
-                      {param.parameter_definition.unit && (
+                      {typeof param.parameter_definition === 'object' && param.parameter_definition !== null && (param.parameter_definition as { unit?: string }).unit && (
                         <Typography variant="caption" color="text.secondary">
-                          {param.parameter_definition.unit}
+                          {(param.parameter_definition as { unit?: string }).unit}
                         </Typography>
                       )}
                       <Typography variant="caption" color="text.secondary">
-                        Tipo: {param.parameter_definition.data_type}
+                        Tipo: {typeof param.parameter_definition === 'object' && param.parameter_definition !== null
+                          ? (param.parameter_definition as { data_type: string }).data_type
+                          : 'N/A'}
                       </Typography>
                     </Box>
                   </Box>
@@ -250,9 +256,9 @@ const SectionTree: React.FC<SectionTreeProps> = ({
           )}
 
           {/* Subcategorías */}
-          {hasSubcategories && (
+          {hasSubcategories && (section.subcategories?.length ?? 0) > 0 && (
             <Box sx={{ mt: 2 }}>
-              {section.subcategories.map((subcategory) => (
+              {(section.subcategories ?? []).map((subcategory) => (
                 <SectionTree
                   key={subcategory.id}
                   section={subcategory}

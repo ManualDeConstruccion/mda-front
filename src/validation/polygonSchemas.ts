@@ -140,10 +140,10 @@ export const createPolygonSchema = (
   }).test(
     'require-width-length-or-manual',
     'Debe ingresar ancho y largo, o un total manual',
-    function (value) {
-      const hasWidthAndLength = value.width && value.length;
-      const hasManualTotal = value.manual_total;
-      return hasWidthAndLength || hasManualTotal;
+    function (value): boolean {
+      const hasWidthAndLength = (value.width != null && value.width !== 0) && (value.length != null && value.length !== 0);
+      const hasManualTotal = value.manual_total != null && value.manual_total !== 0;
+      return Boolean(hasWidthAndLength || hasManualTotal);
     }
   ).test(
     'require-width-length-for-triangulo',

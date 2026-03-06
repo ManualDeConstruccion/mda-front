@@ -61,18 +61,37 @@
   gap: $spacing-sm;
 }
 
-.avatar {
-  width: 32px;
-  height: 32px;
+.userMenuTrigger {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $border-radius-md;
   cursor: pointer;
-  transition: opacity $transition-fast;
+  transition: background-color $transition-fast;
 
   &:hover {
-    opacity: 0.8;
+    background-color: rgba(255, 255, 255, 0.08);
   }
 }
 
-.loginButton, .logoutButton {
+.avatar {
+  width: 32px;
+  height: 32px;
+}
+
+.userName {
+  font-size: $font-size-sm;
+  color: $text-light;
+  white-space: nowrap;
+}
+
+.arrowIcon {
+  color: $text-light-secondary;
+  transition: transform $transition-fast;
+}
+
+.loginButton {
   @include button-ghost();
   text-transform: none;
   font-weight: 500;
@@ -85,7 +104,7 @@
     margin-left: $spacing-md;
   }
 
-  .logoutButton {
+  .userName {
     display: none;
   }
 }

@@ -17,6 +17,10 @@ import Layout from "./components/Layout/Layout";
 import PublicLayout from "./components/Layout/PublicLayout";
 import Home from "./pages/Home";
 import Login from "./pages/Login/Login";
+import Register from "./pages/Register/Register";
+import ForgotPassword from "./pages/ForgotPassword/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword/ResetPassword";
+import AuthCallback from "./pages/AuthCallback/AuthCallback";
 import Landing from "./pages/Landing/Landing";
 import CreateProject from "./pages/Projects/CreateProject";
 import ProjectList from "./pages/Projects/ProjectList";
@@ -40,6 +44,7 @@ import ParametersPage from './pages/Admin/ParametersPage';
 import FormularioEditPage from './pages/Admin/FormularioEditPage';
 import NormativesPage from './pages/Admin/NormativesPage';
 import PublicationEditorPage from './pages/Admin/PublicationEditorPage';
+import Profile from './pages/Profile/Profile';
 
 /** ────────────────────────────────────────────────────────────────────────────
  *  🎛️  React‑Query client (sin refetch on focus)
@@ -100,10 +105,15 @@ const App: React.FC = () => {
                     }
                   />
                   <Route path="/login" element={<Login />} />
+                  <Route path="/login/recuperar-contrasena" element={<ForgotPassword />} />
+                  <Route path="/login/restablecer-contrasena" element={<ResetPassword />} />
+                  <Route path="/registro" element={<Register />} />
+                  <Route path="/auth/callback" element={<AuthCallback />} />
 
                   {/* ───────── Protected ‐‐ todo lo demás ───────── */}
                   <Route element={<ProtectedLayout />}>
                     <Route path="home" element={<Home />} />
+                    <Route path="perfil" element={<Profile />} />
 
                     {/*  Agrupamos las rutas de proyectos  */}
                     <Route path="proyectos">

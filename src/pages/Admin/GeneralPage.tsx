@@ -86,7 +86,8 @@ const GeneralPage: React.FC = () => {
   const [exportError, setExportError] = useState<string | null>(null);
   const [exportSuccess, setExportSuccess] = useState(false);
 
-  const [importStep, setImportStep] = useState<'select' | 'preview' | 'applying'>('select');
+  type ImportStep = 'select' | 'preview' | 'applying';
+  const [importStep, setImportStep] = useState<ImportStep>('select');
   const [importError, setImportError] = useState<string | null>(null);
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
   const [importProgress, setImportProgress] = useState(0);
@@ -350,6 +351,7 @@ const GeneralPage: React.FC = () => {
                   component="span"
                   startIcon={<CloudUploadIcon />}
                   onClick={() => fileInputRef.current?.click()}
+                  disabled={false}
                 >
                   Seleccionar archivo y comparar
                 </Button>

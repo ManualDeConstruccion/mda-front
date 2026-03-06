@@ -21,6 +21,8 @@ interface AuthContextType {
   user: User | null;
   accessToken: string | null;
   loginWithGoogle: (token: string) => Promise<void>;
+  loginWithEmail: (email: string, password: string) => Promise<void>;
+  completeSocialLogin: (access: string, refresh: string, userData?: Partial<User>) => void;
   logout: () => void;
   refreshAccessToken: () => Promise<string | null>;
 }
@@ -37,7 +39,7 @@ interface AuthProviderProps {
 }
 
 // Crear una instancia de axios con la configuración base
-const api = axios.create({
+export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
   withCredentials: true,
 });
@@ -67,7 +69,7 @@ const isTokenExpiringSoon = (token: string): boolean => {
 };
 
 // Función para obtener el token CSRF
-const getCsrfToken = async () => {
+export const getCsrfToken = async () => {
   try {
     const response = await api.get('/api/auth/social/csrf/');
     return response.data.csrfToken;
@@ -354,6 +356,88 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const loginWithEmail = async (email: string, password: string) => {
+    try {
+      const csrfToken = await getCsrfToken();
+      const response = await api.post('/api/auth/login/', { email, password }, {
+        headers: { 'X-CSRFToken': csrfToken },
+      });
+      let access = response.data.access ?? response.data.access_token ?? '';
+      let refresh = response.data.refresh ?? response.data.refresh_token ?? '';
+
+      if (!access || !refresh) {
+        const cookies = document.cookie.split(';').reduce((acc: Record<string, string>, c) => {
+          const [k, ...v] = c.trim().split('=');
+          acc[k] = v.join('=');
+          return acc;
+        }, {});
+        access = access || cookies['access_token'] || cookies['mdc_access_token'] || '';
+        refresh = refresh || cookies['refresh_token'] || cookies['mdc_refresh_token'] || '';
+      }
+
+      if (!access) {
+        const userRes = await api.get('/api/auth/social/user/');
+        if (userRes.data) {
+          const u: User = {
+            id: userRes.data.id,
+            email: userRes.data.email,
+            first_name: userRes.data.first_name,
+            last_name: userRes.data.last_name,
+            is_staff: userRes.data.is_staff,
+          };
+          setUser(u);
+          localStorage.setItem('user', JSON.stringify(u));
+          navigate('/');
+          return;
+        }
+        throw new Error('Respuesta de login inválida');
+      }
+
+      localStorage.setItem('access_token', access);
+      localStorage.setItem('refresh_token', refresh);
+      setAccessToken(access);
+      const userPayload = response.data.user;
+      if (userPayload) {
+        const userData: User = {
+          id: userPayload.id,
+          email: userPayload.email,
+          first_name: userPayload.first_name,
+          last_name: userPayload.last_name,
+          is_staff: userPayload.is_staff,
+        };
+        setUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
+      }
+      navigate('/');
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        const msg = err.response?.data?.non_field_errors?.[0]
+          ?? err.response?.data?.detail
+          ?? (err.response?.status === 400 ? 'Correo o contraseña incorrectos' : 'Error al iniciar sesión');
+        throw new Error(msg);
+      }
+      throw err;
+    }
+  };
+
+  const completeSocialLogin = useCallback((access: string, refresh: string, userData?: Partial<User>) => {
+    localStorage.setItem('access_token', access);
+    localStorage.setItem('refresh_token', refresh);
+    setAccessToken(access);
+    if (userData?.id && userData?.email) {
+      const u: User = {
+        id: userData.id,
+        email: userData.email,
+        first_name: userData.first_name,
+        last_name: userData.last_name,
+        is_staff: userData.is_staff,
+      };
+      setUser(u);
+      localStorage.setItem('user', JSON.stringify(u));
+    }
+    navigate('/');
+  }, [navigate]);
+
   const checkAuthStatus = useCallback(async () => {
     try {
       const response = await axios.get(`${API_URL}/api/auth/user/`, {
@@ -383,7 +467,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       value={{ 
         user: user ?? null, 
         accessToken, 
-        loginWithGoogle, 
+        loginWithGoogle,
+        loginWithEmail,
+        completeSocialLogin,
         logout,
         refreshAccessToken
       }}

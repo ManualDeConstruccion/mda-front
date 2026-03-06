@@ -1,0 +1,82 @@
+@use '../../../styles/variables' as *;
+@use '../../../styles/mixins' as *;
+
+.wrapper {
+  margin-bottom: $spacing-md;
+  text-align: left;
+}
+
+.label {
+  @include label-base;
+  display: block;
+  margin-bottom: $spacing-xs;
+  font-size: $font-size-base;
+}
+
+.inputWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input {
+  @include input-base;
+  flex: 1;
+  font-size: $font-size-base;
+
+  &.hasError {
+    border-color: $error-color;
+  }
+}
+
+.togglePassword {
+  position: absolute;
+  right: $spacing-sm;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: $primary-color;
+  font-size: $font-size-xs;
+  cursor: pointer;
+  padding: $spacing-xs $spacing-sm;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.error {
+  display: block;
+  margin-top: $spacing-xs;
+  font-size: $font-size-sm;
+  color: $error-color;
+}
+
+.passwordRules {
+  list-style: none;
+  margin: $spacing-md 0 0;
+  padding: 0;
+  font-size: $font-size-sm;
+}
+
+.ruleMet,
+.ruleUnmet {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  margin-top: $spacing-xs;
+}
+
+.ruleMet {
+  color: #2e7d32;
+}
+
+.ruleUnmet {
+  color: $text-secondary;
+}
+
+.ruleIcon {
+  flex-shrink: 0;
+  font-weight: bold;
+}

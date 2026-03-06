@@ -61,13 +61,13 @@ const FormRouter: React.FC<FormRouterProps> = ({ formTypeModel, nodeData, select
           if (api?.patchNode) {
             await api.patchNode(nodeData.id, {
               content_type: registry.contentType,
-              object_id: selectedInstance
+              object_id: Number(selectedInstance)
             });
           } else {
             await patchProject.mutateAsync({
               id: nodeData.id,
               data: {
-                object_id: selectedInstance
+                object_id: Number(selectedInstance)
               }
             });
           }
@@ -112,14 +112,14 @@ const FormRouter: React.FC<FormRouterProps> = ({ formTypeModel, nodeData, select
           if (api?.patchNode && nodeId) {
             await api.patchNode(nodeId, {
               content_type: registry.contentType,
-              object_id: instanceId
+              object_id: Number(instanceId)
             });
           } else if (nodeId) {
             // Si no hay patchNode, usar patchProject para actualizar
             await patchProject.mutateAsync({
               id: nodeId,
               data: {
-                object_id: instanceId
+                object_id: Number(instanceId)
               }
             });
           }

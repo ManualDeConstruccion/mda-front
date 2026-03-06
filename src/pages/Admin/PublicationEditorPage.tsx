@@ -42,6 +42,7 @@ interface RegulationArticleRow {
   code: string;
   article_number: string;
   title?: string;
+  content?: string;
   effective_from: string;
   effective_to?: string | null;
   is_active: boolean;
@@ -163,7 +164,7 @@ const PublicationEditorPage: React.FC = () => {
     };
 
     // Ordenar por section_number jerárquico
-    const sortSections = (sections: (PublicationSectionRow & { subsections: PublicationSectionRow[] })[]) => {
+    const sortSections = (sections: PublicationSectionRow[]) => {
       sections.sort((a, b) => {
         const keyA = sectionNumberSortKey(a.section_number);
         const keyB = sectionNumberSortKey(b.section_number);
@@ -180,8 +181,9 @@ const PublicationEditorPage: React.FC = () => {
         return a.name.localeCompare(b.name);
       });
       sections.forEach((s) => {
-        if (s.subsections.length > 0) {
-          sortSections(s.subsections);
+        const subs = s.subsections ?? [];
+        if (subs.length > 0) {
+          sortSections(subs);
         }
       });
     };
@@ -192,12 +194,13 @@ const PublicationEditorPage: React.FC = () => {
 
   // Aplanar árbol de secciones manteniendo orden jerárquico
   const flattenedSections = useMemo(() => {
-    const result: (PublicationSectionRow & { subsections: PublicationSectionRow[]; level: number })[] = [];
-    const flatten = (sections: (PublicationSectionRow & { subsections: PublicationSectionRow[] })[], level: number = 0) => {
+    const result: (PublicationSectionRow & { level: number })[] = [];
+    const flatten = (sections: PublicationSectionRow[], level: number = 0) => {
       sections.forEach((section) => {
         result.push({ ...section, level });
-        if (section.subsections.length > 0) {
-          flatten(section.subsections, level + 1);
+        const subs = section.subsections ?? [];
+        if (subs.length > 0) {
+          flatten(subs, level + 1);
         }
       });
     };
@@ -589,7 +592,7 @@ const PublicationEditorPage: React.FC = () => {
           setEditingArticle(null);
           setCreateArticleOpen(false);
         }}
-        article={editingArticle}
+        article={editingArticle ? { ...editingArticle, content: editingArticle.content || '' } : null}
         officialPublicationId={publication?.id ? Number(publication.id) : 0}
         defaultSectionId={undefined}
       />
