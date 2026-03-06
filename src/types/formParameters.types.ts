@@ -23,17 +23,38 @@ export interface FormType {
   updated_at?: string;
 }
 
+/** Motor de sección (componente especial: superficies, etc.). */
+export interface SectionEngine {
+  id: number;
+  code: string;
+  name: string;
+  description?: string | null;
+  /** Si es true, se ofrece al agregar bloques en secciones (solo se listan los que tienen true). */
+  es_formulario_minvu?: boolean;
+}
+
+/** Bloque dentro de una sección: grilla o motor. */
+export interface FormCategoryBlock {
+  id: number;
+  order: number;
+  block_type: 'grid' | 'engine';
+  section_engine?: SectionEngine | null;
+  /** Nombre del bloque (en motores: se muestra cuando está colapsado). */
+  name?: string;
+  /** Si es true, en vista usuario final el bloque se muestra colapsable. */
+  is_collapsible?: boolean;
+}
+
 export interface FormParameterCategory {
   id: number;
   code: string;
   number: string;
   name: string;
-  form_type?: number | FormType | null;
-  form_type_name?: string | null;
   description?: string;
   parent?: number | null;
   order: number;
   is_active: boolean;
+  blocks?: FormCategoryBlock[];
   form_parameters?: FormParameter[];
   grid_cells?: FormGridCell[];
   subcategories?: FormParameterCategory[];
@@ -48,6 +69,7 @@ export interface FormParameterCategory {
 export interface FormParameter {
   id: number;
   category: number;
+  block?: number | null;
   parameter_definition: number | {
     id: number;
     code: string;
@@ -78,6 +100,7 @@ export interface FormGridCellStyle {
 export interface FormGridCell {
   id: number;
   category: number;
+  block?: number | null;
   grid_row: number;
   grid_column: number;
   grid_span: number;

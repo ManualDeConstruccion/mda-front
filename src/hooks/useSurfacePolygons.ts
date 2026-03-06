@@ -18,14 +18,18 @@ export interface SurfacePolygon {
   manual_total: number | null;
   apply_to_group: boolean;
   is_util: boolean;
+  usage_type?: string;
+  occupancy_destination?: string;
   total: number;
   created_at: string;
   updated_at: string;
 }
 
+/** Filtros para listar polígonos. usage_type: 'surface' = superficie construida, 'occupancy' = carga de ocupación. */
 interface SurfacePolygonsFilters {
   project_node?: number;
   level?: number;
+  usage_type?: 'surface' | 'occupancy';
 }
 
 export const useSurfacePolygons = (filters?: SurfacePolygonsFilters) => {
@@ -42,6 +46,7 @@ export const useSurfacePolygons = (filters?: SurfacePolygonsFilters) => {
       const params = new URLSearchParams();
       if (filters?.project_node) params.append('project_node', filters.project_node.toString());
       if (filters?.level) params.append('level', filters.level.toString());
+      if (filters?.usage_type) params.append('usage_type', filters.usage_type);
       
       const response = await axios.get(
         `${API_URL}/api/project-engines/polygons/?${params.toString()}`,

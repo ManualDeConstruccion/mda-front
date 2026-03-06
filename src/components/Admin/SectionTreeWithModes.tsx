@@ -10,22 +10,24 @@ import {
   DragStartEvent,
   DragOverEvent,
 } from '@dnd-kit/core';
-import { useFormTypes } from '../../hooks/useFormTypes';
+import { useSectionEngines } from '../../hooks/useSectionEngines';
 import { useSectionExpansion } from '../../hooks/useSectionExpansion';
 import { useSectionValues } from '../../hooks/useSectionValues';
 import { useGridLayout } from '../../hooks/useGridLayout';
 import { useFormCategoryMutations } from '../../hooks/useFormCategoryMutations';
 import EditFormParameterCategoryModal from './EditFormParameterCategoryModal';
+import EditEngineBlockModal from './EditEngineBlockModal';
 import AddFormParameterModal from './AddFormParameterModal';
 import EditFormParameterModal from './EditFormParameterModal';
 import AddEditFormGridCellModal from './AddEditFormGridCellModal';
 import GridRow from './GridRow';
-import SuperficiesSectionContent from './SuperficiesSectionContent';
+import EngineBlockRenderer from './EngineBlockRenderer';
+import ENGINE_COMPONENTS from './engineRegistry';
 import {
   CategoryAlertsBlock,
-  SectionTypeInfo,
   EmptyGridState,
-  SectionTypeSelector,
+  AddFirstBlockSelector,
+  AddBlockBelow,
   SectionHeader,
   SectionGrid,
 } from './SectionTree';
@@ -34,6 +36,7 @@ import type {
   UIAlert,
   FormType,
   FormParameterCategory,
+  FormCategoryBlock,
   FormParameter,
   FormGridCellStyle,
   FormGridCell,
@@ -59,10 +62,128 @@ interface SectionTreeWithModesProps {
   getSectionMode?: (sectionId: number) => 'view' | 'editable' | undefined; // Función para obtener el modo de cualquier sección (para subcategorías)
   /** Alertas por categoría (categoryId -> alertas). Se muestran bajo la descripción de la categoría. */
   categoryAlerts?: Record<number, UIAlert[]>;
+  /** Llamar cuando un motor aplica cambios (ej. propiedad vinculada/editada) para recargar el resto de formularios sin recargar la página. */
+  onMotorAppliedChange?: () => void | Promise<void>;
 }
 
 // Re-exportar GridCell y SortableGridCell para compatibilidad con importadores que usan SectionTreeWithModes
 export { default as GridCell, SortableGridCell } from './GridCell';
+
+/** Props para la grilla de un solo bloque (params/cells filtrados por block). */
+interface GridBlockViewProps {
+  section: FormParameterCategory;
+  gridCells: FormGridCell[];
+  mode: SectionTreeMode;
+  effectiveMode: SectionTreeMode;
+  values: Record<string, any>;
+  onChange: (code: string, value: any) => void;
+  mutations: ReturnType<typeof useFormCategoryMutations>;
+  onAddParameter: (row: number, column: number) => void;
+  onEditParameter: (param: FormParameter) => void;
+  onEditTextCell: (cell: FormGridCell) => void;
+  onDeleteCell: (cell: FormParameter | FormGridCell, isParameter: boolean) => Promise<void>;
+  onAddTextCell: (row: number, column: number, blockId?: number) => void;
+  addRowBefore: (targetRow: number) => Promise<void>;
+  addRowAfter: (targetRow: number) => Promise<void>;
+  deleteRow: (targetRow: number) => Promise<void>;
+  updateDisplayConfig: (row: number, columns: number) => Promise<void>;
+}
+
+const GridBlockView: React.FC<GridBlockViewProps> = ({
+  section,
+  gridCells,
+  mode,
+  effectiveMode,
+  values,
+  onChange,
+  mutations,
+  onAddParameter,
+  onEditParameter,
+  onEditTextCell,
+  onDeleteCell,
+  onAddTextCell,
+  addRowBefore,
+  addRowAfter,
+  deleteRow,
+  updateDisplayConfig,
+}) => {
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeRow, setActiveRow] = useState<number | null>(null);
+  const {
+    maxRow,
+    gridLayout,
+    allCells,
+    getColumnsForRow,
+    hasParameters,
+    hasGridCells,
+    isCellParameter,
+  } = useGridLayout(section, gridCells, mode);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor)
+  );
+  const gridRows = useMemo(() => {
+    const rows: React.ReactNode[] = [];
+    if (maxRow === 0) return rows;
+    for (let r = 1; r <= maxRow; r++) {
+      const rowColumns = getColumnsForRow(r);
+      const rowCells = gridLayout[r] || {};
+      rows.push(
+        <GridRow
+          key={`row-${r}`}
+          row={r}
+          rowColumns={rowColumns}
+          rowCells={rowCells}
+          mode={effectiveMode}
+          maxRow={maxRow}
+          activeId={activeId || ''}
+          hasParameters={!!hasParameters}
+          section={section}
+          onAddRowBefore={addRowBefore}
+          onAddRowAfter={addRowAfter}
+          onDeleteRow={deleteRow}
+          onUpdateDisplayConfig={updateDisplayConfig}
+          onEditParameter={onEditParameter}
+          onEditTextCell={onEditTextCell}
+          onDeleteCell={onDeleteCell}
+          onAddTextCell={onAddTextCell}
+          onAddParameter={onAddParameter}
+          values={values}
+          onChange={onChange}
+        />
+      );
+    }
+    return rows;
+  }, [effectiveMode, maxRow, gridLayout, activeId, hasParameters, section, values, onChange, getColumnsForRow, addRowBefore, addRowAfter, deleteRow, updateDisplayConfig, onEditParameter, onEditTextCell, onDeleteCell, onAddTextCell, onAddParameter]);
+  const hasRealContent = hasParameters || hasGridCells;
+  if (!hasRealContent && mode !== 'admin') return null;
+  if (maxRow === 0 && mode === 'admin') {
+    return (
+      <Box sx={{ mt: 2 }}>
+        <EmptyGridState onAddFirstRow={async () => await mutations.addFirstRow()} />
+      </Box>
+    );
+  }
+  if (!hasRealContent && maxRow === 0) return null;
+  return (
+    <Box sx={{ mt: 2 }}>
+      <Box sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1, bgcolor: 'background.paper' }}>
+        <SectionGrid
+          mode={mode}
+          gridContent={<>{gridRows}</>}
+          allCells={allCells}
+          activeId={activeId || ''}
+          sensors={sensors}
+          onDragStart={() => {}}
+          onDragOver={() => {}}
+          onDragEnd={async () => {}}
+          isCellParameter={isCellParameter}
+          getCellSortId={(cell) => `cell-${isCellParameter(cell) ? 'param' : 'text'}-${cell.id}`}
+        />
+      </Box>
+    </Box>
+  );
+};
 
 // Componente principal
 const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
@@ -81,6 +202,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
   onSectionModeChange,
   getSectionMode,
   categoryAlerts,
+  onMotorAppliedChange,
 }) => {
   const { values, onChange } = useSectionValues(externalValues, externalOnChange, section.id);
   const mutations = useFormCategoryMutations(section, onSectionUpdated);
@@ -103,9 +225,10 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
   const [parameterInitialGridPosition, setParameterInitialGridPosition] = useState<{ row: number; column: number } | null>(null);
   const [editParameterModalOpen, setEditParameterModalOpen] = useState(false);
   const [selectedParameter, setSelectedParameter] = useState<FormParameter | null>(null);
-  const [selectTypeModalOpen, setSelectTypeModalOpen] = useState(false);
   const [creatingSubcategory, setCreatingSubcategory] = useState(false);
-  const { formTypes } = useFormTypes({ enabled: mode === 'admin' });
+  const [currentBlockIdForNewParam, setCurrentBlockIdForNewParam] = useState<number | null>(null);
+  const [engineBlockToEdit, setEngineBlockToEdit] = useState<FormCategoryBlock | null>(null);
+  const { sectionEngines } = useSectionEngines({ enabled: mode === 'admin' });
   
   const [gridCells, setGridCells] = useState<FormGridCell[]>(section.grid_cells || []);
   useEffect(() => {
@@ -114,32 +237,42 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
     }
   }, [section.grid_cells]);
 
+  // Bloques ordenados (grilla + motores). Si no hay bloques, se trata como una sola grilla legacy.
+  const sortedBlocks = useMemo(() => {
+    const blocks = section.blocks ?? [];
+    return blocks.slice().sort((a, b) => a.order - b.order);
+  }, [section.blocks]);
+  const hasBlocks = sortedBlocks.length > 0;
+  const hasEngineBlockWithComponent = hasBlocks && sortedBlocks.some(
+    (b) => b.block_type === 'engine' && b.section_engine?.code && ENGINE_COMPONENTS[b.section_engine.code]
+  );
+
+  const shouldUseTopLevelGrid = !hasBlocks;
+  const gridHookResult = useGridLayout(
+    shouldUseTopLevelGrid ? section : { ...section, form_parameters: [], grid_cells: [] },
+    shouldUseTopLevelGrid ? gridCells : [],
+    mode,
+  );
   const {
     maxRow,
     gridLayout,
     allCells,
     getColumnsForRow,
-    hasParameters,
-    hasGridCells,
+    hasParameters: hasParametersRaw,
+    hasGridCells: hasGridCellsRaw,
     isCellParameter,
-  } = useGridLayout(section, gridCells, mode);
+  } = gridHookResult;
+  const hasParameters = shouldUseTopLevelGrid ? hasParametersRaw : (section.form_parameters?.length ?? 0) > 0;
+  const hasGridCells = shouldUseTopLevelGrid ? hasGridCellsRaw : (gridCells?.length ?? 0) > 0;
   
   const hasSubcategories = section.subcategories && section.subcategories.length > 0;
+  /** Si la sección no tiene parámetros ni celdas, solo se muestra el botón de agregar bloque (no "Agregar primera fila"). */
+  const sectionHasNoContent = !hasParameters && !hasGridCells;
   
-  // Determinar si la sección usa la interfaz de grilla (solo para tipo "general" explícitamente)
-  const formTypeName = typeof section.form_type === 'object' 
-    ? section.form_type?.name 
-    : (section.form_type_name || null);
-  // Normalizar: si es cadena vacía, tratarla como null
-  const normalizedFormTypeName = (formTypeName === '' || formTypeName === null || formTypeName === undefined) ? null : formTypeName;
-  // Solo mostrar grilla si el tipo es explícitamente "general", no si es undefined/null
-  const useGridInterface = normalizedFormTypeName === 'general';
-  // Sección especial "superficies": pestañas Resumen / Pisos / Niveles / Polígonos (solo vista/editable con subprojectId)
-  const isSuperficiesSection = normalizedFormTypeName === 'superficies' && mode !== 'admin' && !!subprojectId;
-
-  // Verificar si form_type es realmente undefined/null (no solo falsy)
-  // IMPORTANTE: Si es tipo "general", NO es undefined, así que no mostrar selector
-  const isFormTypeUndefined = normalizedFormTypeName === null || normalizedFormTypeName === undefined || normalizedFormTypeName === '';
+  // Cuando hay bloques: contenido por bloque (grilla filtrada o motor). Sin bloques: una sola grilla con todo.
+  const useGridInterface = !hasBlocks || sortedBlocks.some((b) => b.block_type === 'grid');
+  const isSuperficiesSection = hasEngineBlockWithComponent && mode !== 'admin' && !!subprojectId;
+  const isFormTypeUndefined = !hasBlocks;
 
   const updateDisplayConfig = useCallback(async (row: number, columns: number) => {
     try {
@@ -183,6 +316,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
   const [addTextCellModalOpen, setAddTextCellModalOpen] = useState(false);
   const [textCellInitialData, setTextCellInitialData] = useState<{ row: number; column: number; span: number; content: string } | null>(null);
   const [editingTextCell, setEditingTextCell] = useState<FormGridCell | null>(null);
+  const [currentBlockIdForNewTextCell, setCurrentBlockIdForNewTextCell] = useState<number | null>(null);
 
   // Sensores para drag and drop (solo modo admin)
   const sensors = useSensors(
@@ -300,10 +434,11 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
     }
   };
 
-  // Handler para abrir modal de agregar celda de texto
-  const handleOpenAddTextCellModal = (row: number, column: number) => {
+  // Handler para abrir modal de agregar celda de texto (blockId cuando se agrega desde un bloque)
+  const handleOpenAddTextCellModal = (row: number, column: number, blockId?: number) => {
     setTextCellInitialData({ row, column, span: 1, content: '' });
     setEditingTextCell(null);
+    setCurrentBlockIdForNewTextCell(blockId ?? null);
     setAddTextCellModalOpen(true);
   };
 
@@ -319,6 +454,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
     setAddTextCellModalOpen(false);
     setEditingTextCell(null);
     setTextCellInitialData(null);
+    setCurrentBlockIdForNewTextCell(null);
   };
 
   // Handler para eliminar celda
@@ -449,27 +585,12 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
     );
   };
 
-  // Renderizar según el modo
-  const renderContent = () => {
-    // Si no usa interfaz de grilla y está en modo admin, mostrar mensaje
-    // Pero solo si tiene un tipo definido (no mostrar mensaje si es null/undefined/vacío)
-    if (mode === 'admin' && !useGridInterface && normalizedFormTypeName) {
-      return (
-        <Box sx={{ mt: 2, p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
-          <Typography variant="body2" color="text.secondary">
-            Esta sección usa el tipo "{normalizedFormTypeName}". La interfaz personalizada para este tipo aún no está implementada.
-          </Typography>
-        </Box>
-      );
-    }
-    
-    return (
-      <Box sx={{ mt: 2 }}>
-        {/* Grilla compartida por todos los modos */}
-        {renderGrid()}
-      </Box>
-    );
-  };
+  // Renderizar contenido: una grilla (legacy o por bloque)
+  const renderContent = () => (
+    <Box sx={{ mt: 2 }}>
+      {renderGrid()}
+    </Box>
+  );
 
   return (
     <Box
@@ -534,38 +655,124 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
         )}
 
         <Collapse in={isExpanded}>
-          {mode === 'admin' && !hasParameters && !hasSubcategories && !hasGridCells && isFormTypeUndefined && !useGridInterface && (
-            <SectionTypeSelector
-              formTypes={formTypes}
-              onSelectType={async (formTypeId) => {
+          {/* Sin bloques: mostrar selector para agregar primer bloque (admin) o nada */}
+          {mode === 'admin' && !hasParameters && !hasSubcategories && !hasGridCells && isFormTypeUndefined && (
+            <AddFirstBlockSelector
+              sectionEngines={sectionEngines}
+              onSelectGrid={async () => {
                 try {
-                  await mutations.patchCategory({ form_type: formTypeId });
-                } catch (error) {
-                  console.error('Error al actualizar tipo de formulario:', error);
-                  alert('Error al actualizar el tipo de formulario');
+                  await mutations.createBlockAfter('grid');
+                } catch (e) {
+                  console.error('Error al crear bloque grilla:', e);
+                  alert('Error al crear el bloque');
+                }
+              }}
+              onSelectEngine={async (sectionEngineId) => {
+                try {
+                  await mutations.createBlockAfter('engine', sectionEngineId);
+                } catch (e) {
+                  console.error('Error al crear bloque motor:', e);
+                  alert('Error al crear el bloque');
                 }
               }}
             />
           )}
-          {mode === 'admin' && normalizedFormTypeName && normalizedFormTypeName !== 'general' && (
-            <SectionTypeInfo formTypeName={normalizedFormTypeName} />
-          )}
-          
-          {/* Sección superficies: pestañas Resumen / Pisos / Niveles / Polígonos */}
-          {isSuperficiesSection && subprojectId && (
-            <Box sx={{ mt: 2, ml: 0 }}>
-              <SuperficiesSectionContent subprojectId={subprojectId} />
-            </Box>
+
+          {/* Con bloques en admin: siempre "Agregar bloque arriba" antes del primer bloque */}
+          {hasBlocks && mode === 'admin' && (
+            <AddBlockBelow
+              label="Agregar bloque arriba"
+              sectionEngines={sectionEngines}
+              onAdd={mutations.createBlockBefore}
+            />
           )}
 
-          {/* Renderizar contenido: SOLO si usa grilla (tipo "general") o si tiene contenido */}
-          {/* Si es tipo "general", siempre mostrar la grilla, incluso si está vacía */}
-          {!isSuperficiesSection && (useGridInterface || hasParameters || hasSubcategories || hasGridCells) ? (
-            renderContent()
-          ) : null}
+          {/* Con bloques: renderizar cada bloque (motor superficies o grilla) */}
+          {hasBlocks && sortedBlocks.map((block, blockIndex) => {
+            const isLastBlock = blockIndex === sortedBlocks.length - 1;
+            const blockContent =
+              block.block_type === 'engine' ? (
+                <EngineBlockRenderer
+                  block={block}
+                  mode={mode}
+                  subprojectId={subprojectId}
+                  onEdit={(b) => setEngineBlockToEdit(b)}
+                  onDelete={(id) => mutations.deleteBlock(id)}
+                  onMotorAppliedChange={onMotorAppliedChange}
+                />
+              ) : block.block_type === 'grid' ? (
+                (() => {
+                  const filteredParams = (section.form_parameters ?? []).filter(
+                    (p) => (p as FormParameter & { block?: number }).block === block.id
+                  );
+                  const filteredCells = gridCells.filter(
+                    (c) => (c as FormGridCell & { block?: number }).block === block.id
+                  );
+                  const virtualSection = {
+                    ...section,
+                    form_parameters: filteredParams,
+                    grid_cells: filteredCells,
+                  };
+                  const gridBlockCount = sortedBlocks.filter((b) => b.block_type === 'grid').length;
+                  const gridBlockNumber = sortedBlocks.slice(0, blockIndex).filter((b) => b.block_type === 'grid').length + 1;
+                  const blockSpacing = mode === 'admin' ? (blockIndex > 0 ? 3 : 2) : 0.5;
+                  return (
+                    <Box sx={{ mt: blockSpacing, ml: 0 }}>
+                      {mode === 'admin' && gridBlockCount > 1 && (
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                          Bloque de grilla {gridBlockNumber}
+                        </Typography>
+                      )}
+                      <GridBlockView
+                        section={virtualSection}
+                        gridCells={filteredCells}
+                      mode={mode}
+                      effectiveMode={effectiveMode}
+                      values={values}
+                      onChange={onChange}
+                      mutations={mutations}
+                      onAddParameter={(row, column) => {
+                        setCurrentBlockIdForNewParam(block.id);
+                        setParameterInitialGridPosition({ row, column });
+                        setAddParameterModalOpen(true);
+                      }}
+                      onEditParameter={(param) => {
+                        setSelectedParameter(param);
+                        setEditParameterModalOpen(true);
+                      }}
+                      onEditTextCell={handleOpenEditTextCellModal}
+                      onDeleteCell={handleDeleteCell}
+                      onAddTextCell={(row, column) => handleOpenAddTextCellModal(row, column, block.id)}
+                      addRowBefore={addRowBefore}
+                      addRowAfter={addRowAfter}
+                      deleteRow={deleteRow}
+                      updateDisplayConfig={updateDisplayConfig}
+                    />
+                    </Box>
+                  );
+                })()
+              ) : null;
 
-          {/* Subcategorías (no en sección superficies) */}
-          {hasSubcategories && !isSuperficiesSection && (
+            return (
+              <React.Fragment key={block.id}>
+                {blockContent}
+                {/* "Agregar bloque debajo" después del último bloque */}
+                {mode === 'admin' && isLastBlock && blockContent != null && (
+                  <AddBlockBelow
+                    label="Agregar bloque debajo"
+                    sectionEngines={sectionEngines}
+                    onAdd={mutations.createBlockAfter}
+                  />
+                )}
+              </React.Fragment>
+            );
+          })}
+
+          {/* Sin bloques pero con contenido: una sola grilla legacy. No mostrar editor de grilla si la sección está vacía. */}
+          {!hasBlocks && (hasParameters || hasSubcategories || hasGridCells) && renderContent()}
+
+          {/* Subcategorías: siempre visibles si existen (también cuando la sección tiene bloque motor) */}
+          {hasSubcategories && (
             <Box sx={{ mt: 2 }}>
               {section.subcategories?.map((subcategory) => (
                 <SectionTreeWithModes
@@ -585,6 +792,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
                   onSectionModeChange={onSectionModeChange}
                   getSectionMode={getSectionMode}
                   categoryAlerts={categoryAlerts}
+                  onMotorAppliedChange={onMotorAppliedChange}
                 />
               ))}
             </Box>
@@ -626,11 +834,18 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
           onSectionUpdated();
           setCreatingSubcategory(false);
         }}
-        category={creatingSubcategory ? null : section} // null para crear subcategoría, section para editar
+        category={creatingSubcategory ? null : section}
         projectTypeId={projectTypeId}
         parentCategories={allSections}
-        defaultParentId={creatingSubcategory ? section.id : undefined} // Establecer esta sección como padre solo al crear subcategoría
-        blockFormTypeChange={!!section.form_type && !creatingSubcategory} // Bloquear cambio si ya tiene tipo y no estamos creando subcategoría
+        defaultParentId={creatingSubcategory ? section.id : undefined}
+      />
+
+      <EditEngineBlockModal
+        open={!!engineBlockToEdit}
+        onClose={() => setEngineBlockToEdit(null)}
+        onSuccess={onSectionUpdated}
+        block={engineBlockToEdit}
+        projectTypeId={projectTypeId}
       />
 
         <AddFormParameterModal
@@ -638,11 +853,13 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
           onClose={() => {
             setAddParameterModalOpen(false);
             setParameterInitialGridPosition(null);
+            setCurrentBlockIdForNewParam(null);
           }}
           onSuccess={onSectionUpdated}
           categoryId={section.id}
           projectTypeId={projectTypeId}
           initialGridPosition={parameterInitialGridPosition}
+          initialBlockId={currentBlockIdForNewParam ?? undefined}
         />
 
       <EditFormParameterModal
@@ -662,6 +879,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
         onClose={handleCloseTextCellModal}
         onSuccess={onSectionUpdated}
         categoryId={section.id}
+        blockId={currentBlockIdForNewTextCell}
         maxRow={maxRow}
         initialData={textCellInitialData}
         editingCell={editingTextCell}

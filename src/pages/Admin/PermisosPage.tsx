@@ -6,14 +6,10 @@ import {
   Button,
   CircularProgress,
   Alert,
-  ButtonGroup,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import UploadIcon from '@mui/icons-material/Upload';
-import DownloadIcon from '@mui/icons-material/Download';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { api } from '../../services/api';
 import CategoryTree from '../../components/Admin/CategoryTree';
 import CreateCategoryModal from '../../components/Admin/CreateCategoryModal';
 import CreateProjectTypeModal from '../../components/Admin/CreateProjectTypeModal';
@@ -54,21 +50,25 @@ const PermisosPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [selectedProjectType, setSelectedProjectType] = useState<ArchitectureProjectType | null>(null);
   const [selectedProjectTypeForList, setSelectedProjectTypeForList] = useState<ArchitectureProjectType | null>(null);
-  const [isImporting, setIsImporting] = useState(false);
 
-  // Fetch categorías raíz con sus hijos y tipos de proyecto
+  // Código de la categoría raíz que muestra esta página (solo ella y sus dependencias)
+  const ROOT_CATEGORY_CODE = 'formularios_minvu';
+
+  // Fetch categoría raíz formularios_minvu con sus hijos y tipos de proyecto
   const { data: categories, isLoading, error } = useQuery<Category[]>({
-    queryKey: ['categories-tree'],
+    queryKey: ['categories-tree', ROOT_CATEGORY_CODE],
     queryFn: async () => {
-      // El backend no usa prefijo v1, así que construimos la URL manualmente
       const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
-      const response = await axios.get(`${API_URL}/api/architecture/categories/admin_tree/`, {
-        withCredentials: true,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-        },
-      });
+      const response = await axios.get(
+        `${API_URL}/api/architecture/categories/admin_tree/?root_code=${encodeURIComponent(ROOT_CATEGORY_CODE)}`,
+        {
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          },
+        }
+      );
       return response.data;
     },
   });
@@ -128,36 +128,6 @@ const PermisosPage: React.FC = () => {
     setSelectedProjectTypeForList(null);
   };
 
-  const handleImportFile = async (file: File) => {
-    setIsImporting(true);
-    try {
-      const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      const response = await axios.post(
-        `${API_URL}/api/architecture/import/`,
-        formData,
-        {
-          withCredentials: true,
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-            'X-CSRFToken': document.cookie.split('; ').find(row => row.startsWith('mdc_csrftoken='))?.split('=')[1] || '',
-          },
-        }
-      );
-      
-      queryClient.invalidateQueries({ queryKey: ['categories-tree'] });
-      alert('Archivo importado exitosamente');
-    } catch (error: any) {
-      console.error('Error al importar:', error);
-      alert(`Error al importar: ${error.response?.data?.error || error.message}`);
-    } finally {
-      setIsImporting(false);
-    }
-  };
-
   if (isLoading) {
     return (
       <Container maxWidth="lg">
@@ -187,47 +157,17 @@ const PermisosPage: React.FC = () => {
           <Typography variant="h4" gutterBottom>
             Administración de Permisos
           </Typography>
-          <ButtonGroup variant="outlined" aria-label="acciones">
-            <Button
-              startIcon={<DownloadIcon />}
-              onClick={() => {
-                const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
-                window.open(`${API_URL}/api/architecture/export/`, '_blank');
-              }}
-            >
-              Exportar
-            </Button>
-            <Button
-              startIcon={<UploadIcon />}
-              component="label"
-              disabled={isImporting}
-            >
-              {isImporting ? 'Importando...' : 'Importar'}
-              <input
-                type="file"
-                hidden
-                accept=".xlsx,.xls"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    handleImportFile(file);
-                  }
-                }}
-              />
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => handleCreateCategory(null)}
-            >
-              Nueva Categoría
-            </Button>
-          </ButtonGroup>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => handleCreateCategory(categories?.length === 1 ? categories[0].id : null)}
+          >
+            Nueva Categoría
+          </Button>
         </Box>
 
         <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-          Gestiona las categorías y tipos de permisos. Las categorías pueden tener subcategorías
-          y tipos de proyecto asociados.
+          Gestiona la categoría Formularios MINVU y sus subcategorías y tipos de proyecto.
         </Typography>
 
         {categories && categories.length > 0 ? (
@@ -255,16 +195,8 @@ const PermisosPage: React.FC = () => {
             }}
           >
             <Typography variant="body1" color="text.secondary" gutterBottom>
-              No hay categorías creadas aún.
+              No se encontró la categoría con código &quot;formularios_minvu&quot;. Créala desde Administración general o verifica que exista en el sistema.
             </Typography>
-            <Button
-              variant="outlined"
-              startIcon={<AddIcon />}
-              onClick={() => handleCreateCategory(null)}
-              sx={{ mt: 2 }}
-            >
-              Crear Primera Categoría
-            </Button>
           </Box>
         )}
       </Box>

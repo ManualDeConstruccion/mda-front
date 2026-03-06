@@ -1,24 +1,23 @@
-// src/components/Admin/SuperficiesSectionContent.tsx
-// Contenido de la sección "Superficies": pestañas Resumen, Pisos, Niveles, Polígonos.
-// Reutiliza FloorsSummaryTab, FloorsTab, LevelsTab, PolygonsTab (misma lógica que FloorEditor).
+// src/components/Admin/OcupacionSectionContent.tsx
+// Contenido de la sección "Ocupación": pestañas Resumen, Pisos, Niveles, Polígonos de ocupación.
+// Similar a SuperficiesSectionContent; enfocado en carga de ocupación (usage_type=occupancy, occupancy_destination).
 
 import React, { useState } from 'react';
 import { ProjectProvider } from '../../context/ProjectContext';
-import FloorsSummaryTab from '../FloorEditor/FloorsSummaryTab';
 import FloorsTab from '../FloorEditor/FloorsTab';
 import LevelsTab from '../SurfaceEditor/LevelsTab';
 import PolygonsTab from '../SurfaceEditor/PolygonsTab';
 import styles from './SurfacesSectionTabs.module.scss';
 
-export type SuperficiesTabType = 'resumen' | 'pisos' | 'niveles' | 'poligonos';
+export type OcupacionTabType = 'resumen' | 'pisos' | 'niveles' | 'poligonos';
 
-export interface SuperficiesSectionContentProps {
+export interface OcupacionSectionContentProps {
   /** ID del subproyecto (architecture_subproject) */
   subprojectId: number;
 }
 
-const SuperficiesSectionContent: React.FC<SuperficiesSectionContentProps> = ({ subprojectId }) => {
-  const [activeTab, setActiveTab] = useState<SuperficiesTabType>('resumen');
+const OcupacionSectionContent: React.FC<OcupacionSectionContentProps> = ({ subprojectId }) => {
+  const [activeTab, setActiveTab] = useState<OcupacionTabType>('resumen');
 
   return (
     <ProjectProvider projectNodeId={subprojectId}>
@@ -28,7 +27,7 @@ const SuperficiesSectionContent: React.FC<SuperficiesSectionContentProps> = ({ s
             className={`${styles.tab} ${activeTab === 'resumen' ? styles.active : ''}`}
             onClick={() => setActiveTab('resumen')}
           >
-            Resumen
+            Resumen ocupación
           </button>
           <button
             className={`${styles.tab} ${activeTab === 'pisos' ? styles.active : ''}`}
@@ -46,14 +45,14 @@ const SuperficiesSectionContent: React.FC<SuperficiesSectionContentProps> = ({ s
             className={`${styles.tab} ${activeTab === 'poligonos' ? styles.active : ''}`}
             onClick={() => setActiveTab('poligonos')}
           >
-            Polígonos de Superficies
+            Polígonos de ocupación
           </button>
         </div>
 
         <div className={styles.tabContent}>
           {activeTab === 'resumen' && (
             <div className={styles.tabPane}>
-              <FloorsSummaryTab projectNodeId={subprojectId} />
+              <p>Resumen de carga de ocupación por piso y edificio (resultados en <code>occupancy_results</code>). En construcción.</p>
             </div>
           )}
           {activeTab === 'pisos' && (
@@ -68,7 +67,7 @@ const SuperficiesSectionContent: React.FC<SuperficiesSectionContentProps> = ({ s
           )}
           {activeTab === 'poligonos' && (
             <div className={styles.tabPane}>
-              <PolygonsTab projectNodeId={subprojectId} usageType="surface" />
+              <PolygonsTab projectNodeId={subprojectId} usageType="occupancy" />
             </div>
           )}
         </div>
@@ -77,4 +76,4 @@ const SuperficiesSectionContent: React.FC<SuperficiesSectionContentProps> = ({ s
   );
 };
 
-export default SuperficiesSectionContent;
+export default OcupacionSectionContent;

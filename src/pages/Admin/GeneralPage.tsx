@@ -55,6 +55,7 @@ export interface RestoreApplyResponse {
   errors?: string[];
 }
 
+/** Etiquetas para el preview de importación de backup; deben coincidir con BACKUP_MODELS del backend (incl. SectionEngine, FormCategoryBlock, etc.). */
 const MODEL_LABELS: Record<string, string> = {
   'normative.regulationtype': 'Tipo de documento',
   'normative.officialpublication': 'Publicación oficial',
@@ -68,7 +69,9 @@ const MODEL_LABELS: Record<string, string> = {
   'parameters.parametercategory': 'Categoría de parámetro',
   'parameters.parameterdefinition': 'Definición de parámetro',
   'parameters.formtype': 'Tipo de formulario (parámetros)',
+  'parameters.sectionengine': 'Motor de sección',
   'parameters.formparametercategory': 'Sección de formulario',
+  'parameters.formcategoryblock': 'Bloque de sección',
   'parameters.formparameter': 'Parámetro de formulario',
   'parameters.formgridcell': 'Celda de grilla',
 };
@@ -317,6 +320,7 @@ const GeneralPage: React.FC = () => {
             <Typography variant="body2" color="text.secondary" paragraph>
               Sube un JSON generado por la exportación. Se comparará con los datos actuales: los nuevos se añadirán;
               los ítems modificados se listarán para que aceptes o rechaces cada cambio.
+              Tras importar, se reajustan automáticamente las secuencias de la base de datos para que puedas crear nuevos registros sin errores de clave duplicada.
             </Typography>
             {importError && (
               <Alert severity="error" sx={{ mb: 2 }} onClose={() => setImportError(null)}>

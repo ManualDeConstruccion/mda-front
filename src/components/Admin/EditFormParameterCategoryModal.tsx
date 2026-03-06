@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -16,14 +16,42 @@ import {
   MenuItem,
   Typography,
   Autocomplete,
+  List,
+  ListItem,
+  ListItemText,
+  IconButton,
 } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import DeleteIcon from '@mui/icons-material/Delete';
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
-import { useFormTypes } from '../../hooks/useFormTypes';
-import type { FormType } from '../../types/formParameters.types';
+import {
+  DndContext,
+  DragEndEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+interface FormCategoryBlock {
+  id: number;
+  order: number;
+  block_type: 'grid' | 'engine';
+  section_engine?: { id: number; code: string; name: string } | null;
+  name?: string;
+  is_collapsible?: boolean;
+}
 
 interface FormParameterCategory {
   id: number;
@@ -33,10 +61,9 @@ interface FormParameterCategory {
   description?: string;
   parent?: number | null;
   is_active: boolean;
-  form_type?: number | FormType | null;
-  form_type_name?: string | null;
   project_type?: number;
   project_type_name?: string | null;
+  blocks?: FormCategoryBlock[];
 }
 
 interface EditFormParameterCategoryModalProps {
@@ -46,8 +73,132 @@ interface EditFormParameterCategoryModalProps {
   category: FormParameterCategory | null;
   projectTypeId: number;
   parentCategories?: FormParameterCategory[];
-  defaultParentId?: number; // ID de la categoría padre por defecto (para crear subcategorías)
-  blockFormTypeChange?: boolean; // Bloquear cambio de form_type si ya tiene uno
+  defaultParentId?: number;
+}
+
+function SortableBlockRow({
+  block,
+  displayOrder,
+  blockEngineEdits,
+  setBlockEngineEdits,
+  onDelete,
+  isDeleting,
+}: {
+  block: FormCategoryBlock;
+  displayOrder: number;
+  blockEngineEdits: Record<number, { name: string; is_collapsible: boolean }>;
+  setBlockEngineEdits: React.Dispatch<React.SetStateAction<Record<number, { name: string; is_collapsible: boolean }>>>;
+  onDelete: () => void;
+  isDeleting: boolean;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: block.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+  };
+
+  return (
+    <ListItem
+      ref={setNodeRef}
+      style={style}
+      sx={{
+        flexDirection: 'column',
+        alignItems: 'stretch',
+        gap: 1,
+        border: '1px solid',
+        borderColor: 'divider',
+        borderRadius: 1,
+        mb: 1,
+        bgcolor: 'background.paper',
+        '&:last-of-type': { mb: 0 },
+      }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, width: '100%' }}>
+        <Box
+          sx={{
+            flexShrink: 0,
+            width: 28,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontWeight: 600,
+            color: 'text.secondary',
+            fontSize: '0.875rem',
+          }}
+        >
+          {displayOrder}
+        </Box>
+        <Box
+          {...attributes}
+          {...listeners}
+          sx={{ cursor: isDragging ? 'grabbing' : 'grab', touchAction: 'none', pt: 0.5, color: 'action.active' }}
+        >
+          <DragIndicatorIcon fontSize="small" />
+        </Box>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          {block.block_type === 'grid' ? (
+            <ListItemText primary="Grilla" secondary={`Orden ${displayOrder}`} />
+          ) : (
+            <>
+              <ListItemText secondary={`Orden ${displayOrder} · Motor`} />
+              <TextField
+                size="small"
+                label="Nombre (se muestra al colapsar)"
+                value={blockEngineEdits[block.id]?.name ?? ''}
+                onChange={(e) =>
+                  setBlockEngineEdits((prev) => ({
+                    ...prev,
+                    [block.id]: {
+                      ...(prev[block.id] ?? { name: '', is_collapsible: false }),
+                      name: e.target.value,
+                    },
+                  }))
+                }
+                fullWidth
+                placeholder={block.section_engine?.name ?? block.section_engine?.code ?? ''}
+              />
+              <FormControlLabel
+                control={
+                  <Switch
+                    size="small"
+                    checked={blockEngineEdits[block.id]?.is_collapsible ?? false}
+                    onChange={(e) =>
+                      setBlockEngineEdits((prev) => ({
+                        ...prev,
+                        [block.id]: {
+                          ...(prev[block.id] ?? { name: '', is_collapsible: false }),
+                          is_collapsible: e.target.checked,
+                        },
+                      }))
+                    }
+                  />
+                }
+                label="Colapsable en vista de usuario final"
+              />
+            </>
+          )}
+        </Box>
+        <IconButton
+          edge="end"
+          size="small"
+          onClick={() => window.confirm('¿Eliminar este bloque?') && onDelete()}
+          disabled={isDeleting}
+          sx={{ flexShrink: 0 }}
+        >
+          <DeleteIcon fontSize="small" />
+        </IconButton>
+      </Box>
+    </ListItem>
+  );
 }
 
 const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalProps> = ({
@@ -58,7 +209,6 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
   projectTypeId,
   parentCategories = [],
   defaultParentId,
-  blockFormTypeChange = false,
 }) => {
   const { accessToken } = useAuth();
   const queryClient = useQueryClient();
@@ -68,9 +218,7 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
   const [description, setDescription] = useState('');
   const [parent, setParent] = useState<number | null>(null);
   const [isActive, setIsActive] = useState(true);
-  const [formType, setFormType] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { formTypes } = useFormTypes({ enabled: open });
   type ModalMode = 'create' | 'copy';
   const [mode, setMode] = useState<ModalMode>('create');
   const [selectedSourceCategory, setSelectedSourceCategory] = useState<FormParameterCategory | null>(null);
@@ -78,6 +226,32 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
 
   const isNewSection = !category && !defaultParentId;
   const isSubsection = selectedSourceCategory?.parent != null;
+  const initialSortedBlocks = useMemo(
+    () => (category?.blocks ?? []).slice().sort((a, b) => a.order - b.order),
+    [category?.blocks]
+  );
+
+  const [orderedBlocks, setOrderedBlocks] = useState<FormCategoryBlock[]>([]);
+  useEffect(() => {
+    if (category?.blocks && open) {
+      setOrderedBlocks(initialSortedBlocks);
+    }
+  }, [category?.id, open, initialSortedBlocks]);
+
+  const [blockEngineEdits, setBlockEngineEdits] = useState<Record<number, { name: string; is_collapsible: boolean }>>({});
+  useEffect(() => {
+    if (!category?.blocks) {
+      setBlockEngineEdits({});
+      return;
+    }
+    const edits: Record<number, { name: string; is_collapsible: boolean }> = {};
+    category.blocks.forEach((b) => {
+      if (b.block_type === 'engine') {
+        edits[b.id] = { name: b.name ?? '', is_collapsible: b.is_collapsible ?? false };
+      }
+    });
+    setBlockEngineEdits(edits);
+  }, [category?.id, open, category?.blocks]);
 
   // Categorías de otros tipos de proyecto para copiar (solo cuando modo copia y modal abierto)
   const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
@@ -153,22 +327,13 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
       setDescription(category.description || '');
       setParent(category.parent || null);
       setIsActive(category.is_active);
-      // Establecer form_type
-      if (category.form_type) {
-        const formTypeId = typeof category.form_type === 'object' ? category.form_type.id : category.form_type;
-        setFormType(formTypeId);
-      } else {
-        setFormType(null);
-      }
     } else {
-      // Reset para crear nuevo
       setCode('');
       setNumber('');
       setName('');
       setDescription('');
-      setParent(defaultParentId || null); // Usar defaultParentId si está disponible
+      setParent(defaultParentId || null);
       setIsActive(true);
-      setFormType(null);
     }
   }, [category, open, defaultParentId]);
 
@@ -206,40 +371,83 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
         return response.data;
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['form-structure', projectTypeId] });
-      onSuccess();
-      handleClose();
-    },
     onError: (err: any) => {
       setError(err.response?.data?.code?.[0] || err.response?.data?.detail || 'Error al guardar');
     },
   });
 
-  const handleSubmit = () => {
+  const deleteBlockMutation = useMutation({
+    mutationFn: async (blockId: number) => {
+      await axios.delete(`${API_URL}/api/parameters/form-category-blocks/${blockId}/`, {
+        withCredentials: true,
+        headers: { 'Authorization': `Bearer ${accessToken}` },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['form-structure', projectTypeId] });
+      onSuccess();
+    },
+    onError: (err: any) => {
+      setError(err.response?.data?.detail || 'Error al eliminar bloque');
+    },
+  });
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  );
+
+  const handleBlocksDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id && orderedBlocks.length > 0) {
+      const oldIndex = orderedBlocks.findIndex((b) => b.id === active.id);
+      const newIndex = orderedBlocks.findIndex((b) => b.id === over.id);
+      if (oldIndex !== -1 && newIndex !== -1) {
+        setOrderedBlocks((prev) => arrayMove(prev, oldIndex, newIndex));
+      }
+    }
+  };
+
+  const [isSaving, setIsSaving] = useState(false);
+  const handleSubmit = async () => {
     setError(null);
     if (!code.trim() || !number.trim() || !name.trim()) {
       setError('Código, número y nombre son requeridos');
       return;
     }
 
-    const mutationData: any = {
-      code: code.trim(),
-      number: number.trim(),
-      name: name.trim(),
-      description: description.trim() || '',
-      parent: parent || null,
-      is_active: isActive,
-    };
-    
-    // Solo incluir form_type si no está bloqueado o si es una nueva categoría
-    if (!blockFormTypeChange || !category) {
-      if (formType) {
-        mutationData.form_type = formType;
+    setIsSaving(true);
+    try {
+      await updateMutation.mutateAsync({
+        code: code.trim(),
+        number: number.trim(),
+        name: name.trim(),
+        description: description.trim() || '',
+        parent: parent || null,
+        is_active: isActive,
+      });
+      for (const [blockIdStr, data] of Object.entries(blockEngineEdits)) {
+        await axios.patch(
+          `${API_URL}/api/parameters/form-category-blocks/${blockIdStr}/`,
+          { name: data.name, is_collapsible: data.is_collapsible },
+          { withCredentials: true, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` } }
+        );
       }
+      if (orderedBlocks.length > 0) {
+        const blockIds = orderedBlocks.map((b) => b.id);
+        await axios.post(
+          `${API_URL}/api/parameters/form-category-blocks/reorder/`,
+          { block_ids: blockIds },
+          { withCredentials: true, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` } }
+        );
+      }
+      queryClient.invalidateQueries({ queryKey: ['form-structure', projectTypeId] });
+      onSuccess();
+      handleClose();
+    } catch (err: any) {
+      setError(err.response?.data?.detail || err.response?.data?.code?.[0] || 'Error al guardar');
+    } finally {
+      setIsSaving(false);
     }
-
-    updateMutation.mutate(mutationData);
   };
 
   // Filtrar categorías padre válidas (excluir la actual y sus descendientes)
@@ -369,8 +577,18 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
               value={parent || ''}
               onChange={(e) => setParent(e.target.value ? Number(e.target.value) : null)}
               fullWidth
+              variant="outlined"
+              InputLabelProps={{ shrink: true }}
               SelectProps={{
                 native: true,
+                sx: {
+                  '& select': {
+                    minHeight: 48,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  },
+                },
               }}
             >
               <option value="">Ninguna (Sección raíz)</option>
@@ -382,33 +600,37 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
             </TextField>
           )}
 
-          {/* Selector de tipo de formulario (solo si no está bloqueado o es nueva categoría) */}
-          {(!blockFormTypeChange || !category) && (
-            <FormControl fullWidth>
-              <InputLabel>Tipo de Formulario</InputLabel>
-              <Select
-                value={formType || ''}
-                label="Tipo de Formulario"
-                onChange={(e) => setFormType(e.target.value ? Number(e.target.value) : null)}
-                disabled={blockFormTypeChange && !!category}
+          {category && (
+            <Box>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>Bloques de la sección</Typography>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleBlocksDragEnd}
               >
-                <MenuItem value="">
-                  <em>Ninguno (usar grilla por defecto)</em>
-                </MenuItem>
-                {formTypes.map((type) => (
-                  <MenuItem key={type.id} value={type.id}>
-                    {type.name}
-                  </MenuItem>
-                ))}
-              </Select>
-              {blockFormTypeChange && category && (
-                <Box sx={{ mt: 0.5 }}>
-                  <Typography variant="caption" color="text.secondary">
-                    El tipo no puede cambiarse una vez establecido
-                  </Typography>
-                </Box>
-              )}
-            </FormControl>
+                <SortableContext
+                  items={orderedBlocks.map((b) => b.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <List dense disablePadding sx={{ mb: 1 }}>
+                    {orderedBlocks.map((b, index) => (
+                      <SortableBlockRow
+                        key={b.id}
+                        block={b}
+                        displayOrder={index + 1}
+                        blockEngineEdits={blockEngineEdits}
+                        setBlockEngineEdits={setBlockEngineEdits}
+                        onDelete={() => deleteBlockMutation.mutate(b.id)}
+                        isDeleting={deleteBlockMutation.isPending}
+                      />
+                    ))}
+                  </List>
+                </SortableContext>
+              </DndContext>
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+                Arrastra los bloques para cambiar el orden. Para agregar bloques (grilla o motor), usa el botón «Agregar bloque debajo» bajo cada bloque en el árbol de secciones.
+              </Typography>
+            </Box>
           )}
 
           <FormControlLabel
@@ -444,9 +666,9 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
             <Button
               onClick={handleSubmit}
               variant="contained"
-              disabled={updateMutation.isPending}
+              disabled={isSaving || updateMutation.isPending}
             >
-              {updateMutation.isPending ? 'Guardando...' : 'Guardar'}
+              {isSaving ? 'Guardando...' : 'Guardar'}
             </Button>
           </>
         )}

@@ -18,7 +18,7 @@ export const EmptyGridState: React.FC<EmptyGridStateProps> = ({ onAddFirstRow })
     }}
   >
     <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-      Esta sección está vacía. Agrega la primera fila para comenzar.
+      Esta sección de grilla está vacía. Agrega la primera fila para comenzar.
     </Typography>
     <Button
       variant="outlined"

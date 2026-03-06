@@ -43,6 +43,7 @@ interface AddFormParameterModalProps {
   categoryId: number;
   projectTypeId: number;
   initialGridPosition?: { row: number; column: number } | null;
+  initialBlockId?: number | null;
 }
 
 const AddFormParameterModal: React.FC<AddFormParameterModalProps> = ({
@@ -52,6 +53,7 @@ const AddFormParameterModal: React.FC<AddFormParameterModalProps> = ({
   categoryId,
   projectTypeId,
   initialGridPosition,
+  initialBlockId,
 }) => {
   const { accessToken } = useAuth();
   const queryClient = useQueryClient();
@@ -148,13 +150,14 @@ const AddFormParameterModal: React.FC<AddFormParameterModalProps> = ({
       
       addMutation.mutate({
         category: categoryId,
+        ...(initialBlockId != null && { block: initialBlockId }),
         parameter_definition: selectedParameter.id,
         is_required: isRequired,
         is_visible: isVisible,
         ...(initialGridPosition && {
           grid_row: initialGridPosition.row,
           grid_column: initialGridPosition.column,
-          grid_span: 1, // Por defecto span 1, se puede editar después
+          grid_span: 1,
         }),
       });
     } else {
@@ -167,13 +170,14 @@ const AddFormParameterModal: React.FC<AddFormParameterModalProps> = ({
     // Después de crear, agregarlo automáticamente
     addMutation.mutate({
       category: categoryId,
+      ...(initialBlockId != null && { block: initialBlockId }),
       parameter_definition: newParameter.id,
       is_required: isRequired,
       is_visible: isVisible,
       ...(initialGridPosition && {
         grid_row: initialGridPosition.row,
         grid_column: initialGridPosition.column,
-        grid_span: 1, // Por defecto span 1, se puede editar después
+        grid_span: 1,
       }),
     });
     setCreateParamModalOpen(false);

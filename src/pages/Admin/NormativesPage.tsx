@@ -6,11 +6,8 @@ import {
   Button,
   CircularProgress,
   Alert,
-  Stack,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import DownloadIcon from '@mui/icons-material/Download';
-import UploadIcon from '@mui/icons-material/Upload';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -23,7 +20,6 @@ import CreateRegulationTypeModal from '../../components/Admin/CreateRegulationTy
 import EditRegulationTypeModal from '../../components/Admin/EditRegulationTypeModal';
 import CreateOfficialPublicationModal from '../../components/Admin/CreateOfficialPublicationModal';
 import EditOfficialPublicationModal from '../../components/Admin/EditOfficialPublicationModal';
-import ImportNormativeModal from '../../components/Admin/ImportNormativeModal';
 
 const NormativesPage: React.FC = () => {
   const { accessToken } = useAuth();
@@ -36,7 +32,6 @@ const NormativesPage: React.FC = () => {
   const [regulationTypeIdForPublication, setRegulationTypeIdForPublication] = useState<number | null>(null);
   const [editPublicationModalOpen, setEditPublicationModalOpen] = useState(false);
   const [selectedPublication, setSelectedPublication] = useState<OfficialPublicationItem | null>(null);
-  const [importModalOpen, setImportModalOpen] = useState(false);
 
   const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
   const headers = {
@@ -84,33 +79,6 @@ const NormativesPage: React.FC = () => {
     queryClient.invalidateQueries({ queryKey: ['normative-admin-tree'] });
   };
 
-  const handleExportExcel = async () => {
-    try {
-      const includeInactive = false; // Puedes agregar un checkbox para esto
-      const response = await axios.get(
-        `${API_URL}/api/normative/regulation-types/export_excel/`,
-        {
-          ...headers,
-          params: { include_inactive: includeInactive },
-          responseType: 'blob',
-        }
-      );
-      
-      // Crear link de descarga
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', 'plantilla_normativa.xlsx');
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (error: any) {
-      console.error('Error al exportar:', error);
-      alert('Error al exportar: ' + (error.response?.data?.error || error.message));
-    }
-  };
-
   if (isLoading) {
     return (
       <Container maxWidth="lg">
@@ -145,29 +113,13 @@ const NormativesPage: React.FC = () => {
               Gestiona tipos de documento, publicaciones oficiales, secciones y artículos.
             </Typography>
           </Box>
-          <Stack direction="row" spacing={2}>
-            <Button
-              variant="outlined"
-              startIcon={<DownloadIcon />}
-              onClick={handleExportExcel}
-            >
-              Exportar Excel
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<UploadIcon />}
-              onClick={() => setImportModalOpen(true)}
-            >
-              Importar Excel
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleCreateType}
-            >
-              Nuevo tipo
-            </Button>
-          </Stack>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleCreateType}
+          >
+            Nuevo tipo
+          </Button>
         </Box>
 
         {tree && tree.length > 0 ? (
@@ -257,15 +209,6 @@ const NormativesPage: React.FC = () => {
           setSelectedPublication(null);
         }}
         publication={selectedPublication}
-      />
-
-      <ImportNormativeModal
-        open={importModalOpen}
-        onClose={() => setImportModalOpen(false)}
-        onSuccess={() => {
-          onTreeSuccess();
-          setImportModalOpen(false);
-        }}
       />
     </Container>
   );

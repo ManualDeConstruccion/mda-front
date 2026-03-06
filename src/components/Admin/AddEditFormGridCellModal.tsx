@@ -42,6 +42,8 @@ interface AddEditFormGridCellModalProps {
   onClose: () => void;
   onSuccess: () => void;
   categoryId: number;
+  /** Bloque de grilla al que pertenece la celda (solo al crear; si viene de un bloque) */
+  blockId?: number | null;
   maxRow: number;
   initialData?: {
     row: number;
@@ -57,6 +59,7 @@ const AddEditFormGridCellModal: React.FC<AddEditFormGridCellModalProps> = ({
   onClose,
   onSuccess,
   categoryId,
+  blockId,
   maxRow,
   initialData,
   editingCell,
@@ -152,18 +155,20 @@ const AddEditFormGridCellModal: React.FC<AddEditFormGridCellModalProps> = ({
           }
         );
       } else {
-        // Crear nueva celda
+        // Crear nueva celda (incluir block si se agregó desde un bloque)
+        const payload: Record<string, unknown> = {
+          category: categoryId,
+          grid_row: row,
+          grid_column: column,
+          grid_span: span,
+          content: content.trim(),
+          style: style,
+          is_active: true,
+        };
+        if (blockId != null) payload.block = blockId;
         await axios.post(
           `${API_URL}/api/parameters/form-grid-cells/`,
-          {
-            category: categoryId,
-            grid_row: row,
-            grid_column: column,
-            grid_span: span,
-            content: content.trim(),
-            style: style,
-            is_active: true,
-          },
+          payload,
           {
             headers: {
               'Authorization': accessToken ? `Bearer ${accessToken}` : undefined,

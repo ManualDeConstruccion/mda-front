@@ -35,11 +35,62 @@ export function useFormCategoryMutations(
   );
 
   const patchCategory = useCallback(
-    async (payload: { display_config?: object; form_type?: number }) => {
+    async (payload: { display_config?: object }) => {
       await api.patch(categoryUrl, payload);
       onSectionUpdated();
     },
     [section.id, onSectionUpdated]
+  );
+
+  const createBlock = useCallback(
+    async (blockType: 'grid' | 'engine', sectionEngineId?: number) => {
+      const nextOrder = (section.blocks?.length ?? 0) + 1;
+      await api.post('parameters/form-category-blocks/', {
+        category: section.id,
+        order: nextOrder,
+        block_type: blockType,
+        section_engine_id: blockType === 'engine' ? sectionEngineId : null,
+      });
+      onSectionUpdated();
+    },
+    [section.id, section.blocks?.length, onSectionUpdated]
+  );
+
+  /** Inserta un bloque al inicio (orden 1); renumera el resto en una sola request. */
+  const createBlockBefore = useCallback(
+    async (blockType: 'grid' | 'engine', sectionEngineId?: number) => {
+      await api.post('parameters/form-category-blocks/insert/', {
+        category: section.id,
+        position: 'before',
+        block_type: blockType,
+        section_engine_id: blockType === 'engine' ? sectionEngineId : null,
+      });
+      onSectionUpdated();
+    },
+    [section.id, onSectionUpdated]
+  );
+
+  /** Inserta un bloque después del último en una sola request. */
+  const createBlockAfter = useCallback(
+    async (blockType: 'grid' | 'engine', sectionEngineId?: number) => {
+      await api.post('parameters/form-category-blocks/insert/', {
+        category: section.id,
+        position: 'after',
+        block_type: blockType,
+        section_engine_id: blockType === 'engine' ? sectionEngineId : null,
+      });
+      onSectionUpdated();
+    },
+    [section.id, onSectionUpdated]
+  );
+
+  /** Elimina un bloque (grilla o motor) de la sección. */
+  const deleteBlock = useCallback(
+    async (blockId: number) => {
+      await api.delete(`parameters/form-category-blocks/${blockId}/`);
+      onSectionUpdated();
+    },
+    [onSectionUpdated]
   );
 
   const deleteCategory = useCallback(async () => {
@@ -49,150 +100,35 @@ export function useFormCategoryMutations(
 
   const addRowBefore = useCallback(
     async (targetRow: number) => {
-      const currentConfig = section.display_config || {};
-      const currentGridConfig = currentConfig.grid_config || {};
-      const currentRowsColumns = currentGridConfig.rows_columns || {};
-      const newRowsColumns: Record<string, number> = {};
-      Object.keys(currentRowsColumns).forEach(key => {
-        const rowNum = Number(key);
-        if (rowNum >= targetRow) {
-          newRowsColumns[String(rowNum + 1)] = currentRowsColumns[key];
-        } else {
-          newRowsColumns[key] = currentRowsColumns[key];
-        }
+      await api.post(`${categoryUrl}shift-rows/`, {
+        target_row: targetRow,
+        action: 'insert_before',
       });
-      newRowsColumns[String(targetRow)] = 3;
-      await api.patch(categoryUrl, {
-        display_config: {
-          ...currentConfig,
-          grid_config: { ...currentGridConfig, rows_columns: newRowsColumns },
-        },
-      });
-      if (section.form_parameters) {
-        const paramsToMove = section.form_parameters.filter((param) => (param.grid_row || 1) >= targetRow);
-        for (const param of paramsToMove) {
-          await api.patch(`parameters/form-parameters/${param.id}/update_grid_position/`, {
-            grid_row: (param.grid_row || 1) + 1,
-            grid_column: param.grid_column || 1,
-            grid_span: param.grid_span || 1,
-          });
-        }
-      }
-      if (section.grid_cells) {
-        const cellsToMove = section.grid_cells.filter((cell) => cell.grid_row >= targetRow);
-        for (const cell of cellsToMove) {
-          await api.patch(`parameters/form-grid-cells/${cell.id}/`, {
-            grid_row: cell.grid_row + 1,
-            grid_column: cell.grid_column,
-            grid_span: cell.grid_span,
-            content: cell.content,
-          });
-        }
-      }
       onSectionUpdated();
     },
-    [section, onSectionUpdated]
+    [section.id, onSectionUpdated]
   );
 
   const addRowAfter = useCallback(
     async (targetRow: number) => {
-      const currentConfig = section.display_config || {};
-      const currentGridConfig = currentConfig.grid_config || {};
-      const currentRowsColumns = currentGridConfig.rows_columns || {};
-      const newRowsColumns: Record<string, number> = {};
-      Object.keys(currentRowsColumns).forEach(key => {
-        const rowNum = Number(key);
-        if (rowNum > targetRow) {
-          newRowsColumns[String(rowNum + 1)] = currentRowsColumns[key];
-        } else {
-          newRowsColumns[key] = currentRowsColumns[key];
-        }
+      await api.post(`${categoryUrl}shift-rows/`, {
+        target_row: targetRow,
+        action: 'insert_after',
       });
-      newRowsColumns[String(targetRow + 1)] = 3;
-      await api.patch(categoryUrl, {
-        display_config: {
-          ...currentConfig,
-          grid_config: { ...currentGridConfig, rows_columns: newRowsColumns },
-        },
-      });
-      if (section.form_parameters) {
-        const paramsToMove = section.form_parameters.filter((param) => (param.grid_row || 1) > targetRow);
-        for (const param of paramsToMove) {
-          await api.patch(`parameters/form-parameters/${param.id}/update_grid_position/`, {
-            grid_row: (param.grid_row || 1) + 1,
-            grid_column: param.grid_column || 1,
-            grid_span: param.grid_span || 1,
-          });
-        }
-      }
-      if (section.grid_cells) {
-        const cellsToMove = section.grid_cells.filter((cell) => cell.grid_row > targetRow);
-        for (const cell of cellsToMove) {
-          await api.patch(`parameters/form-grid-cells/${cell.id}/`, {
-            grid_row: cell.grid_row + 1,
-            grid_column: cell.grid_column,
-            grid_span: cell.grid_span,
-            content: cell.content,
-          });
-        }
-      }
       onSectionUpdated();
     },
-    [section, onSectionUpdated]
+    [section.id, onSectionUpdated]
   );
 
   const deleteRow = useCallback(
     async (targetRow: number) => {
-      const currentConfig = section.display_config || {};
-      const currentGridConfig = currentConfig.grid_config || {};
-      const currentRowsColumns = currentGridConfig.rows_columns || {};
-      const paramsToDelete = section.form_parameters?.filter((param) => (param.grid_row || 1) === targetRow) || [];
-      const cellsToDelete = section.grid_cells?.filter((cell) => cell.grid_row === targetRow) || [];
-      for (const param of paramsToDelete) {
-        await api.delete(`parameters/form-parameters/${param.id}/`);
-      }
-      for (const cell of cellsToDelete) {
-        await api.delete(`parameters/form-grid-cells/${cell.id}/`);
-      }
-      const newRowsColumns: Record<string, number> = {};
-      Object.keys(currentRowsColumns).forEach(key => {
-        const rowNum = Number(key);
-        if (rowNum < targetRow) {
-          newRowsColumns[key] = currentRowsColumns[key];
-        } else if (rowNum > targetRow) {
-          newRowsColumns[String(rowNum - 1)] = currentRowsColumns[key];
-        }
-      });
-      if (section.form_parameters) {
-        const paramsToMove = section.form_parameters.filter((param) => (param.grid_row || 1) > targetRow);
-        for (const param of paramsToMove) {
-          await api.patch(`parameters/form-parameters/${param.id}/update_grid_position/`, {
-            grid_row: (param.grid_row || 1) - 1,
-            grid_column: param.grid_column || 1,
-            grid_span: param.grid_span || 1,
-          });
-        }
-      }
-      if (section.grid_cells) {
-        const cellsToMove = section.grid_cells.filter((cell) => cell.grid_row > targetRow);
-        for (const cell of cellsToMove) {
-          await api.patch(`parameters/form-grid-cells/${cell.id}/`, {
-            grid_row: cell.grid_row - 1,
-            grid_column: cell.grid_column,
-            grid_span: cell.grid_span,
-            content: cell.content,
-          });
-        }
-      }
-      await api.patch(categoryUrl, {
-        display_config: {
-          ...currentConfig,
-          grid_config: { ...currentGridConfig, rows_columns: newRowsColumns },
-        },
+      await api.post(`${categoryUrl}shift-rows/`, {
+        target_row: targetRow,
+        action: 'delete',
       });
       onSectionUpdated();
     },
-    [section, onSectionUpdated]
+    [section.id, onSectionUpdated]
   );
 
   const updateParameterPosition = useCallback(
@@ -247,6 +183,10 @@ export function useFormCategoryMutations(
     updateDisplayConfig,
     patchCategory,
     deleteCategory,
+    createBlock,
+    createBlockBefore,
+    createBlockAfter,
+    deleteBlock,
     addRowBefore,
     addRowAfter,
     deleteRow,
