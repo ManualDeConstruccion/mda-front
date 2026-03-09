@@ -26,9 +26,10 @@ export const api = axios.create({
 });
 
 // Request interceptor for API calls
+// IMPORTANTE: usar 'access_token' (mismo key que AuthContext) para que las peticiones vayan autenticadas
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('access_token');
     const csrfToken = getCookie('mdc_csrftoken');
     
     if (token) {
@@ -48,22 +49,9 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor for API calls
+// Response interceptor: no hacer logout/redirect aquí; AuthContext ya tiene interceptores
+// que manejan 401 (refresh + logout). Rechazar el error para que llegue al caller o al AuthContext.
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
-  async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
-
-    // Handle 401 Unauthorized errors
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-      
-      // Here you can implement token refresh logic if needed
-      // For now, we'll just clear the token and redirect to login
-      localStorage.removeItem('auth_token');
-      window.location.href = '/login';
-    }
-
-    return Promise.reject(error);
-  }
+  (error: AxiosError) => Promise.reject(error)
 ); 
