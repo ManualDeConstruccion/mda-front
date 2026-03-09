@@ -82,6 +82,14 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
         ? `${obligatoryCount.completed}/${obligatoryCount.total} obligatorios completados`
         : `${obligatoryCount.total} obligatorios`;
 
+  // Verde si todos los obligatorios completados; rojo si quedan pendientes (solo cuando hay values)
+  const chipColor =
+    values != null && obligatoryCount.total > 0
+      ? obligatoryCount.completed === obligatoryCount.total
+        ? 'success'
+        : 'error'
+      : 'primary';
+
   return (
   <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
     {(mode === 'admin' || hasSubcategories || hasParameters || hasGridCells || isSuperficiesSection) && (
@@ -105,7 +113,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
         <Chip
           label={chipLabel}
           size="small"
-          color="primary"
+          color={chipColor}
           variant="outlined"
           sx={{ mr: 1 }}
         />
@@ -118,12 +126,12 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
                 onSectionModeChange(section.id, 'view');
               }}
               style={{
-                padding: '0.25rem 0.75rem',
-                fontSize: '0.75rem',
+                padding: '0.5rem 1.25rem',
+                fontSize: '0.875rem',
                 backgroundColor: effectiveMode === 'view' ? '#1976d2' : '#e0e0e0',
                 color: effectiveMode === 'view' ? 'white' : 'black',
                 border: 'none',
-                borderRadius: '4px 0 0 4px',
+                borderRadius: '6px 0 0 6px',
                 cursor: 'pointer',
                 fontWeight: effectiveMode === 'view' ? 'bold' : 'normal',
                 transition: 'background-color 0.2s',
@@ -138,12 +146,12 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
                 onSectionModeChange(section.id, 'editable');
               }}
               style={{
-                padding: '0.25rem 0.75rem',
-                fontSize: '0.75rem',
+                padding: '0.5rem 1.25rem',
+                fontSize: '0.875rem',
                 backgroundColor: effectiveMode === 'editable' ? '#1976d2' : '#e0e0e0',
                 color: effectiveMode === 'editable' ? 'white' : 'black',
                 border: 'none',
-                borderRadius: '0 4px 4px 0',
+                borderRadius: '0 6px 6px 0',
                 cursor: 'pointer',
                 fontWeight: effectiveMode === 'editable' ? 'bold' : 'normal',
                 transition: 'background-color 0.2s',

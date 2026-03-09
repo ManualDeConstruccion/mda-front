@@ -59,8 +59,8 @@ const ArchitectureProjectDetail: React.FC = () => {
   // Estados para formulario dinámico
   const [formValues, setFormValues] = useState<Record<string, Record<string, any>>>({}); // { categoryId: { paramCode: value } }
   const [categoryAlerts, setCategoryAlerts] = useState<Record<number, UIAlert[]>>({}); // Alertas de validación por categoría
-  // Modo por sección: { sectionId: 'view' | 'editable' }
-  const [sectionModes, setSectionModes] = useState<Record<number, 'view' | 'editable'>>({});
+  // Modo global del formulario: Vista | Editable (aplica a todas las secciones)
+  const [formMode, setFormMode] = useState<'view' | 'editable'>('view');
   const queryClient = useQueryClient();
   const location = useLocation();
 
@@ -77,23 +77,9 @@ const ArchitectureProjectDetail: React.FC = () => {
     }
   }, [location.hash]);
   
-  // Handler para cambiar el modo de una sección específica
-  const handleSectionModeChange = useCallback((sectionId: number, mode: 'view' | 'editable') => {
-    setSectionModes(prev => {
-      const newModes = mode === 'view'
-        ? (() => {
-            const updated = { ...prev };
-            delete updated[sectionId];
-            const updatedAny = updated as Record<string | number, 'view' | 'editable'>;
-            delete updatedAny[String(sectionId)];
-            return updated;
-          })()
-        : {
-            ...prev,
-            [sectionId]: mode,
-          };
-      return newModes;
-    });
+  // Handler para cambiar el modo global del formulario (Vista/Editable aplica a todas las secciones)
+  const handleSectionModeChange = useCallback((_sectionId: number, mode: 'view' | 'editable') => {
+    setFormMode(mode);
   }, []);
 
   // Obtener el proyecto principal para el breadcrumb
@@ -560,35 +546,25 @@ const ArchitectureProjectDetail: React.FC = () => {
                           };
                           
                           const sectionValues = getAllSectionValues(section);
-                          // Leer el modo actual directamente de sectionModes cada vez que se renderiza
-                          // IMPORTANTE: Las keys de objetos en JavaScript son siempre strings cuando usas Object.keys()
-                          // pero puedes acceder con números también. Intentar primero con string.
-                          const sectionId = section.id;
-                          const sectionModesAny = sectionModes as Record<string | number, 'view' | 'editable'>;
-                          // Intentar primero con string (como aparece en Object.keys), luego con número
-                          const currentSectionMode = sectionModesAny[String(sectionId)] || sectionModesAny[sectionId];
-
+                          // Modo global del formulario: Vista | Editable (mismo para todas las secciones)
                           return (
                             <SectionTreeWithModes
-                              key={`section-${section.id}`} // Usar solo el ID, no el modo (para mantener el estado del componente)
+                              key={`section-${section.id}`}
                               section={section}
                               level={0}
                               projectTypeId={projectTypeId!}
                               allSections={getAllSections(formStructure?.sections || [])}
                               onSectionUpdated={() => {
-                                // Recargar estructura si es necesario
                                 queryClient.invalidateQueries({ queryKey: ['form-structure', projectTypeId] });
                               }}
-                              mode="view" // Modo base, cada sección tiene su propio modo
+                              mode="view"
                               subprojectId={Number(architectureId)}
                               values={sectionValues}
                               onChange={(categoryId: number, code: string, value: any) => {
                                 handleParameterChange(categoryId, code, value);
                               }}
                               onSectionExpand={async (sectionId: number) => {
-                                // Cargar valores cuando se expande una sección
                                 await loadCategoryValues(sectionId);
-                                // También cargar valores de subcategorías
                                 const getAllSubcategoryIds = (sec: FormParameterCategory): number[] => {
                                   const ids = [sec.id];
                                   if (sec.subcategories) {
@@ -602,12 +578,9 @@ const ArchitectureProjectDetail: React.FC = () => {
                                 await Promise.all(allIds.map(id => loadCategoryValues(id)));
                               }}
                               activeSectionId={activeSectionId}
-                              sectionMode={currentSectionMode} // Modo específico de esta sección (undefined = usar modo base)
-                              onSectionModeChange={handleSectionModeChange} // Callback para cambiar el modo
-                              getSectionMode={(sectionId: number) => {
-                                const sectionModesAny = sectionModes as Record<string | number, 'view' | 'editable'>;
-                                return sectionModesAny[String(sectionId)] || sectionModesAny[sectionId];
-                              }}
+                              sectionMode={formMode}
+                              onSectionModeChange={handleSectionModeChange}
+                              getSectionMode={() => formMode}
                               categoryAlerts={categoryAlerts}
                               onMotorAppliedChange={refreshAllSectionValues}
                             />
