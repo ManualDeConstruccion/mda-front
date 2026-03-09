@@ -661,7 +661,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
               sectionEngines={sectionEngines}
               onSelectGrid={async () => {
                 try {
-                  await mutations.createBlock('grid');
+                  await mutations.createBlockAfter('grid');
                 } catch (e) {
                   console.error('Error al crear bloque grilla:', e);
                   alert('Error al crear el bloque');
@@ -669,7 +669,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
               }}
               onSelectEngine={async (sectionEngineId) => {
                 try {
-                  await mutations.createBlock('engine', sectionEngineId);
+                  await mutations.createBlockAfter('engine', sectionEngineId);
                 } catch (e) {
                   console.error('Error al crear bloque motor:', e);
                   alert('Error al crear el bloque');
@@ -678,15 +678,8 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
             />
           )}
 
-          {/* En admin con contenido: "Agregar bloque arriba" antes del primer bloque. Sin contenido: solo un "Agregar bloque". */}
-          {hasBlocks && mode === 'admin' && sectionHasNoContent && (
-            <AddBlockBelow
-              label="Agregar bloque"
-              sectionEngines={sectionEngines}
-              onAdd={mutations.createBlockAfter}
-            />
-          )}
-          {hasBlocks && mode === 'admin' && !sectionHasNoContent && (
+          {/* Con bloques en admin: siempre "Agregar bloque arriba" antes del primer bloque */}
+          {hasBlocks && mode === 'admin' && (
             <AddBlockBelow
               label="Agregar bloque arriba"
               sectionEngines={sectionEngines}
@@ -715,12 +708,6 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
                   const filteredCells = gridCells.filter(
                     (c) => (c as FormGridCell & { block?: number }).block === block.id
                   );
-                  const blockIsEmpty = filteredParams.length === 0 && filteredCells.length === 0;
-                  if (mode === 'admin' && sectionHasNoContent && blockIsEmpty) {
-                    return (
-                      <Box sx={{ mt: 2, ml: 0, py: 2, px: 1 }} aria-hidden />
-                    );
-                  }
                   const virtualSection = {
                     ...section,
                     form_parameters: filteredParams,
@@ -769,8 +756,8 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
             return (
               <React.Fragment key={block.id}>
                 {blockContent}
-                {/* "Agregar bloque debajo" solo después del último bloque cuando la sección tiene contenido */}
-                {mode === 'admin' && !sectionHasNoContent && isLastBlock && blockContent != null && (
+                {/* "Agregar bloque debajo" después del último bloque */}
+                {mode === 'admin' && isLastBlock && blockContent != null && (
                   <AddBlockBelow
                     label="Agregar bloque debajo"
                     sectionEngines={sectionEngines}
@@ -781,8 +768,8 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
             );
           })}
 
-          {/* Sin bloques pero con contenido: una sola grilla legacy */}
-          {!hasBlocks && (useGridInterface || hasParameters || hasSubcategories || hasGridCells) && renderContent()}
+          {/* Sin bloques pero con contenido: una sola grilla legacy. No mostrar editor de grilla si la sección está vacía. */}
+          {!hasBlocks && (hasParameters || hasSubcategories || hasGridCells) && renderContent()}
 
           {/* Subcategorías: siempre visibles si existen (también cuando la sección tiene bloque motor) */}
           {hasSubcategories && (

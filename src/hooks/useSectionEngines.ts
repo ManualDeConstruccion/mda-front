@@ -7,9 +7,11 @@ const QUERY_KEY = ['section-engines'] as const;
 export function useSectionEngines(options?: { enabled?: boolean }) {
   const { enabled = true } = options ?? {};
   const query = useQuery({
-    queryKey: QUERY_KEY,
+    queryKey: [...QUERY_KEY, 'formulario_minvu'],
     queryFn: async () => {
-      const response = await api.get<SectionEngine[]>('parameters/section-engines/');
+      const response = await api.get<SectionEngine[]>('parameters/section-engines/', {
+        params: { es_formulario_minvu: 'true' },
+      });
       return response.data;
     },
     enabled,

@@ -1,26 +1,20 @@
 @use '../../styles/variables' as *;
 @use '../../styles/mixins' as *;
 
-.loginContainer {
+.container {
   min-height: 100vh;
   @include flex-center();
-
-  & {
-    background-color: $light-bg-primary;
-  }
+  background-color: $light-bg-primary;
 }
 
-.loginBox {
+.box {
   @include card-container;
   width: 100%;
-  max-width: 400px;
+  max-width: 640px;
   text-align: center;
-
-  & {
-    background-color: $background-paper;
-    border-radius: $border-radius-lg;
-    box-shadow: $shadow-lg;
-  }
+  background-color: $background-paper;
+  border-radius: $border-radius-lg;
+  box-shadow: $shadow-lg;
 }
 
 .title {
@@ -31,39 +25,15 @@
 
 .subtitle {
   color: $text-secondary;
-  margin-bottom: $spacing-xl;
-  font-size: $font-size-base;
-}
-
-.successMessage {
-  color: $success-color;
-  font-size: $font-size-base;
   margin-bottom: $spacing-md;
-  padding: $spacing-sm;
-  background: rgba($success-color, 0.2);
-  border-radius: $border-radius-sm;
-}
-
-.form {
-  text-align: left;
-  margin-bottom: $spacing-md;
-}
-
-.formError {
-  color: $error-color;
   font-size: $font-size-base;
-  margin-bottom: $spacing-sm;
-}
-
-.forgotWrap {
-  margin-bottom: $spacing-lg;
 }
 
 .divider {
   display: flex;
   align-items: center;
   gap: $spacing-md;
-  margin: $spacing-lg 0;
+  margin: $spacing-md 0;
   color: $text-secondary;
   font-size: $font-size-base;
 
@@ -79,11 +49,37 @@
 .socialButtons {
   @include flex-center();
   gap: $spacing-md;
-  margin-bottom: $spacing-lg;
+  margin-bottom: $spacing-md;
   flex-wrap: wrap;
 }
 
-.registerHint {
+.form {
+  text-align: left;
+  margin-bottom: $spacing-md;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $spacing-lg $spacing-xl;
+  margin-bottom: $spacing-md;
+
+  @media (max-width: 599px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.formColumn {
+  min-width: 0;
+}
+
+.formError {
+  color: $error-color;
+  font-size: $font-size-base;
+  margin-bottom: $spacing-sm;
+}
+
+.loginHint {
   color: $text-secondary;
   font-size: $font-size-base;
 }
@@ -96,4 +92,4 @@
   &:hover {
     text-decoration: underline;
   }
-} 
+}

@@ -117,7 +117,7 @@ const ManagePublicationSectionsModal: React.FC<ManagePublicationSectionsModalPro
     };
 
     // Ordenar por section_number jerárquico
-    const sortSections = (sections: (PublicationSection & { subsections: PublicationSection[] })[]) => {
+    const sortSections = (sections: PublicationSection[]) => {
       sections.sort((a, b) => {
         const keyA = sectionNumberSortKey(a.section_number);
         const keyB = sectionNumberSortKey(b.section_number);
@@ -134,8 +134,9 @@ const ManagePublicationSectionsModal: React.FC<ManagePublicationSectionsModalPro
         return a.name.localeCompare(b.name);
       });
       sections.forEach((s) => {
-        if (s.subsections.length > 0) {
-          sortSections(s.subsections);
+        const subs = s.subsections ?? [];
+        if (subs.length > 0) {
+          sortSections(subs);
         }
       });
     };
@@ -271,8 +272,9 @@ const ManagePublicationSectionsModal: React.FC<ManagePublicationSectionsModalPro
     setExpandedSections(newExpanded);
   };
 
-  const renderSection = (section: PublicationSection & { subsections: PublicationSection[] }, level: number = 0) => {
-    const hasSubsections = section.subsections.length > 0;
+  const renderSection = (section: PublicationSection, level: number = 0) => {
+    const subsections = section.subsections ?? [];
+    const hasSubsections = subsections.length > 0;
     const isExpanded = expandedSections.has(section.id);
     const indent = level * 24;
 
@@ -328,7 +330,7 @@ const ManagePublicationSectionsModal: React.FC<ManagePublicationSectionsModalPro
         {hasSubsections && (
           <Collapse in={isExpanded} timeout="auto" unmountOnExit>
             <List component="div" disablePadding>
-              {section.subsections.map((sub) => renderSection(sub, level + 1))}
+              {subsections.map((sub) => renderSection(sub, level + 1))}
             </List>
           </Collapse>
         )}
@@ -337,13 +339,14 @@ const ManagePublicationSectionsModal: React.FC<ManagePublicationSectionsModalPro
   };
 
   const getAvailableParents = (excludeId?: number): PublicationSection[] => {
-    const flatten = (sections: (PublicationSection & { subsections: PublicationSection[] })[]): PublicationSection[] => {
+    const flatten = (sections: PublicationSection[]): PublicationSection[] => {
       const result: PublicationSection[] = [];
       sections.forEach((section) => {
         if (section.id !== excludeId) {
           result.push(section);
-          if (section.subsections.length > 0) {
-            result.push(...flatten(section.subsections));
+          const subs = section.subsections ?? [];
+          if (subs.length > 0) {
+            result.push(...flatten(subs));
           }
         }
       });

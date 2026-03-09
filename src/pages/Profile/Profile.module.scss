@@ -1,0 +1,163 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: $spacing-xl $spacing-md;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: $spacing-lg;
+  margin-bottom: $spacing-xl;
+  padding-bottom: $spacing-lg;
+  border-bottom: 1px solid $border-color;
+}
+
+.headerAvatar {
+  width: 80px;
+  height: 80px;
+  font-size: 2rem;
+  background-color: $primary-color;
+}
+
+.headerInfo {
+  flex: 1;
+}
+
+.headerName {
+  font-size: $font-size-xl;
+  font-weight: 600;
+  color: $text-primary;
+  margin: 0 0 $spacing-xs;
+}
+
+.headerEmail {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  margin: 0;
+}
+
+.headerMeta {
+  display: flex;
+  gap: $spacing-md;
+  margin-top: $spacing-sm;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: 2px $spacing-sm;
+  border-radius: 999px;
+  font-size: $font-size-xs;
+  font-weight: 500;
+  background-color: rgba($primary-color, 0.1);
+  color: $primary-color;
+}
+
+.headerActions {
+  display: flex;
+  gap: $spacing-sm;
+}
+
+.section {
+  @include card-container();
+  margin-bottom: $spacing-lg;
+}
+
+.sectionTitle {
+  font-size: $font-size-lg;
+  font-weight: 600;
+  color: $text-primary;
+  margin: 0 0 $spacing-lg;
+  padding-bottom: $spacing-sm;
+  border-bottom: 1px solid $border-color;
+}
+
+.fieldGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $spacing-md;
+
+  @media (max-width: $breakpoint-sm) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fieldGridFull {
+  grid-column: 1 / -1;
+}
+
+.field {
+  @include form-group();
+  margin-bottom: 0;
+
+  label {
+    font-size: $font-size-xs;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: $text-secondary;
+    margin-bottom: $spacing-xs;
+  }
+}
+
+.fieldValue {
+  font-size: $font-size-base;
+  color: $text-primary;
+  padding: $spacing-sm 0;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+.emptyValue {
+  color: $text-dark-disabled;
+  font-style: italic;
+}
+
+.professionList {
+  @include flex-container(column, $spacing-sm);
+}
+
+.professionItem {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-sm $spacing-md;
+  background-color: $background-light;
+  border-radius: $border-radius-sm;
+  border: 1px solid $border-color;
+}
+
+.professionName {
+  font-weight: 500;
+  color: $text-primary;
+}
+
+.professionUniversity {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+.emptyProfessions {
+  color: $text-dark-disabled;
+  font-style: italic;
+  padding: $spacing-md 0;
+}
+
+.loadingContainer {
+  @include flex-center(column);
+  padding: $spacing-xl * 3;
+  gap: $spacing-md;
+  color: $text-secondary;
+}
+
+.errorContainer {
+  @include flex-center(column);
+  padding: $spacing-xl * 3;
+  gap: $spacing-md;
+  color: $error-color;
+}

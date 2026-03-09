@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   AppBar,
   Toolbar,
@@ -7,11 +7,19 @@ import {
   IconButton,
   Box,
   Avatar,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+  Divider,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
   Search as SearchIcon,
   Notifications as NotificationsIcon,
+  Person as PersonIcon,
+  Logout as LogoutIcon,
+  KeyboardArrowDown as ArrowDownIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import styles from './Navbar.module.scss';
@@ -25,8 +33,24 @@ interface NavbarProps {
 const Navbar: React.FC<NavbarProps> = ({ onMenuClick, isPublic = false }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const menuOpen = Boolean(anchorEl);
+
+  const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleUserMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleProfile = () => {
+    handleUserMenuClose();
+    navigate('/perfil');
+  };
 
   const handleLogout = () => {
+    handleUserMenuClose();
     logout();
     navigate('/');
   };
@@ -39,7 +63,6 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick, isPublic = false }) => {
     }
   };
 
-  // Si el usuario está autenticado, siempre mostrar la versión completa del navbar
   const shouldShowFullNavbar = user || !isPublic;
 
   return (
@@ -87,20 +110,55 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick, isPublic = false }) => {
               <IconButton color="inherit">
                 <NotificationsIcon />
               </IconButton>
-              <span className={styles.userName}>
-                {user.first_name + ' ' + user.last_name || user.email}
-              </span>
-              <Avatar
-                className={styles.avatar}
-                onClick={() => navigate('/profile')}
-              />
-              <Button
-                color="inherit"
-                onClick={handleLogout}
-                className={styles.logoutButton}
+              <Box
+                className={styles.userMenuTrigger}
+                onClick={handleUserMenuOpen}
+                aria-controls={menuOpen ? 'user-menu' : undefined}
+                aria-haspopup="true"
+                aria-expanded={menuOpen ? 'true' : undefined}
               >
-                Cerrar Sesión
-              </Button>
+                <Avatar className={styles.avatar} />
+                <span className={styles.userName}>
+                  {user.first_name && user.last_name
+                    ? `${user.first_name} ${user.last_name}`
+                    : user.email}
+                </span>
+                <ArrowDownIcon
+                  className={styles.arrowIcon}
+                  sx={{ fontSize: 18 }}
+                />
+              </Box>
+              <Menu
+                id="user-menu"
+                anchorEl={anchorEl}
+                open={menuOpen}
+                onClose={handleUserMenuClose}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                slotProps={{
+                  paper: {
+                    sx: {
+                      mt: 1,
+                      minWidth: 180,
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                    },
+                  },
+                }}
+              >
+                <MenuItem onClick={handleProfile}>
+                  <ListItemIcon>
+                    <PersonIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>Mi Perfil</ListItemText>
+                </MenuItem>
+                <Divider />
+                <MenuItem onClick={handleLogout}>
+                  <ListItemIcon>
+                    <LogoutIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>Cerrar Sesión</ListItemText>
+                </MenuItem>
+              </Menu>
             </>
           ) : (
             <Button
