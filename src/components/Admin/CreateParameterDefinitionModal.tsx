@@ -49,12 +49,26 @@ interface ParameterDefinition {
   source_field?: string;
   update_policy?: string;
   regulation_articles?: any[];
+  options_source?: string | null;
+  options_filter_by?: string[];
+  form_rules?: any[];
 }
 
 interface ParameterCategory {
   id: number;
   code: string;
   name: string;
+}
+
+export interface OptionSourceItem {
+  id: number;
+  code: string;
+  name: string;
+  endpoint_path: string;
+  filter_query_param: string;
+  help_filter_by: string;
+  help_form_rules: string;
+  is_active: boolean;
 }
 
 interface CreateParameterDefinitionModalProps {
@@ -92,6 +106,9 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
   const [sourceField, setSourceField] = useState('');
   const [updatePolicy, setUpdatePolicy] = useState('manual');
   const [selectedRegulationArticles, setSelectedRegulationArticles] = useState<number[]>([]);
+  const [optionsSource, setOptionsSource] = useState('');
+  const [optionsFilterBy, setOptionsFilterBy] = useState('[]');
+  const [formRules, setFormRules] = useState('[]');
   const [error, setError] = useState<string | null>(null);
   const [createCategoryModalOpen, setCreateCategoryModalOpen] = useState(false);
   const [tabValue, setTabValue] = useState(0);
@@ -139,6 +156,30 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
   });
 
   // Fetch artículos normativos
+  // Option sources (listados: comuna, región, etc.) para Select y ayudas contextuales
+  const { data: optionSources } = useQuery<OptionSourceItem[]>({
+    queryKey: ['option-sources'],
+    queryFn: async () => {
+      const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+      const response = await axios.get(
+        `${API_URL}/api/parameters/option-sources/`,
+        {
+          withCredentials: true,
+          headers: {
+            'Authorization': accessToken ? `Bearer ${accessToken}` : undefined,
+          },
+        }
+      );
+      return response.data;
+    },
+    enabled: open && !!accessToken,
+    staleTime: 24 * 60 * 60 * 1000,
+  });
+
+  const selectedOptionSource = optionsSource
+    ? (optionSources ?? []).find((s) => s.code === optionsSource)
+    : null;
+
   const { data: regulationArticles, isLoading: isLoadingArticles, error: articlesError } = useQuery<any[]>({
     queryKey: ['regulation-articles'],
     queryFn: async () => {
@@ -217,6 +258,15 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
       setSnapshotSource((param.snapshot_source as string | undefined) || 'none');
       setSourceField((param.source_field as string | undefined) || '');
       setUpdatePolicy((param.update_policy as string | undefined) || 'manual');
+      setOptionsSource((param.options_source as string | undefined) || '');
+      setOptionsFilterBy(
+        param.options_filter_by != null
+          ? JSON.stringify(param.options_filter_by, null, 2)
+          : '[]'
+      );
+      setFormRules(
+        param.form_rules != null ? JSON.stringify(param.form_rules, null, 2) : '[]'
+      );
       // regulation_articles viene como array de IDs o objetos con id
       const regArticles = param.regulation_articles as unknown[] | undefined;
       if (regArticles && Array.isArray(regArticles)) {
@@ -246,6 +296,9 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
       setSnapshotSource('none');
       setSourceField('');
       setUpdatePolicy('manual');
+      setOptionsSource('');
+      setOptionsFilterBy('[]');
+      setFormRules('[]');
       setSelectedRegulationArticles([]);
       setTabValue(0);
     }
@@ -374,6 +427,36 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
       }
     }
 
+    let parsedOptionsFilterBy: string[] = [];
+    if (optionsFilterBy.trim()) {
+      try {
+        const parsed = JSON.parse(optionsFilterBy);
+        if (!Array.isArray(parsed)) {
+          setError('Filtrar opciones por debe ser un array JSON válido (ej: ["region"])');
+          return;
+        }
+        parsedOptionsFilterBy = parsed.map((x: unknown) => String(x));
+      } catch (e) {
+        setError('Filtrar opciones por debe ser un array JSON válido (ej: ["region"])');
+        return;
+      }
+    }
+
+    let parsedFormRules: any[] = [];
+    if (formRules.trim()) {
+      try {
+        const parsed = JSON.parse(formRules);
+        if (!Array.isArray(parsed)) {
+          setError('Reglas de formulario deben ser un array JSON válido');
+          return;
+        }
+        parsedFormRules = parsed;
+      } catch (e) {
+        setError('Reglas de formulario deben ser un array JSON válido');
+        return;
+      }
+    }
+
     const mutationData: any = {
       code: trimmedCode,
       form_pdf_code: formPdfCode.trim() || '',
@@ -394,6 +477,9 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
       snapshot_source: snapshotSource,
       source_field: sourceField.trim() || '',
       update_policy: updatePolicy,
+      options_source: optionsSource.trim() || null,
+      options_filter_by: parsedOptionsFilterBy,
+      form_rules: parsedFormRules,
     };
 
     // regulation_articles se manejan después de crear/actualizar ya que es ManyToMany
@@ -419,6 +505,7 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
           <Tab label="Validación y Cálculo" />
           <Tab label="Snapshot y Políticas" />
           <Tab label="Referencias Normativas" />
+          <Tab label="Reglas de formulario" />
         </Tabs>
 
         {/* Tab 1: Información Básica */}
@@ -840,6 +927,65 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
                 </Box>
               </Box>
             )}
+          </Box>
+        )}
+
+        {/* Tab 5: Reglas de formulario */}
+        {tabValue === 4 && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Typography variant="h6" sx={{ mb: 1 }}>Selector y reglas</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              Configuración para mostrar este parámetro como desplegable (ej: Comuna, Región) y reglas que se ejecutan al cambiar su valor.
+            </Typography>
+
+            <FormControl fullWidth>
+              <InputLabel>Origen de opciones</InputLabel>
+              <Select
+                value={optionsSource}
+                onChange={(e) => setOptionsSource(e.target.value)}
+                label="Origen de opciones"
+              >
+                <MenuItem value="">Ninguno (campo libre)</MenuItem>
+                {(optionSources ?? []).map((s) => (
+                  <MenuItem key={s.id} value={s.code}>
+                    {s.name}
+                  </MenuItem>
+                ))}
+              </Select>
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, ml: 1.75 }}>
+                Si se define, este parámetro se mostrará como desplegable con opciones del catálogo.
+              </Typography>
+            </FormControl>
+
+            <TextField
+              label="Filtrar opciones por"
+              value={optionsFilterBy}
+              onChange={(e) => setOptionsFilterBy(e.target.value)}
+              multiline
+              rows={2}
+              fullWidth
+              placeholder='["propiedad_region"]'
+            />
+            {selectedOptionSource?.help_filter_by ? (
+              <Alert severity="info" sx={{ mt: 0.5 }}>
+                {selectedOptionSource.help_filter_by}
+              </Alert>
+            ) : null}
+
+            <TextField
+              label="Reglas al cambiar este parámetro"
+              value={formRules}
+              onChange={(e) => setFormRules(e.target.value)}
+              multiline
+              rows={6}
+              fullWidth
+              placeholder='[{"action": "clear_value", "target_parameter_code": "comuna"}]'
+            />
+            {selectedOptionSource?.help_form_rules ? (
+              <Alert severity="info" sx={{ mt: 0.5 }}>
+                {selectedOptionSource.help_form_rules}
+              </Alert>
+            ) : null}
           </Box>
         )}
       </DialogContent>

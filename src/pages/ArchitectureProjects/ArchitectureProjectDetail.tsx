@@ -238,17 +238,63 @@ const ArchitectureProjectDetail: React.FC = () => {
     },
   });
 
-  // Handler para cambios de valores
-  const handleParameterChange = useCallback((categoryId: number, parameterCode: string, value: any) => {
-    setFormValues(prev => ({
-      ...prev,
-      [categoryId]: {
-        ...(prev[categoryId] || {}),
-        [parameterCode]: value,
-      },
-    }));
+  // Helper: obtener sección por id desde la estructura (incluye subcategorías)
+  const getSectionById = useCallback((sectionId: number): FormParameterCategory | undefined => {
+    if (!formStructure?.sections) return undefined;
+    const findIn = (sections: FormParameterCategory[]): FormParameterCategory | undefined => {
+      for (const s of sections) {
+        if (s.id === sectionId) return s;
+        if (s.subcategories?.length) {
+          const found = findIn(s.subcategories);
+          if (found) return found;
+        }
+      }
+      return undefined;
+    };
+    return findIn(formStructure.sections);
+  }, [formStructure?.sections]);
+
+  // Resolver valor para set_value según value_source (y selectedOption para "region" / "region.id")
+  const resolveSetValue = useCallback((rule: { value_source?: string; value_mapping?: Record<string, string> }, triggerValue: any, selectedOption: any): any => {
+    const src = rule.value_source;
+    if (src === 'self') return triggerValue;
+    if (src === 'display' && selectedOption != null) {
+      const label = (selectedOption as any).comuna ?? (selectedOption as any).region ?? (selectedOption as any).name;
+      return typeof label === 'string' ? label : String(triggerValue);
+    }
+    if (src === 'region' && selectedOption != null) return (selectedOption as any).region ?? null;
+    if (src === 'region.id' && selectedOption != null) return (selectedOption as any).region_id ?? (selectedOption as any).region ?? null;
+    if (src === 'constant' && rule.value_mapping) return rule.value_mapping[''] ?? Object.values(rule.value_mapping)[0] ?? null;
+    if (src === 'mapping' && rule.value_mapping != null && triggerValue != null) return rule.value_mapping[String(triggerValue)] ?? null;
+    return null;
+  }, []);
+
+  // Handler para cambios de valores: actualiza el parámetro y aplica form_rules (clear_value / set_value)
+  const handleParameterChange = useCallback((categoryId: number, parameterCode: string, value: any, selectedOption?: any) => {
+    const section = getSectionById(categoryId);
+    const paramDef = section?.form_parameters?.find((fp: any) => (fp.parameter_definition?.code ?? fp.parameter_definition_code) === parameterCode)?.parameter_definition;
+    const formRules: Array<{ action: string; target_parameter_code: string; value_source?: string; value_mapping?: Record<string, string> }> = paramDef?.form_rules ?? [];
+
+    const nextValues: Record<string, any> = {};
+    setFormValues(prev => {
+      Object.assign(nextValues, prev[categoryId] || {}, { [parameterCode]: value });
+      for (const rule of formRules) {
+        const targetCode = rule.target_parameter_code;
+        if (!targetCode) continue;
+        if (rule.action === 'clear_value') nextValues[targetCode] = null;
+        else if (rule.action === 'set_value') nextValues[targetCode] = resolveSetValue(rule, value, selectedOption);
+      }
+      return { ...prev, [categoryId]: { ...nextValues } };
+    });
+
     updateValueMutation.mutate({ categoryId, parameterCode, value });
-  }, [updateValueMutation]);
+    for (const rule of formRules) {
+      const targetCode = rule.target_parameter_code;
+      if (!targetCode) continue;
+      if (rule.action === 'clear_value') updateValueMutation.mutate({ categoryId, parameterCode: targetCode, value: null });
+      else if (rule.action === 'set_value') updateValueMutation.mutate({ categoryId, parameterCode: targetCode, value: resolveSetValue(rule, value, selectedOption) });
+    }
+  }, [getSectionById, resolveSetValue, updateValueMutation]);
 
   // Get all stages for the selector
   const { projects: stages, reorderNodes, createProject, updateProject } = useProjectNodes<ProjectNode>({ parent: Number(architectureId), type: 'stage' });
@@ -560,8 +606,8 @@ const ArchitectureProjectDetail: React.FC = () => {
                               mode="view"
                               subprojectId={Number(architectureId)}
                               values={sectionValues}
-                              onChange={(categoryId: number, code: string, value: any) => {
-                                handleParameterChange(categoryId, code, value);
+                              onChange={(categoryId: number, code: string, value: any, selectedOption?: any) => {
+                                handleParameterChange(categoryId, code, value, selectedOption);
                               }}
                               onSectionExpand={async (sectionId: number) => {
                                 await loadCategoryValues(sectionId);

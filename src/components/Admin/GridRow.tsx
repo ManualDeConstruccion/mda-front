@@ -44,7 +44,7 @@ interface GridRowProps {
   onAddTextCell: (row: number, column: number) => void;
   onAddParameter: (row: number, column: number) => void;
   values?: Record<string, any>;
-  onChange?: (code: string, value: any) => void;
+  onChange?: (code: string, value: any, selectedOption?: any) => void;
 }
 
 const GridRow: React.FC<GridRowProps> = React.memo(({

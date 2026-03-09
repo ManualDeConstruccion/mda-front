@@ -39,6 +39,7 @@ const GridCell: React.FC<GridCellProps> = ({
   const [cellWidth, setCellWidth] = useState<number | null>(null);
   const [inputModalOpen, setInputModalOpen] = useState(false);
   const [modalValue, setModalValue] = useState<any>(null);
+  const [modalOption, setModalOption] = useState<any>(undefined);
 
   // Solo usar useSortable en modo admin
   const sortable = useSortable({ id: cellId, disabled: mode !== 'admin' });
@@ -261,6 +262,7 @@ const GridCell: React.FC<GridCellProps> = ({
                     <Box
                       onClick={() => {
                         setModalValue(values?.[cellCode] ?? null);
+                        setModalOption(undefined);
                         setInputModalOpen(true);
                       }}
                       sx={{
@@ -286,18 +288,24 @@ const GridCell: React.FC<GridCellProps> = ({
                           <ParameterInput
                             dataType={dataType as any}
                             value={modalValue}
-                            onChange={(newValue) => setModalValue(newValue)}
+                            onChange={(newValue, selectedOption) => {
+                              setModalValue(newValue);
+                              setModalOption(selectedOption);
+                            }}
                             label={undefined}
                             unit={unit}
                             required={isRequired}
                             disabled={false}
+                            optionsSource={paramDef?.options_source ?? undefined}
+                            optionsFilterBy={paramDef?.options_filter_by ?? []}
+                            filterValues={values ?? {}}
                           />
                         </Box>
                       </DialogContent>
                       <DialogActions>
                         <Button
                           onClick={() => {
-                            handleChange?.(cellCode, modalValue);
+                            handleChange?.(cellCode, modalValue, modalOption);
                             setInputModalOpen(false);
                           }}
                           variant="contained"
@@ -314,17 +322,20 @@ const GridCell: React.FC<GridCellProps> = ({
                   <ParameterInput
                     dataType={dataType as any}
                     value={values?.[cellCode]}
-                    onChange={(newValue) => {
-                      handleChange?.(cellCode, newValue);
+                    onChange={(newValue, selectedOption) => {
+                      handleChange?.(cellCode, newValue, selectedOption);
                     }}
-                      label={undefined}
-                      unit={unit}
-                      required={isRequired}
-                      disabled={false}
-                      persistOnBlur
-                    />
-                  </Box>
-                );
+                    label={undefined}
+                    unit={unit}
+                    required={isRequired}
+                    disabled={false}
+                    persistOnBlur
+                    optionsSource={paramDef?.options_source ?? undefined}
+                    optionsFilterBy={paramDef?.options_filter_by ?? []}
+                    filterValues={values ?? {}}
+                  />
+                </Box>
+              );
             })()}
             {/* En modo vista, mostrar solo el valor formateado, grande y centrado */}
             {mode === 'view' && cellCode && (() => {
