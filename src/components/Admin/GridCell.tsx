@@ -138,13 +138,13 @@ const GridCell: React.FC<GridCellProps> = ({
       style={style}
       {...(mode === 'admin' ? sortable.attributes : {})}
       sx={{
-        p: isTitleType ? { py: 3, px: 1.5 } : 1.5,
+        p: isTitleType ? { py: 2, px: 1.5 } : { py: 0.75, px: 1.25 },
         border: isTitleType ? 'none' : '1px solid',
         borderColor: isDragging ? 'primary.main' : 'divider',
         borderRadius: 1,
         bgcolor: getBackgroundColor(),
         position: 'relative',
-        minHeight: '80px',
+        minHeight: 0,
         display: 'flex',
         flexDirection: 'column',
         justifyContent: mode === 'view' ? 'center' : 'flex-start',
@@ -175,6 +175,7 @@ const GridCell: React.FC<GridCellProps> = ({
       <Box sx={{
         flex: 1,
         ml: mode === 'admin' ? 4 : 0,
+        px: '5px',
         display: 'flex',
         flexDirection: 'column',
         ...(mode === 'view' && isParameter ? {
@@ -368,9 +369,8 @@ const GridCell: React.FC<GridCellProps> = ({
 
               return (
                 <Typography
-                  variant="h6"
+                  variant="body1"
                   sx={{
-                    fontWeight: 'medium',
                     textAlign: 'center',
                     width: '100%',
                   }}

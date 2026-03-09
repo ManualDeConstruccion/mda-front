@@ -640,6 +640,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
           }}
           onSectionModeChange={onSectionModeChange}
           subprojectId={subprojectId}
+          values={values}
           setCreatingSubcategory={setCreatingSubcategory}
           setEditCategoryModalOpen={setEditCategoryModalOpen}
         />

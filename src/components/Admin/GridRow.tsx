@@ -217,7 +217,7 @@ const GridRow: React.FC<GridRowProps> = React.memo(({
                 data-row={row}
                 data-column={col}
                 sx={{
-                  minHeight: '80px',
+                  minHeight: '48px',
                   border: '2px dashed',
                   borderColor: 'divider',
                   borderRadius: 1,

@@ -1,10 +1,29 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Box, Typography, IconButton, Chip, Tooltip } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import type { FormParameterCategory, SectionTreeMode } from '../../../types/formParameters.types';
+import type { FormParameterCategory, FormParameter, SectionTreeMode } from '../../../types/formParameters.types';
+
+/** Parámetro obligatorio: is_required (integration) y no calculado (core is_calculated false). */
+function isObligatoryParam(p: FormParameter): boolean {
+  if (!p.is_required) return false;
+  const isCalculated = p.parameter_definition_is_calculated
+    ?? (typeof p.parameter_definition === 'object' ? p.parameter_definition?.is_calculated : undefined);
+  return !isCalculated;
+}
+
+function getParamCode(p: FormParameter): string | undefined {
+  return p.parameter_definition_code
+    ?? (typeof p.parameter_definition === 'object' ? p.parameter_definition?.code : undefined);
+}
+
+function hasValue(val: unknown): boolean {
+  if (val === null || val === undefined) return false;
+  if (typeof val === 'string') return val.trim() !== '';
+  return true;
+}
 
 interface SectionHeaderProps {
   section: FormParameterCategory;
@@ -20,6 +39,8 @@ interface SectionHeaderProps {
   onDeleteCategory: () => void;
   onSectionModeChange?: (sectionId: number, mode: 'view' | 'editable') => void;
   subprojectId?: number;
+  /** Valores del formulario (modo vista/editable) para contar obligatorios completados. */
+  values?: Record<string, unknown>;
   setCreatingSubcategory: (v: boolean) => void;
   setEditCategoryModalOpen: (v: boolean) => void;
 }
@@ -38,9 +59,30 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
   onDeleteCategory,
   onSectionModeChange,
   subprojectId,
+  values,
   setCreatingSubcategory,
   setEditCategoryModalOpen,
-}) => (
+}) => {
+  const obligatoryCount = useMemo(() => {
+    const params = section.form_parameters ?? [];
+    const obligatory = params.filter(isObligatoryParam);
+    if (obligatory.length === 0) return { total: 0, completed: 0 };
+    if (values == null) return { total: obligatory.length, completed: 0 };
+    const completed = obligatory.filter((p) => {
+      const code = getParamCode(p);
+      return code != null && hasValue(values[code]);
+    }).length;
+    return { total: obligatory.length, completed };
+  }, [section.form_parameters, values]);
+
+  const chipLabel =
+    obligatoryCount.total === 0
+      ? '0 obligatorios'
+      : values != null
+        ? `${obligatoryCount.completed}/${obligatoryCount.total} obligatorios completados`
+        : `${obligatoryCount.total} obligatorios`;
+
+  return (
   <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
     {(mode === 'admin' || hasSubcategories || hasParameters || hasGridCells || isSuperficiesSection) && (
       <IconButton size="small" onClick={onToggleExpand} sx={{ mr: 1 }}>
@@ -61,7 +103,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
     {hasParameters && !isSuperficiesSection && (
       <>
         <Chip
-          label={`${section.form_parameters?.length} parámetros`}
+          label={chipLabel}
           size="small"
           color="primary"
           variant="outlined"
@@ -136,4 +178,5 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
       </>
     )}
   </Box>
-);
+  );
+};
