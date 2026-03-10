@@ -90,6 +90,17 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
   setCreatingSubcategory,
   setEditCategoryModalOpen,
 }) => {
+  // Porcentaje de avance: total de campos obligatorios de la sección y todas las subsecciones, completados / total
+  const progressPercent = useMemo(() => {
+    const codes = getObligatoryParamCodesInTree(section);
+    const total = codes.length;
+    if (total === 0) return null;
+    if (values == null) return { total, completed: 0, percent: 0 };
+    const completed = codes.filter((code) => hasValue(values[code])).length;
+    const percent = Math.round((completed / total) * 100);
+    return { total, completed, percent };
+  }, [section, values]);
+
   // Campos obligatorios de esta sección (sin subsecciones)
   const fieldsCount = useMemo(() => {
     const params = section.form_parameters ?? [];
@@ -144,6 +155,13 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
         : 'error'
       : 'primary';
 
+  const progressChipColor =
+    progressPercent != null && values != null && progressPercent.total > 0
+      ? progressPercent.percent === 100
+        ? 'success'
+        : 'error'
+      : 'primary';
+
   return (
   <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
     {(mode === 'admin' || hasSubcategories || hasParameters || hasGridCells || isSuperficiesSection) && (
@@ -161,6 +179,15 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
 
     {(hasParameters || hasSubcategories) && (
       <>
+        {progressPercent != null && progressPercent.total > 0 && (
+          <Chip
+            label={`${progressPercent.percent}% avance`}
+            size="small"
+            color={progressChipColor}
+            variant="outlined"
+            sx={{ mr: 1 }}
+          />
+        )}
         {hasParameters && (
           <Chip
             label={fieldsChipLabel}
