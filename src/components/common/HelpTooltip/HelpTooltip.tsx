@@ -15,6 +15,8 @@ interface HelpTooltipProps {
   modelName: string;  // ej: "Building", "ProjectLevel"
   fieldName: string;  // ej: "code", "name"
   position?: 'top' | 'bottom' | 'left' | 'right';
+  /** Tamaño del ícono: small (16px), medium (22px) */
+  iconSize?: 'small' | 'medium';
   // Valores por defecto opcionales si no hay datos en BD
   defaultBriefText?: string;
   defaultExtendedText?: string;
@@ -28,6 +30,7 @@ const HelpTooltip: React.FC<HelpTooltipProps> = ({
   modelName,
   fieldName,
   position = 'top',
+  iconSize = 'small',
   defaultBriefText = '',
   defaultExtendedText,
   defaultMedia,
@@ -160,6 +163,7 @@ const HelpTooltip: React.FC<HelpTooltipProps> = ({
     }
   };
 
+  const iconClass = iconSize === 'medium' ? `${styles.helpIcon} ${styles.helpIconMedium}` : styles.helpIcon;
   return (
     <div
       ref={containerRef}
@@ -167,7 +171,7 @@ const HelpTooltip: React.FC<HelpTooltipProps> = ({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <HelpOutline className={styles.helpIcon} fontSize="small" />
+      <HelpOutline className={iconClass} fontSize={iconSize === 'medium' ? 'medium' : 'small'} />
       {showBrief && (
         <div 
           ref={tooltipRef}

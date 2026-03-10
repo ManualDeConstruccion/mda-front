@@ -23,6 +23,10 @@
   }
 }
 
+.helpIconMedium {
+  font-size: 22px !important;
+}
+
 .tooltip {
   position: absolute;
   z-index: 10000; // Mayor que el modal (z-index: 1000) para aparecer por encima

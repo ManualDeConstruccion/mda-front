@@ -118,6 +118,8 @@ export interface FormGridCell {
   grid_span: number;
   content: string;
   style?: FormGridCellStyle | Record<string, unknown>;
+  help_brief?: string;
+  help_extended?: string;
   is_active: boolean;
 }
 

@@ -18,6 +18,7 @@ import { formatNumberLocale } from '../../utils/helpers';
 import { GRID_LABEL_LIGHTBLUE } from '../../utils/gridStandard';
 import ParameterInput from './ParameterInput';
 import { useOptionDisplayLabel } from '../../hooks/useOptionDisplayLabel';
+import HelpTooltip from '../common/HelpTooltip/HelpTooltip';
 import type { GridCellProps, FormParameter, FormGridCell, SectionTreeMode } from '../../types/formParameters.types';
 
 const MIN_CELL_WIDTH_FOR_INLINE_INPUT = 180; // Por debajo de este ancho se usa modal para editar
@@ -188,9 +189,10 @@ const GridCell: React.FC<GridCellProps> = ({
         px: '5px',
         display: 'flex',
         flexDirection: 'column',
-        ...(mode === 'view' && isParameter ? {
+        // En vista: contenido (parámetros y bloques de texto) alineado verticalmente al centro
+        ...(mode === 'view' ? {
           justifyContent: 'center',
-          alignItems: 'center',
+          alignItems: isParameter ? 'center' : 'stretch',
         } : {})
       }}>
         {isParameter ? (
@@ -407,12 +409,13 @@ const GridCell: React.FC<GridCellProps> = ({
           </>
         ) : (
           (() => {
-            // Obtener estilos de la celda de texto
-            const cellStyle = (cell as FormGridCell).style || {};
+            const textCell = cell as FormGridCell;
+            const cellStyle = textCell.style || {};
             const textAlign = cellStyle.textAlign || 'left';
             const fontWeight = cellStyle.fontWeight || 'normal';
+            const hasHelp = textCell.help_brief != null && String(textCell.help_brief).trim() !== '';
 
-            return (
+            const contentNode = (
               <Typography
                 variant="body2"
                 color="text.secondary"
@@ -421,12 +424,34 @@ const GridCell: React.FC<GridCellProps> = ({
                   fontStyle: mode === 'view' ? 'normal' : 'italic',
                   textAlign: textAlign,
                   fontWeight: fontWeight,
-                  width: '100%',
+                  ...(hasHelp ? { width: 'fit-content', maxWidth: '100%' } : { width: '100%' }),
                 }}
               >
                 {cellContent}
               </Typography>
             );
+
+            // Ícono de ayuda: al costado del texto en una línea; poco margen; respeta alineación (left/center/right)
+            const justifyContent = textAlign === 'center' ? 'center' : textAlign === 'right' ? 'flex-end' : 'flex-start';
+            if (hasHelp) {
+              return (
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent, gap: 0.5, width: '100%', minHeight: 0, flexWrap: 'wrap' }}>
+                  {contentNode}
+                  <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+                    <HelpTooltip
+                      modelName="FormGridCell"
+                      fieldName={String(textCell.id)}
+                      iconSize="medium"
+                      helpTextData={{
+                        brief_text: textCell.help_brief ?? '',
+                        extended_text: textCell.help_extended ?? '',
+                      }}
+                    />
+                  </Box>
+                </Box>
+              );
+            }
+            return contentNode;
           })()
         )}
       </Box>
