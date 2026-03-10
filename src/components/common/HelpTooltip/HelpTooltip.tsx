@@ -1,6 +1,7 @@
 // src/components/common/HelpTooltip/HelpTooltip.tsx
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { HelpOutline } from '@mui/icons-material';
 import { useFieldHelpText, FieldHelpTextData } from '../../../hooks/useFieldHelpText';
 import styles from './HelpTooltip.module.scss';
@@ -73,13 +74,22 @@ const HelpTooltip: React.FC<HelpTooltipProps> = ({
   const briefText = hasBriefText 
     ? (helpText as FieldHelpTextData).brief_text 
     : defaultBriefText;
-  const extendedText = hasBriefText 
-    ? (helpText as FieldHelpTextData).extended_text 
-    : defaultExtendedText;
+  // Aceptar extended_text (FieldHelpTextData) o help_extended (payload de FormGridCell / API)
+  const extendedTextRaw = hasBriefText
+    ? ((helpText as Record<string, unknown>).extended_text ?? (helpText as Record<string, unknown>).help_extended ?? '')
+    : defaultExtendedText ?? '';
+  const extendedText = typeof extendedTextRaw === 'string' ? extendedTextRaw.trim() : String(extendedTextRaw ?? '').trim();
   const media = hasBriefText 
     ? (helpText as FieldHelpTextData).media 
     : defaultMedia;
-  
+  // URLs para web del trámite y video tutorial (aceptar help_web_url/help_video_url del payload)
+  const helpWebUrl = (hasBriefText
+    ? ((helpText as FieldHelpTextData).help_web_url ?? (helpText as Record<string, unknown>).help_web_url ?? '')
+    : '')?.trim() ?? '';
+  const helpVideoUrl = (hasBriefText
+    ? ((helpText as FieldHelpTextData).help_video_url ?? (helpText as Record<string, unknown>).help_video_url ?? '')
+    : '')?.trim() ?? '';
+
   // Si no hay briefText ni defaultBriefText, no mostrar tooltip
   if (!briefText) {
     return null;
@@ -99,55 +109,51 @@ const HelpTooltip: React.FC<HelpTooltipProps> = ({
     };
   }, []);
 
-  useEffect(() => {
-    // Calcular posición cuando el tooltip se extiende
-    if (showExtended && containerRef.current && tooltipRef.current) {
-      const containerRect = containerRef.current.getBoundingClientRect();
-      const tooltipRect = tooltipRef.current.getBoundingClientRect();
-      
-      let top = 0;
-      let left = 0;
+  const padding = 16;
+  const maxW = showExtended ? Math.min(600, window.innerWidth - padding * 2) : Math.min(300, window.innerWidth - padding * 2);
 
-      // Calcular posición según la posición especificada
-      switch (position) {
-        case 'top':
-          top = containerRect.top - tooltipRect.height - 8;
-          left = containerRect.left + containerRect.width / 2 - tooltipRect.width / 2;
-          break;
-        case 'bottom':
-          top = containerRect.bottom + 8;
-          left = containerRect.left + containerRect.width / 2 - tooltipRect.width / 2;
-          break;
-        case 'left':
-          top = containerRect.top + containerRect.height / 2 - tooltipRect.height / 2;
-          left = containerRect.left - tooltipRect.width - 8;
-          break;
-        case 'right':
-          top = containerRect.top + containerRect.height / 2 - tooltipRect.height / 2;
-          left = containerRect.right + 8;
-          break;
-      }
-
-      // Ajustar si se sale de la pantalla
-      const padding = 16;
-      if (top < padding) top = padding;
-      if (left < padding) left = padding;
-      if (top + tooltipRect.height > window.innerHeight - padding) {
-        top = window.innerHeight - tooltipRect.height - padding;
-      }
-      if (left + tooltipRect.width > window.innerWidth - padding) {
-        left = window.innerWidth - tooltipRect.width - padding;
-      }
-
-      setTooltipPosition({ top, left });
-    } else {
+  useLayoutEffect(() => {
+    if (!showBrief || !containerRef.current || !tooltipRef.current) {
       setTooltipPosition(null);
+      return;
     }
-  }, [showExtended, position]);
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const tooltipRect = tooltipRef.current.getBoundingClientRect();
+    let top = 0;
+    let left = 0;
+    switch (position) {
+      case 'top':
+        top = containerRect.top - tooltipRect.height - 8;
+        left = containerRect.left + containerRect.width / 2 - tooltipRect.width / 2;
+        break;
+      case 'bottom':
+        top = containerRect.bottom + 8;
+        left = containerRect.left + containerRect.width / 2 - tooltipRect.width / 2;
+        break;
+      case 'left':
+        top = containerRect.top + containerRect.height / 2 - tooltipRect.height / 2;
+        left = containerRect.left - tooltipRect.width - 8;
+        break;
+      case 'right':
+        top = containerRect.top + containerRect.height / 2 - tooltipRect.height / 2;
+        left = containerRect.right + 8;
+        break;
+    }
+    if (top < padding) top = padding;
+    if (left < padding) left = padding;
+    if (top + tooltipRect.height > window.innerHeight - padding) {
+      top = window.innerHeight - tooltipRect.height - padding;
+    }
+    if (left + tooltipRect.width > window.innerWidth - padding) {
+      left = window.innerWidth - tooltipRect.width - padding;
+    }
+    if (left < padding) left = padding;
+    setTooltipPosition({ top, left });
+  }, [showBrief, showExtended, position]);
 
   const handleMouseEnter = () => {
     setShowBrief(true);
-    if (extendedText || media) {
+    if (extendedText || media || helpWebUrl || helpVideoUrl) {
       timeoutRef.current = setTimeout(() => {
         setShowExtended(true);
       }, 1000);
@@ -164,6 +170,78 @@ const HelpTooltip: React.FC<HelpTooltipProps> = ({
   };
 
   const iconClass = iconSize === 'medium' ? `${styles.helpIcon} ${styles.helpIconMedium}` : styles.helpIcon;
+
+  const tooltipContent = showBrief ? (
+    <div
+      ref={tooltipRef}
+      className={`${styles.tooltip} ${styles.tooltipPortal} ${showExtended ? styles.extended : ''}`}
+      style={{
+        position: 'fixed',
+        ...(tooltipPosition
+          ? {
+              top: `${tooltipPosition.top}px`,
+              left: `${tooltipPosition.left}px`,
+              opacity: 1,
+              maxWidth: `${maxW}px`,
+              margin: 0,
+              transform: 'none',
+            }
+          : { opacity: 0, pointerEvents: 'none', left: -9999, top: 0, maxWidth: `${maxW}px` }),
+      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      <div className={styles.tooltipContent}>
+        <p className={styles.briefText}>{briefText}</p>
+        {showExtended && (
+          <div className={styles.extendedContent}>
+            {extendedText ? (
+              <p className={styles.extendedText}>{extendedText}</p>
+            ) : (
+              // Si no hay texto extendido pero sí links, dejar espacio para los enlaces
+              null
+            )}
+            {media?.images && media.images.length > 0 && (
+              <div className={styles.mediaSection}>
+                {media.images.map((img: string, idx: number) => (
+                  <img key={idx} src={img} alt={`Ayuda ${idx + 1}`} className={styles.mediaImage} />
+                ))}
+              </div>
+            )}
+            {media?.videos && media.videos.length > 0 && (
+              <div className={styles.mediaSection}>
+                {media.videos.map((video: string, idx: number) => (
+                  <video key={idx} src={video} controls className={styles.mediaVideo} />
+                ))}
+              </div>
+            )}
+            {media?.animations && media.animations.length > 0 && (
+              <div className={styles.mediaSection}>
+                {media.animations.map((anim: string, idx: number) => (
+                  <img key={idx} src={anim} alt={`Animación ${idx + 1}`} className={styles.mediaAnimation} />
+                ))}
+              </div>
+            )}
+            {(helpWebUrl || helpVideoUrl) && (
+              <div className={styles.tooltipFooter}>
+                {helpWebUrl && (
+                  <a href={helpWebUrl} target="_blank" rel="noopener noreferrer" className={styles.tooltipLink}>
+                    Ir a web del trámite
+                  </a>
+                )}
+                {helpVideoUrl && (
+                  <a href={helpVideoUrl} target="_blank" rel="noopener noreferrer" className={styles.tooltipLink}>
+                    Ir a tutorial
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  ) : null;
+
   return (
     <div
       ref={containerRef}
@@ -172,53 +250,9 @@ const HelpTooltip: React.FC<HelpTooltipProps> = ({
       onMouseLeave={handleMouseLeave}
     >
       <HelpOutline className={iconClass} fontSize={iconSize === 'medium' ? 'medium' : 'small'} />
-      {showBrief && (
-        <div 
-          ref={tooltipRef}
-          className={`${styles.tooltip} ${styles[position]} ${showExtended ? styles.extended : ''}`}
-          style={showExtended && tooltipPosition ? {
-            position: 'fixed',
-            top: `${tooltipPosition.top}px`,
-            left: `${tooltipPosition.left}px`,
-            margin: 0,
-            transformOrigin: 'center center',
-          } : undefined}
-          onMouseEnter={handleMouseEnter} // Mantener el tooltip visible cuando el mouse está sobre él
-          onMouseLeave={handleMouseLeave}
-        >
-          <div className={styles.tooltipContent}>
-            <p className={styles.briefText}>{briefText}</p>
-            {showExtended && (
-              <div className={styles.extendedContent}>
-                {extendedText && (
-                  <p className={styles.extendedText}>{extendedText}</p>
-                )}
-                {media?.images && media.images.length > 0 && (
-                  <div className={styles.mediaSection}>
-                    {media.images.map((img: string, idx: number) => (
-                      <img key={idx} src={img} alt={`Ayuda ${idx + 1}`} className={styles.mediaImage} />
-                    ))}
-                  </div>
-                )}
-                {media?.videos && media.videos.length > 0 && (
-                  <div className={styles.mediaSection}>
-                    {media.videos.map((video: string, idx: number) => (
-                      <video key={idx} src={video} controls className={styles.mediaVideo} />
-                    ))}
-                  </div>
-                )}
-                {media?.animations && media.animations.length > 0 && (
-                  <div className={styles.mediaSection}>
-                    {media.animations.map((anim: string, idx: number) => (
-                      <img key={idx} src={anim} alt={`Animación ${idx + 1}`} className={styles.mediaAnimation} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {showBrief && typeof document !== 'undefined' && document.body
+        ? createPortal(tooltipContent, document.body)
+        : null}
     </div>
   );
 };

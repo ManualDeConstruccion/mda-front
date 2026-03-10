@@ -9,6 +9,11 @@ import type {
 /**
  * Calcula maxRow, gridLayout, allCells, getColumnsForRow y helpers para la grilla
  * de una sección (parámetros + celdas de texto).
+ *
+ * Ancho de celdas: cada celda tiene grid_span (1-8 columnas). El ancho NO está
+ * en style; style solo tiene textAlign, backgroundColor, fontWeight, cellType.
+ * getColumnsForRow(row) devuelve el número de columnas de la fila (1-8): primero
+ * display_config.grid_config.rows_columns[row], si no se infiere del contenido.
  */
 export function useGridLayout(
   section: FormParameterCategory,
@@ -45,7 +50,7 @@ export function useGridLayout(
         }
       });
     }
-    return Math.min(Math.max(max, 1), 5);
+    return Math.min(Math.max(max, 1), 8);
   }, [section.display_config, section.form_parameters, section.grid_cells, hasParameters]);
 
   const maxRow = useMemo(() => {

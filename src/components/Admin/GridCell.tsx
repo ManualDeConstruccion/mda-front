@@ -233,7 +233,11 @@ const GridCell: React.FC<GridCellProps> = ({
                     if (unit) displayValue += ` ${unit}`;
                     break;
                   case 'boolean':
-                    displayValue = currentValue ? 'Sí' : 'No';
+                    displayValue = currentValue === null || currentValue === undefined
+                      ? 'No aplica'
+                      : currentValue
+                        ? 'Sí'
+                        : 'No';
                     break;
                   case 'date':
                     try {
@@ -370,7 +374,11 @@ const GridCell: React.FC<GridCellProps> = ({
                     if (unit) displayValue += ` ${unit}`;
                     break;
                   case 'boolean':
-                    displayValue = value ? 'Sí' : 'No';
+                    displayValue = value === null || value === undefined
+                      ? 'No aplica'
+                      : value
+                        ? 'Sí'
+                        : 'No';
                     break;
                   case 'date':
                     try {
@@ -445,6 +453,8 @@ const GridCell: React.FC<GridCellProps> = ({
                       helpTextData={{
                         brief_text: textCell.help_brief ?? '',
                         extended_text: textCell.help_extended ?? '',
+                        help_web_url: textCell.help_web_url ?? '',
+                        help_video_url: textCell.help_video_url ?? '',
                       }}
                     />
                   </Box>

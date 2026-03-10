@@ -58,8 +58,8 @@
 
   &.extended {
     position: fixed; // Cambiar a fixed cuando está extendido para escapar del contexto del modal
-    min-width: 400px;
-    max-width: 600px;
+    min-width: 200px;
+    max-width: min(600px, calc(100vw - 32px)); // No superar el ancho de la pantalla
     padding: $spacing-md;
     max-height: 80vh; // Limitar altura máxima para evitar que se salga de la pantalla
     overflow-y: auto; // Permitir scroll si el contenido es muy largo
@@ -103,9 +103,25 @@
     transform: translateY(-50%);
     margin-left: $spacing-xs;
   }
+
+  // Cuando se renderiza en portal, la posición se controla por inline style (fixed + top/left)
+  &.tooltipPortal {
+    &.top, &.bottom, &.left, &.right {
+      bottom: auto;
+      top: auto;
+      left: auto;
+      right: auto;
+      margin: 0;
+      transform: none;
+    }
+  }
 }
 
 .tooltipContent {
+  overflow-wrap: break-word;
+  word-break: break-word;
+  min-width: 0; // Permitir que el contenido se encoja y haga wrap
+
   .briefText {
     margin: 0;
     font-size: $font-size-sm;
@@ -127,6 +143,27 @@
     font-size: $font-size-sm;
     color: $text-secondary;
     line-height: 1.6;
+  }
+
+  .tooltipFooter {
+    margin-top: $spacing-sm;
+    padding-top: $spacing-sm;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: $spacing-sm;
+  }
+
+  .tooltipLink {
+    font-size: $font-size-sm;
+    color: $primary-color;
+    text-decoration: none;
+    font-weight: 500;
+
+    &:hover {
+      text-decoration: underline;
+    }
   }
 
   .mediaSection {

@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import {
   TextField,
   FormControlLabel,
-  Switch,
+  Radio,
+  RadioGroup,
+  FormControl,
   Box,
   InputAdornment,
   Autocomplete,
@@ -203,34 +205,42 @@ const ParameterInput: React.FC<ParameterInputProps> = ({
         />
       );
 
-    case 'boolean':
+    case 'boolean': {
+      const boolValue = persistOnBlur ? localValue : value;
+      const selected = boolValue === null || boolValue === undefined ? 'na' : boolValue ? 'yes' : 'no';
       return (
         <Box>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={(persistOnBlur ? localValue : value) ?? false}
-                onChange={(e) => {
-                  const v = e.target.checked;
-                  if (persistOnBlur) {
-                    setLocalValue(v);
-                    onChange(v);
-                  } else {
-                    onChange(v);
-                  }
-                }}
-                onBlur={persistOnBlur ? handleBlur : undefined}
-                disabled={disabled}
-              />
-            }
-            label={label}
-            required={required}
-          />
+          <FormControl component="fieldset" disabled={disabled} error={error}>
+            {label && (
+              <Box component="span" sx={{ display: 'block', mb: 0.5, fontSize: '0.875rem', color: 'text.secondary' }}>
+                {label}
+                {required && ' *'}
+              </Box>
+            )}
+            <RadioGroup
+              row
+              value={selected}
+              onChange={(e) => {
+                const v = e.target.value as 'na' | 'yes' | 'no';
+                const newValue: boolean | null = v === 'na' ? null : v === 'yes';
+                if (persistOnBlur) {
+                  setLocalValue(newValue);
+                  onChange(newValue);
+                } else {
+                  onChange(newValue);
+                }
+              }}
+              onBlur={persistOnBlur ? handleBlur : undefined}
+            >
+              <FormControlLabel value="na" control={<Radio size="small" />} label="No aplica" />
+              <FormControlLabel value="yes" control={<Radio size="small" />} label="Sí" />
+              <FormControlLabel value="no" control={<Radio size="small" />} label="No" />
+            </RadioGroup>
+          </FormControl>
           {helperText && (
             <Box
               sx={{
                 mt: 0.5,
-                ml: 1.5,
                 fontSize: '0.75rem',
                 color: error ? 'error.main' : 'text.secondary',
               }}
@@ -240,6 +250,7 @@ const ParameterInput: React.FC<ParameterInputProps> = ({
           )}
         </Box>
       );
+    }
 
     case 'text':
       if (isSelector) {

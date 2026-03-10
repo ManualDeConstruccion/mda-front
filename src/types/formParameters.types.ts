@@ -120,6 +120,8 @@ export interface FormGridCell {
   style?: FormGridCellStyle | Record<string, unknown>;
   help_brief?: string;
   help_extended?: string;
+  help_web_url?: string;
+  help_video_url?: string;
   is_active: boolean;
 }
 
