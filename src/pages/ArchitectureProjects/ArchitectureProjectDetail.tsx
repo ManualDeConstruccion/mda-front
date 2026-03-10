@@ -165,11 +165,10 @@ const ArchitectureProjectDetail: React.FC = () => {
     }
   }, [formStructureError, projectTypeId, architectureId]);
 
-  // Cargar valores de una categoría (lazy loading cuando se expande)
+  // Cargar valores de una categoría (se usa al expandir y en la carga inicial de todas las secciones)
   const loadCategoryValues = useCallback(async (categoryId: number) => {
     if (!architectureId) return;
-    
-    // Si ya tenemos los valores en el estado, no cargar de nuevo
+    // Evitar refetch si ya tenemos valores (p. ej. tras carga inicial o al reexpandir)
     if (formValues[categoryId]) {
       return formValues[categoryId];
     }
@@ -178,7 +177,7 @@ const ArchitectureProjectDetail: React.FC = () => {
       const response = await api.get(
         `parameters/node-parameters/by-category/${categoryId}/?subproject_id=${architectureId}`
       );
-      
+
       const values = response.data.values || {};
       const alerts = (response.data.alerts || []) as UIAlert[];
       setFormValues(prev => ({
@@ -194,7 +193,31 @@ const ArchitectureProjectDetail: React.FC = () => {
       console.error(`Error loading values for category ${categoryId}:`, error);
       return {};
     }
-  }, [architectureId, accessToken]);
+  }, [architectureId, accessToken, formValues]);
+
+  // Obtener todos los IDs de categoría (secciones y subsecciones) de la estructura
+  const getAllCategoryIds = useCallback((sections: FormParameterCategory[]): number[] => {
+    const ids: number[] = [];
+    const visit = (sec: FormParameterCategory) => {
+      ids.push(sec.id);
+      sec.subcategories?.forEach(visit);
+    };
+    sections.forEach(visit);
+    return ids;
+  }, []);
+
+  // Cargar valores de todas las secciones al tener estructura (para que el chip de obligatorios se contabilice siempre, sin abrir la sección)
+  const initialValuesLoadedKeyRef = React.useRef<string | null>(null);
+  useEffect(() => {
+    if (!formStructure?.sections?.length || !architectureId) return;
+    const key = `${architectureId}-${getAllCategoryIds(formStructure.sections).join(',')}`;
+    if (initialValuesLoadedKeyRef.current === key) return;
+    initialValuesLoadedKeyRef.current = key;
+    const categoryIds = getAllCategoryIds(formStructure.sections);
+    categoryIds.forEach((categoryId) => loadCategoryValues(categoryId));
+    // loadCategoryValues no en deps para evitar bucle (cambia con formValues)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formStructure?.sections, architectureId, getAllCategoryIds]);
 
   // Refetch de datos de una categoría (valores + alertas) tras actualizar un valor
   const refetchCategoryData = useCallback(async (categoryId: number) => {

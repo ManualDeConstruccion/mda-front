@@ -17,6 +17,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { formatNumberLocale } from '../../utils/helpers';
 import { GRID_LABEL_LIGHTBLUE } from '../../utils/gridStandard';
 import ParameterInput from './ParameterInput';
+import { useOptionDisplayLabel } from '../../hooks/useOptionDisplayLabel';
 import type { GridCellProps, FormParameter, FormGridCell, SectionTreeMode } from '../../types/formParameters.types';
 
 const MIN_CELL_WIDTH_FOR_INLINE_INPUT = 180; // Por debajo de este ancho se usa modal para editar
@@ -94,6 +95,14 @@ const GridCell: React.FC<GridCellProps> = ({
 
   // Obtener is_required del FormParameter
   const isRequired = isParameter ? (cell as FormParameter).is_required : false;
+
+  // Resolver id → etiqueta para modo vista cuando el parámetro es un selector (options_source)
+  const optionDisplay = useOptionDisplayLabel(
+    paramDef?.options_source ?? null,
+    paramDef?.options_filter_by ?? [],
+    values ?? {},
+    cellCode != null ? values?.[cellCode] : undefined
+  );
 
   // Determinar el color de fondo
   const getBackgroundColor = () => {
@@ -374,7 +383,12 @@ const GridCell: React.FC<GridCellProps> = ({
                     }
                     break;
                   default:
-                    displayValue = String(value);
+                    // Para selectores (options_source) mostrar la etiqueta, no el id
+                    if (paramDef?.options_source && (typeof value === 'number' || (typeof value === 'string' && value !== '' && !Number.isNaN(Number(value))))) {
+                      displayValue = optionDisplay.isLoading ? '…' : optionDisplay.displayLabel;
+                    } else {
+                      displayValue = String(value);
+                    }
                 }
               }
 
