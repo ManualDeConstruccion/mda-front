@@ -156,7 +156,7 @@ const SectionTree: React.FC<SectionTreeProps> = ({
           
           {hasParameters && (
             <Chip
-              label={`${obligatoryCount} obligatorios`}
+              label={`${obligatoryCount} campos`}
               size="small"
               color="primary"
               variant="outlined"

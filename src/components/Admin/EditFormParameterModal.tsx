@@ -845,7 +845,8 @@ const EditFormParameterModal: React.FC<EditFormParameterModalProps> = ({
                 onChange={(e) => setOptionsFilterBy(e.target.value)}
                 multiline
                 rows={2}
-                fullWidthplaceholder='["propiedad_region"]'
+                fullWidth
+                placeholder='["propiedad_region"]'
               />
               {selectedOptionSource?.help_filter_by ? (
                 <Alert severity="info" sx={{ mt: 0.5 }}>
@@ -859,7 +860,8 @@ const EditFormParameterModal: React.FC<EditFormParameterModalProps> = ({
                 onChange={(e) => setFormRules(e.target.value)}
                 multiline
                 rows={4}
-                fullWidthplaceholder='[{"action": "clear_value", "target_parameter_code": "comuna"}]'
+                fullWidth
+                placeholder='[{"action": "clear_value", "target_parameter_code": "comuna"}]'
               />
               {selectedOptionSource?.help_form_rules ? (
                 <Alert severity="info" sx={{ mt: 0.5 }}>

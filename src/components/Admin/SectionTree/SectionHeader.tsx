@@ -25,6 +25,33 @@ function hasValue(val: unknown): boolean {
   return true;
 }
 
+/** Códigos de parámetros obligatorios en esta categoría y sus descendientes. */
+function getObligatoryParamCodesInTree(sec: FormParameterCategory): string[] {
+  const codes: string[] = [];
+  (sec.form_parameters ?? []).forEach((p) => {
+    if (isObligatoryParam(p)) {
+      const code = getParamCode(p);
+      if (code) codes.push(code);
+    }
+  });
+  sec.subcategories?.forEach((sub) => codes.push(...getObligatoryParamCodesInTree(sub)));
+  return codes;
+}
+
+/** True si la categoría (o alguna descendiente) tiene al menos un campo obligatorio. */
+function hasAtLeastOneObligatoryInTree(sec: FormParameterCategory): boolean {
+  const inSec = (sec.form_parameters ?? []).some(isObligatoryParam);
+  if (inSec) return true;
+  return (sec.subcategories ?? []).some(hasAtLeastOneObligatoryInTree);
+}
+
+/** True si todos los campos obligatorios de esta categoría y sus descendientes están completados en values. */
+function allObligatoryCompletedInTree(sec: FormParameterCategory, values: Record<string, unknown>): boolean {
+  const codes = getObligatoryParamCodesInTree(sec);
+  if (codes.length === 0) return true;
+  return codes.every((code) => hasValue(values[code]));
+}
+
 interface SectionHeaderProps {
   section: FormParameterCategory;
   mode: SectionTreeMode;
@@ -63,7 +90,8 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
   setCreatingSubcategory,
   setEditCategoryModalOpen,
 }) => {
-  const obligatoryCount = useMemo(() => {
+  // Campos obligatorios de esta sección (sin subsecciones)
+  const fieldsCount = useMemo(() => {
     const params = section.form_parameters ?? [];
     const obligatory = params.filter(isObligatoryParam);
     if (obligatory.length === 0) return { total: 0, completed: 0 };
@@ -75,17 +103,43 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
     return { total: obligatory.length, completed };
   }, [section.form_parameters, values]);
 
-  const chipLabel =
-    obligatoryCount.total === 0
-      ? '0 obligatorios'
-      : values != null
-        ? `${obligatoryCount.completed}/${obligatoryCount.total} obligatorios completados`
-        : `${obligatoryCount.total} obligatorios`;
+  // Subsecciones: solo se cuentan las que tienen al menos un campo obligatorio; completa = todos sus obligatorios completados
+  const subsectionsCount = useMemo(() => {
+    const subs = section.subcategories ?? [];
+    if (subs.length === 0) return { total: 0, completed: 0 };
+    const withObligatory = subs.filter(hasAtLeastOneObligatoryInTree);
+    const total = withObligatory.length;
+    if (total === 0) return { total: 0, completed: 0 };
+    if (values == null) return { total, completed: 0 };
+    const completed = withObligatory.filter((sub) => allObligatoryCompletedInTree(sub, values)).length;
+    return { total, completed };
+  }, [section.subcategories, values]);
 
-  // Verde si todos los obligatorios completados; rojo si quedan pendientes (solo cuando hay values)
-  const chipColor =
-    values != null && obligatoryCount.total > 0
-      ? obligatoryCount.completed === obligatoryCount.total
+  const fieldsChipLabel =
+    fieldsCount.total === 0
+      ? '0 campos'
+      : values != null
+        ? `${fieldsCount.completed}/${fieldsCount.total} campos completados`
+        : `${fieldsCount.total} campos`;
+
+  const subsectionsChipLabel =
+    subsectionsCount.total === 0
+      ? null
+      : values != null
+        ? `${subsectionsCount.completed}/${subsectionsCount.total} subsecciones completas`
+        : `${subsectionsCount.total} subsecciones`;
+
+  // Verde si todos completados; rojo si quedan pendientes (solo cuando hay values)
+  const fieldsChipColor =
+    values != null && fieldsCount.total > 0
+      ? fieldsCount.completed === fieldsCount.total
+        ? 'success'
+        : 'error'
+      : 'primary';
+
+  const subsectionsChipColor =
+    values != null && subsectionsCount.total > 0
+      ? subsectionsCount.completed === subsectionsCount.total
         ? 'success'
         : 'error'
       : 'primary';
@@ -105,18 +159,26 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
       {section.number} - {section.name}
     </Typography>
 
-    {isSuperficiesSection && (
-      <Chip label="Superficies" size="small" color="primary" variant="outlined" sx={{ mr: 1 }} />
-    )}
-    {hasParameters && !isSuperficiesSection && (
+    {(hasParameters || hasSubcategories) && (
       <>
-        <Chip
-          label={chipLabel}
-          size="small"
-          color={chipColor}
-          variant="outlined"
-          sx={{ mr: 1 }}
-        />
+        {hasParameters && (
+          <Chip
+            label={fieldsChipLabel}
+            size="small"
+            color={fieldsChipColor}
+            variant="outlined"
+            sx={{ mr: 1 }}
+          />
+        )}
+        {hasSubcategories && subsectionsChipLabel != null && (
+          <Chip
+            label={subsectionsChipLabel}
+            size="small"
+            color={subsectionsChipColor}
+            variant="outlined"
+            sx={{ mr: 1 }}
+          />
+        )}
         {mode !== 'admin' && subprojectId && onSectionModeChange && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0, mr: 1 }}>
             <button
