@@ -67,6 +67,7 @@ export interface FormParameterCategory {
   form_parameters?: FormParameter[];
   grid_cells?: FormGridCell[];
   subcategories?: FormParameterCategory[];
+  validators?: { id: number; code: string; name: string }[];
   display_config?: {
     layout_type?: string;
     grid_config?: {
