@@ -157,6 +157,7 @@ const GridRow: React.FC<GridRowProps> = React.memo(({
             width: '100%',
             gap: 2,
             minWidth: mode === 'admin' ? rowColumns * 120 : undefined,
+            alignItems: mode === 'view' ? 'stretch' : undefined,
           }}
         >
         {Array.from({ length: rowColumns }, (_, colIndex) => {
@@ -178,6 +179,7 @@ const GridRow: React.FC<GridRowProps> = React.memo(({
                 sx={{
                   flex: `${span} 0 0`,
                   minWidth: 0,
+                  ...(mode === 'view' && { display: 'flex', minHeight: 0 }),
                 }}
               >
                 <SortableGridCell

@@ -160,6 +160,7 @@ const GridCell: React.FC<GridCellProps> = ({
         flexDirection: 'column',
         justifyContent: mode === 'view' ? 'center' : 'flex-start',
         cursor: mode === 'admin' ? 'grab' : 'default',
+        ...(mode === 'view' && { height: '100%', flex: 1 }),
         '&:hover': mode === 'admin' ? {
           borderColor: 'primary.main',
           boxShadow: 1,
