@@ -28,6 +28,7 @@ import type { FormParameterCategory, UIAlert } from '../../components/Admin/Sect
 import { api } from '../../services/api';
 import styles from './ArchitectureProjectDetail.module.scss';
 import ListadoDeAntecedentes from './ListadoDeAntecedentes';
+import ActivityAlert from '../../components/ActivityAlert/ActivityAlert';
 
 const ArchitectureProjectDetail: React.FC = () => {
   const { projectId, architectureId } = useParams<{ projectId: string; architectureId: string }>();
@@ -459,6 +460,7 @@ const ArchitectureProjectDetail: React.FC = () => {
 
   return (
     <ProjectProvider projectNodeId={Number(architectureId)}>
+      <ActivityAlert />
       <div className={styles.container}>
         <header className={styles.header}>
           {/* Primera fila: Breadcrumb (izquierda) + Botón Volver (derecha) */}
