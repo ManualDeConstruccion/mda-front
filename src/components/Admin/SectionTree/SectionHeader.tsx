@@ -130,7 +130,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
     fieldsCount.total === 0
       ? '0 campos'
       : values != null
-        ? `${fieldsCount.completed}/${fieldsCount.total} campos completados`
+        ? `${fieldsCount.completed}/${fieldsCount.total} campos obligatorios`
         : `${fieldsCount.total} campos`;
 
   const subsectionsChipLabel =
