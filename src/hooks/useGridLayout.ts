@@ -26,32 +26,33 @@ export function useGridLayout(
   const getColumnsForRow = useCallback((row: number): number => {
     const rowsColumns = section.display_config?.grid_config?.rows_columns || {};
     const rowKey = String(row);
-    if (rowsColumns[rowKey]) {
-      return rowsColumns[rowKey];
-    }
-    let max = 1;
-    if (hasParameters) {
-      section.form_parameters?.forEach(param => {
-        if (param.grid_row === row) {
-          const col = param.grid_column || 1;
-          const span = param.grid_span || 1;
-          if (col + span - 1 > max) {
-            max = col + span - 1;
-          }
+    const blockId = gridCells.length > 0 ? (gridCells[0] as FormGridCell).block : undefined;
+    let requiredByContent = 1;
+    if (hasParameters && section.form_parameters) {
+      section.form_parameters.forEach(param => {
+        if (param.grid_row !== row) return;
+        if (blockId != null && (param as FormParameter & { block?: number }).block !== blockId) return;
+        const col = param.grid_column || 1;
+        const span = param.grid_span || 1;
+        if (col + span - 1 > requiredByContent) {
+          requiredByContent = col + span - 1;
         }
       });
     }
-    if (section.grid_cells) {
-      section.grid_cells.forEach(cell => {
-        if (cell.grid_row === row) {
-          if (cell.grid_column + cell.grid_span - 1 > max) {
-            max = cell.grid_column + cell.grid_span - 1;
-          }
-        }
-      });
-    }
-    return Math.min(Math.max(max, 1), 8);
-  }, [section.display_config, section.form_parameters, section.grid_cells, hasParameters]);
+    gridCells.forEach(cell => {
+      if (cell.grid_row !== row) return;
+      if (cell.grid_column + cell.grid_span - 1 > requiredByContent) {
+        requiredByContent = cell.grid_column + cell.grid_span - 1;
+      }
+    });
+    const configured = rowsColumns[rowKey] != null && rowsColumns[rowKey] !== ''
+      ? Number(rowsColumns[rowKey])
+      : null;
+    const cols = configured != null
+      ? configured
+      : requiredByContent;
+    return Math.min(Math.max(cols, 1), 8);
+  }, [section.display_config, section.form_parameters, gridCells, hasParameters]);
 
   const maxRow = useMemo(() => {
     if (!hasParameters && !hasGridCells) {
@@ -101,34 +102,38 @@ export function useGridLayout(
         grid[r][c] = null;
       }
     }
+    const paramsInRow = (r: number) =>
+      (section.form_parameters || []).filter((p) => (p.grid_row || 1) === r);
+    const cellsInRow = (r: number) =>
+      gridCells.filter((c) => c.grid_row === r);
+
+    // Asignar cada ítem a su slot (grid_column). El span solo define el ancho visual (flex),
+    // no reserva columnas adicionales: así parámetros y celdas de texto usan la misma lógica
+    // y todas las columnas se muestran (ej. param col 1 span 2 + param col 2 span 1 → 4 slots visibles).
     if (hasParameters) {
-      section.form_parameters?.forEach(param => {
-        const row = param.grid_row || 1;
-        const col = param.grid_column || 1;
-        const span = param.grid_span || 1;
+      for (let r = 1; r <= maxRow; r++) {
+        const sorted = [...paramsInRow(r)].sort((a, b) => (a.grid_column || 1) - (b.grid_column || 1));
+        sorted.forEach(param => {
+          const row = param.grid_row || 1;
+          const col = param.grid_column || 1;
+          const maxCols = getColumnsForRow(row);
+          if (row <= maxRow && col <= maxCols) {
+            grid[row][col] = { ...param, __isParameter: true } as any;
+          }
+        });
+      }
+    }
+    for (let r = 1; r <= maxRow; r++) {
+      const sorted = [...cellsInRow(r)].sort((a, b) => a.grid_column - b.grid_column);
+      sorted.forEach(cell => {
+        const row = cell.grid_row;
+        const col = cell.grid_column;
         const maxCols = getColumnsForRow(row);
         if (row <= maxRow && col <= maxCols) {
-          if (!grid[row][col] || (grid[row][col] as any).__isParameter === true) {
-            grid[row][col] = { ...param, __isParameter: true } as any;
-            for (let i = 1; i < span && col + i <= maxCols; i++) {
-              grid[row][col + i] = { __occupied: true } as any;
-            }
-          }
+          grid[row][col] = { ...cell, __isParameter: false } as any;
         }
       });
     }
-    gridCells.forEach(cell => {
-      const row = cell.grid_row;
-      const col = cell.grid_column;
-      const span = cell.grid_span;
-      const maxCols = getColumnsForRow(row);
-      if (row <= maxRow && col <= maxCols) {
-        grid[row][col] = { ...cell, __isParameter: false } as any;
-        for (let i = 1; i < span && col + i <= maxCols; i++) {
-          grid[row][col + i] = { __occupied: true } as any;
-        }
-      }
-    });
     return grid;
   }, [section.form_parameters, gridCells, maxRow, getColumnsForRow, hasParameters]);
 

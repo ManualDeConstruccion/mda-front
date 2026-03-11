@@ -82,7 +82,28 @@ const GridRow: React.FC<GridRowProps> = React.memo(({
     }
     return false;
   }, [mode, rowCells, rowColumns]);
-  
+
+  // Algoritmo: cada columna tiene span efectivo 1 por defecto (incl. vacías y ocupadas por span de otra).
+  // factorX = totalColumnas / sumaDeSpans → redistribución flex = factorX * spanEfectivo.
+  const { effectiveSpanPerCol, sumOfSpans, factorX } = React.useMemo(() => {
+    const effective: Record<number, number> = {};
+    let sum = 0;
+    for (let col = 1; col <= rowColumns; col++) {
+      const cell = rowCells[col];
+      const span = cell && !(cell as any).__occupied
+        ? (isParameterCell(cell) ? (cell as FormParameter).grid_span ?? 1 : (cell as FormGridCell).grid_span ?? 1)
+        : 1;
+      effective[col] = span;
+      sum += span;
+    }
+    const total = Math.max(sum, 1);
+    return {
+      effectiveSpanPerCol: effective,
+      sumOfSpans: total,
+      factorX: rowColumns / total,
+    };
+  }, [rowCells, rowColumns, isParameterCell]);
+
   if (mode === 'view' && !hasRowContent) {
     return null;
   }
@@ -137,35 +158,35 @@ const GridRow: React.FC<GridRowProps> = React.memo(({
         </Box>
       )}
       
-      {/* Grilla de la fila: en modo admin, envolver en contenedor con scroll horizontal si las columnas no caben */}
-      <Box
-        sx={
-          mode === 'admin'
-            ? {
-                overflowX: 'auto',
-                overflowY: 'visible',
-                // Evitar que la barra de scroll ocupe espacio extra en algunos navegadores
-                scrollbarGutter: 'stable',
-              }
-            : undefined
-        }
-      >
+      {/* Grilla de la fila: las columnas siempre caben en el ancho disponible (flex reparte el espacio) */}
+      <Box sx={{ width: '100%', minWidth: 0 }}>
         <Box
           sx={{
             display: 'flex',
             flexWrap: 'nowrap',
             width: '100%',
+            minWidth: 0,
             gap: 2,
-            minWidth: mode === 'admin' ? rowColumns * 120 : undefined,
             alignItems: mode === 'view' ? 'stretch' : undefined,
           }}
         >
         {Array.from({ length: rowColumns }, (_, colIndex) => {
           const col = colIndex + 1;
           const cell = rowCells[col];
+          const effectiveSpan = effectiveSpanPerCol[col] ?? 1;
+          const flexValue = factorX * effectiveSpan;
           
           if (cell && (cell as any).__occupied) {
-            return null;
+            return (
+              <Box
+                key={`occupied-${row}-${col}`}
+                sx={{
+                  flex: `${flexValue} 0 0`,
+                  minWidth: 0,
+                  minHeight: mode === 'admin' ? 48 : 0,
+                }}
+              />
+            );
           }
           
           if (cell && !(cell as any).__occupied) {
@@ -173,11 +194,14 @@ const GridRow: React.FC<GridRowProps> = React.memo(({
             const span = isParameter
               ? (cell as FormParameter).grid_span ?? 1
               : (cell as FormGridCell).grid_span ?? 1;
+            const spanPercent = mode === 'admin'
+              ? Math.round((effectiveSpan / sumOfSpans) * 100)
+              : undefined;
             return (
               <Box
                 key={`${isParameter ? 'param' : 'text'}-${cell.id}`}
                 sx={{
-                  flex: `${span} 0 0`,
+                  flex: `${flexValue} 0 0`,
                   minWidth: 0,
                   ...(mode === 'view' && { display: 'flex', minHeight: 0 }),
                 }}
@@ -187,6 +211,7 @@ const GridRow: React.FC<GridRowProps> = React.memo(({
                   row={row}
                   column={col}
                   span={span}
+                  spanPercent={spanPercent}
                   isDragging={activeId === `cell-${isParameter ? 'param' : 'text'}-${cell.id}`}
                   onEdit={(c) => {
                     if (isParameter) onEditParameter(c as FormParameter);
@@ -211,7 +236,8 @@ const GridRow: React.FC<GridRowProps> = React.memo(({
                 data-row={row}
                 data-column={col}
                 sx={{
-                  flex: '0 0 120px',
+                  flex: `${flexValue} 0 0`,
+                  minWidth: 0,
                   minHeight: '48px',
                   border: '2px dashed',
                   borderColor: 'divider',

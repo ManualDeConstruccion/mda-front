@@ -28,6 +28,7 @@ const GridCell: React.FC<GridCellProps> = ({
   row,
   column,
   span,
+  spanPercent,
   isDragging = false,
   onEdit,
   onDelete,
@@ -468,33 +469,40 @@ const GridCell: React.FC<GridCellProps> = ({
       </Box>
 
       {mode === 'admin' && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 'auto' }}>
-          {onEdit && (
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit(cell);
-              }}
-            >
-              <EditIcon fontSize="small" />
-            </IconButton>
-          )}
-          {onDelete && (
-            <IconButton
-              size="small"
-              color="error"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(cell);
-              }}
-            >
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          )}
-          {isParameter && isRequired && (
-            <Typography variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
-              Requerido
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 0.5, mt: 'auto', width: '100%' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            {onEdit && (
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(cell);
+                }}
+              >
+                <EditIcon fontSize="small" />
+              </IconButton>
+            )}
+            {onDelete && (
+              <IconButton
+                size="small"
+                color="error"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(cell);
+                }}
+              >
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+            )}
+            {isParameter && isRequired && (
+              <Typography variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
+                Requerido
+              </Typography>
+            )}
+          </Box>
+          {spanPercent != null && (
+            <Typography component="span" variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
+              {Math.round(spanPercent)}%
             </Typography>
           )}
         </Box>

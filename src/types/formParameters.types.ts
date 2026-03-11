@@ -132,6 +132,8 @@ export interface GridCellProps {
   row: number;
   column: number;
   span: number;
+  /** Porcentaje del ancho de la fila que ocupa esta celda (solo modo admin, entero). */
+  spanPercent?: number;
   isDragging?: boolean;
   onEdit?: (cell: FormParameter | FormGridCell) => void;
   onDelete?: (cell: FormParameter | FormGridCell) => void;
