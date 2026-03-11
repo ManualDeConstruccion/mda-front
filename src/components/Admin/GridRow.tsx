@@ -23,6 +23,9 @@ import {
   type FormParameterCategory 
 } from './SectionTreeWithModes';
 
+/** Espacio entre celdas (horizontal) y entre filas (vertical). Usa unidades del tema MUI (1 = 8px). */
+const GRID_SPACING = 0.8;
+
 interface GridRowProps {
   row: number;
   rowColumns: number;
@@ -109,7 +112,7 @@ const GridRow: React.FC<GridRowProps> = React.memo(({
   }
   
   return (
-    <Box sx={{ mb: 2 }}>
+    <Box sx={{ mb: GRID_SPACING }}>
       {/* Controles de fila (solo en modo admin) */}
       {mode === 'admin' && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
@@ -166,7 +169,7 @@ const GridRow: React.FC<GridRowProps> = React.memo(({
             flexWrap: 'nowrap',
             width: '100%',
             minWidth: 0,
-            gap: 2,
+            gap: GRID_SPACING,
             alignItems: mode === 'view' ? 'stretch' : undefined,
           }}
         >
