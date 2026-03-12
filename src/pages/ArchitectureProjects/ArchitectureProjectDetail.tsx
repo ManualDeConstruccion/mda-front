@@ -35,8 +35,10 @@ const ArchitectureProjectDetail: React.FC = () => {
   const navigate = useNavigate();
   const { accessToken } = useAuth();
 
-  const [activeStageId, setActiveStageId] = useState<number | string | null>(null);
-  
+  // Pestañas del proceso del permiso de edificación (ADR: etapas del proyecto)
+  type ProcessTabId = 'solicitud' | 'listado' | 'especialidades' | 'aprobacion';
+  const [activeProcessTab, setActiveProcessTab] = useState<ProcessTabId>('solicitud');
+
   // Hook para generación asíncrona de PDFs
   const {
     generatePDF,
@@ -45,12 +47,6 @@ const ArchitectureProjectDetail: React.FC = () => {
     error: pdfError,
     isGenerating: generatingPDF,
   } = usePDFGeneration();
-  
-  // Etapa fija para la maqueta
-  const fixedStage = {
-    id: 'fixed-2-1-1',
-    name: '2-1.1 Obra Nueva'
-  };
   const [generalData, setGeneralData] = useState<GeneralData | undefined>(undefined);
   const [propertyData, setPropertyData] = useState<PropertyData | undefined>(undefined);
   const [cipData, setCipData] = useState<CIPData | undefined>(undefined);
@@ -351,12 +347,101 @@ const ArchitectureProjectDetail: React.FC = () => {
   const [newStageName, setNewStageName] = useState('');
   const [stageError, setStageError] = useState<string | null>(null);
 
+  // Aprobación del permiso (pestaña Aprobación)
+  const [approvalPermitNumber, setApprovalPermitNumber] = useState('');
+  const [approvalPermitDate, setApprovalPermitDate] = useState('');
+  const [approvalRequestNumber, setApprovalRequestNumber] = useState('');
+  const [approvalRequestDate, setApprovalRequestDate] = useState('');
+  const [approvalFile, setApprovalFile] = useState<File | null>(null);
+  const [approvalComment, setApprovalComment] = useState('');
+  const [approvalSuccess, setApprovalSuccess] = useState<string | null>(null);
+  const [approvalError, setApprovalError] = useState<string | null>(null);
+
+  const { data: permitApproval, isLoading: isLoadingPermitApproval } = useQuery<{
+    id: number;
+    permit_number: string;
+    permit_date: string;
+    request_number: string | null;
+    request_date: string | null;
+    file: string | null;
+    file_url: string | null;
+    permit_comment: string | null;
+  } | null>({
+    queryKey: ['permit-approval', architectureId],
+    queryFn: async () => {
+      if (!architectureId) return null;
+      const res = await api.get(`projects/project-nodes/${architectureId}/permit-approval/`);
+      return res.data ?? null;
+    },
+    enabled: !!architectureId && !!accessToken,
+  });
+
+  const registerApprovalMutation = useMutation({
+    mutationFn: async (payload: {
+      permit_number: string;
+      permit_date: string;
+      request_number?: string;
+      request_date?: string;
+      file?: File;
+      permit_comment?: string;
+    }) => {
+      const formData = new FormData();
+      formData.append('permit_number', payload.permit_number);
+      formData.append('permit_date', payload.permit_date);
+      if (payload.request_number) formData.append('request_number', payload.request_number);
+      if (payload.request_date) formData.append('request_date', payload.request_date);
+      if (payload.permit_comment) formData.append('permit_comment', payload.permit_comment);
+      if (payload.file) formData.append('file', payload.file);
+      const { data } = await api.post(
+        `projects/project-nodes/${architectureId}/register-permit-approval/`,
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['permit-approval', architectureId] });
+      setApprovalSuccess('Aprobación registrada correctamente.');
+      setApprovalError(null);
+      setApprovalFile(null);
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.detail || err?.response?.data?.permit_number?.[0] || err?.response?.data?.permit_date?.[0] || err?.message || 'Error al registrar la aprobación.';
+      setApprovalError(Array.isArray(msg) ? msg.join(' ') : msg);
+      setApprovalSuccess(null);
+    },
+  });
+
   useEffect(() => {
-    // Inicializar con la etapa fija para la maqueta
-    if (!activeStageId) {
-      setActiveStageId('fixed-2-1-1');
+    if (permitApproval) {
+      setApprovalPermitNumber(permitApproval.permit_number || '');
+      setApprovalPermitDate(permitApproval.permit_date ? permitApproval.permit_date.slice(0, 10) : '');
+      setApprovalRequestNumber(permitApproval.request_number || '');
+      setApprovalRequestDate(permitApproval.request_date ? permitApproval.request_date.slice(0, 10) : '');
+      setApprovalComment(permitApproval.permit_comment || '');
     }
-  }, [activeStageId]);
+  }, [permitApproval]);
+
+  const handleSubmitApproval = () => {
+    setApprovalSuccess(null);
+    setApprovalError(null);
+    if (!approvalPermitNumber.trim()) {
+      setApprovalError('El número de permiso es obligatorio.');
+      return;
+    }
+    if (!approvalPermitDate) {
+      setApprovalError('La fecha de permiso es obligatoria.');
+      return;
+    }
+    registerApprovalMutation.mutate({
+      permit_number: approvalPermitNumber.trim(),
+      permit_date: approvalPermitDate,
+      request_number: approvalRequestNumber.trim() || undefined,
+      request_date: approvalRequestDate || undefined,
+      file: approvalFile || undefined,
+      permit_comment: approvalComment.trim() || undefined,
+    });
+  };
 
   // Inicializar generalData cuando architectureProject esté disponible
   useEffect(() => {
@@ -535,31 +620,39 @@ const ArchitectureProjectDetail: React.FC = () => {
         
         <div className={styles.stagesNavigation}>
           <div className={styles.stagesContainer}>
-            {/* Etapa fija para la maqueta */}
             <button
-              key={fixedStage.id}
-              className={`${styles.stageButton} ${activeStageId === fixedStage.id ? styles.active : ''}`}
-              onClick={() => setActiveStageId(fixedStage.id)}
+              key="solicitud"
+              className={`${styles.stageButton} ${activeProcessTab === 'solicitud' ? styles.active : ''}`}
+              onClick={() => setActiveProcessTab('solicitud')}
             >
-              {fixedStage.name}
+              Solicitud
             </button>
-            
-            {/* Etapas dinámicas del backend (cuando estén disponibles) */}
-            {(stages || []).map((stage: ProjectNode) => (
-              <button
-                key={stage.id}
-                className={`${styles.stageButton} ${activeStageId === stage.id ? styles.active : ''}`}
-                onClick={() => setActiveStageId(stage.id)}
-              >
-                {stage.name}
-              </button>
-            ))}
+            <button
+              key="listado"
+              className={`${styles.stageButton} ${activeProcessTab === 'listado' ? styles.active : ''}`}
+              onClick={() => setActiveProcessTab('listado')}
+            >
+              Listado de antecedentes
+            </button>
+            <button
+              key="especialidades"
+              className={`${styles.stageButton} ${activeProcessTab === 'especialidades' ? styles.active : ''}`}
+              onClick={() => setActiveProcessTab('especialidades')}
+            >
+              Especialidades
+            </button>
+            <button
+              key="aprobacion"
+              className={`${styles.stageButton} ${activeProcessTab === 'aprobacion' ? styles.active : ''}`}
+              onClick={() => setActiveProcessTab('aprobacion')}
+            >
+              Aprobación
+            </button>
           </div>
         </div>
 
-        {activeStageId && (
+        {activeProcessTab === 'solicitud' && (
           <>
-            {activeStageId === 'fixed-2-1-1' ? (
               <div className={styles.fixedStageContent}>
                 {isLoadingProject || isLoadingForm ? (
                   <div>Cargando formulario...</div>
@@ -713,8 +806,8 @@ const ArchitectureProjectDetail: React.FC = () => {
                       <div className={styles.pdfSuccess}>
                         ✓ PDF generado exitosamente. La descarga debería iniciarse automáticamente.
                       </div>
-                    )}
-                  </>
+                )}
+              </>
                 ) : (
                   <div style={{ padding: '1rem' }}>
                     <p>No se pudo cargar la estructura del formulario.</p>
@@ -727,14 +820,124 @@ const ArchitectureProjectDetail: React.FC = () => {
                   </div>
                 )}
               </div>
+            </>
+        )}
+
+        {activeProcessTab === 'listado' && (
+          <div className={styles.fixedStageContent}>
+            <ListadoDeAntecedentes
+              stageId={sortedStages.length > 0 ? sortedStages[0].id : 0}
+              projectId={Number(projectId)}
+              architectureProjectId={Number(architectureId)}
+            />
+          </div>
+        )}
+
+        {activeProcessTab === 'especialidades' && (
+          <div className={styles.fixedStageContent}>
+            <p className={styles.emptyTabPlaceholder}>Contenido en desarrollo.</p>
+          </div>
+        )}
+
+        {activeProcessTab === 'aprobacion' && (
+          <div className={styles.fixedStageContent}>
+            <h3>Registrar aprobación del permiso</h3>
+            <p className={styles.approvalIntro}>
+              Suba el documento oficial de la Dirección de Obras e ingrese el número y fecha del permiso aprobado.
+            </p>
+            {isLoadingPermitApproval ? (
+              <p className={styles.emptyTabPlaceholder}>Cargando...</p>
             ) : (
-              <ListadoDeAntecedentes 
-                stageId={typeof activeStageId === 'number' ? activeStageId : 0}
-                projectId={Number(projectId)}
-                architectureProjectId={Number(architectureId)}
-              />
+              <>
+                {permitApproval?.file_url && (
+                  <div className={styles.approvalCurrentFile}>
+                    <strong>Documento actual:</strong>{' '}
+                    <a href={permitApproval.file_url} target="_blank" rel="noopener noreferrer">
+                      Ver documento
+                    </a>
+                  </div>
+                )}
+                <div className={styles.approvalRow}>
+                  <div className={styles.formGroup}>
+                    <label htmlFor="approval-request-number">Número de solicitud (opcional)</label>
+                    <input
+                      id="approval-request-number"
+                      type="text"
+                      value={approvalRequestNumber}
+                      onChange={(e) => setApprovalRequestNumber(e.target.value)}
+                      placeholder="Ej: 1234"
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label htmlFor="approval-request-date">Fecha de solicitud (opcional)</label>
+                    <input
+                      id="approval-request-date"
+                      type="date"
+                      value={approvalRequestDate}
+                      onChange={(e) => setApprovalRequestDate(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className={styles.approvalRow}>
+                  <div className={styles.formGroup}>
+                    <label htmlFor="approval-permit-number">Número de permiso *</label>
+                    <input
+                      id="approval-permit-number"
+                      type="text"
+                      value={approvalPermitNumber}
+                      onChange={(e) => setApprovalPermitNumber(e.target.value)}
+                      placeholder="Ej: 1234"
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label htmlFor="approval-permit-date">Fecha de permiso *</label>
+                    <input
+                      id="approval-permit-date"
+                      type="date"
+                      value={approvalPermitDate}
+                      onChange={(e) => setApprovalPermitDate(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="approval-file">Documento oficial (PDF, JPG)</label>
+                  <input
+                    id="approval-file"
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={(e) => setApprovalFile(e.target.files?.[0] ?? null)}
+                  />
+                  {approvalFile && <span className={styles.fileName}>{approvalFile.name}</span>}
+                </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="approval-comment">Comentario (opcional)</label>
+                  <input
+                    id="approval-comment"
+                    type="text"
+                    value={approvalComment}
+                    onChange={(e) => setApprovalComment(e.target.value)}
+                    placeholder="Comentario del permiso"
+                  />
+                </div>
+                {approvalError && (
+                  <div className={styles.approvalError}>{approvalError}</div>
+                )}
+                {approvalSuccess && (
+                  <div className={styles.approvalSuccess}>{approvalSuccess}</div>
+                )}
+                <div className={styles.formActions}>
+                  <button
+                    type="button"
+                    className={styles.saveButton}
+                    onClick={handleSubmitApproval}
+                    disabled={registerApprovalMutation.isPending}
+                  >
+                    {registerApprovalMutation.isPending ? 'Guardando...' : 'Registrar aprobación'}
+                  </button>
+                </div>
+              </>
             )}
-          </>
+          </div>
         )}
       </section>
 
