@@ -49,6 +49,26 @@ export const formatFileSize = (bytes: number): string => {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 };
 
+const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+
+/**
+ * URL que el navegador puede cargar para una foto de perfil.
+ * Usa la base del API del front para evitar hosts inaccesibles (ej. en Docker).
+ */
+export function getProfilePhotoUrl(profilePhoto: string | null | undefined): string | undefined {
+  if (!profilePhoto) return undefined;
+  try {
+    if (profilePhoto.startsWith('http://') || profilePhoto.startsWith('https://')) {
+      const path = new URL(profilePhoto).pathname;
+      return `${API_BASE_URL}${path}`;
+    }
+    const path = profilePhoto.startsWith('/') ? profilePhoto : `/${profilePhoto}`;
+    return `${API_BASE_URL}${path}`;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * Formato de número: separador de miles ".", decimal ",".
  * Ej: 1234567.89 → "1.234.567,89"; 1500 → "1.500,00" (decimals=2).

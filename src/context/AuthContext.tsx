@@ -14,7 +14,8 @@ export interface User {
   email: string;
   first_name?: string;
   last_name?: string;
-  is_staff?: boolean; // ⚡ NUEVO: Para verificar permisos de administrador
+  is_staff?: boolean;
+  profile_photo?: string | null;
 }
 
 interface AuthContextType {
@@ -43,6 +44,19 @@ export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
   withCredentials: true,
 });
+
+// Interceptor de solicitud desde el inicio: así la primera petición (ej. /profile/) ya lleva el token
+// y no depende del useEffect del AuthProvider (evita 401 en primera carga).
+api.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 // ==== NEW SHARED REFRESH STATE (add near the top, after api instance) ====
 let refreshPromise: Promise<string | null> | null = null;

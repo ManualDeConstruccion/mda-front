@@ -24,6 +24,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import styles from './Navbar.module.scss';
 import { useAuth } from '../../context/AuthContext';
+import { getProfilePhotoUrl } from '../../utils/helpers';
 
 interface NavbarProps {
   onMenuClick?: () => void;
@@ -117,7 +118,13 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick, isPublic = false }) => {
                 aria-haspopup="true"
                 aria-expanded={menuOpen ? 'true' : undefined}
               >
-                <Avatar className={styles.avatar} />
+                <Avatar
+                  className={styles.avatar}
+                  src={getProfilePhotoUrl(user.profile_photo)}
+                >
+                  {!user.profile_photo &&
+                    (user.first_name?.[0]?.toUpperCase() || user.email[0].toUpperCase())}
+                </Avatar>
                 <span className={styles.userName}>
                   {user.first_name && user.last_name
                     ? `${user.first_name} ${user.last_name}`

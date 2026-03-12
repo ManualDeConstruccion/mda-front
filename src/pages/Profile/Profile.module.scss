@@ -17,10 +17,14 @@
 }
 
 .headerAvatar {
-  width: 80px;
-  height: 80px;
-  font-size: 2rem;
+  width: 140px;
+  height: 140px;
+  font-size: 3rem;
   background-color: $primary-color;
+
+  img {
+    object-fit: cover;
+  }
 }
 
 .headerInfo {
@@ -75,6 +79,84 @@
   margin: 0 0 $spacing-lg;
   padding-bottom: $spacing-sm;
   border-bottom: 1px solid $border-color;
+}
+
+.subsectionTitle {
+  font-size: $font-size-base;
+  font-weight: 600;
+  color: $text-primary;
+  margin: 0 0 $spacing-sm;
+}
+
+.docLink {
+  font-size: $font-size-sm;
+  color: $primary-color;
+  margin-top: $spacing-xs;
+  display: inline-block;
+  &:hover { text-decoration: underline; }
+}
+
+.companyCard {
+  background-color: $background-light;
+}
+
+.companyCardHorizontal {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-md;
+  padding: $spacing-md;
+  margin-bottom: $spacing-md;
+  background-color: $background-light;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-md;
+}
+
+.companyCardAvatar {
+  background-color: $primary-color;
+}
+
+.companyCardBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.companyCardName {
+  font-size: $font-size-base;
+  font-weight: 600;
+  color: $text-primary;
+  margin: 0 0 $spacing-xs;
+}
+
+.companyCardInlineGrid {
+  display: grid;
+  grid-template-columns: auto 1fr auto 1fr;
+  gap: 0 $spacing-md;
+  row-gap: $spacing-xs;
+  align-items: baseline;
+  font-size: $font-size-sm;
+  color: $text-primary;
+
+  > *:nth-child(5), > *:nth-child(6) {
+    grid-row: 2;
+  }
+  > *:nth-child(6) {
+    grid-column: 2 / 3;
+  }
+  > *:nth-child(7), > *:nth-child(8), > *:nth-child(9), > *:nth-child(10) {
+    grid-row: 3;
+  }
+  > *:nth-child(11), > *:nth-child(12), > *:nth-child(13), > *:nth-child(14) {
+    grid-row: 4;
+  }
+}
+
+.companyCardInlineLabel {
+  justify-self: end;
+  font-weight: bold;
+}
+
+.companyCardInlineValue {
+  min-width: 0;
 }
 
 .fieldGrid {
@@ -146,6 +228,19 @@
   color: $text-dark-disabled;
   font-style: italic;
   padding: $spacing-md 0;
+}
+
+.inlineFormCard {
+  background-color: $background-light;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-sm;
+}
+
+.deleteBtn {
+  color: $text-secondary;
+  &:hover {
+    color: $error-color;
+  }
 }
 
 .loadingContainer {
