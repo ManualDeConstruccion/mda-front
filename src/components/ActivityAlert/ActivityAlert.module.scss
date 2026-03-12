@@ -1,0 +1,28 @@
+@use '../../styles/variables' as *;
+
+.wrapper {
+  position: fixed !important;
+  bottom: 48px !important;
+  right: 48px !important;
+  left: auto !important;
+  z-index: 10000;
+}
+
+.paper {
+  padding: 16px 20px;
+  min-width: 280px;
+  max-width: 360px;
+  border-radius: 8px;
+  background-color: #e8f5e9 !important; /* verde claro */
+}
+
+.message {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: rgba(0, 0, 0, 0.87);
+}
+
+.acceptButton {
+  margin-top: 4px;
+}

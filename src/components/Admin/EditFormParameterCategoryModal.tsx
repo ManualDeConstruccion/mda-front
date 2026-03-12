@@ -20,6 +20,7 @@ import {
   ListItem,
   ListItemText,
   IconButton,
+  Chip,
 } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -53,6 +54,12 @@ interface FormCategoryBlock {
   is_collapsible?: boolean;
 }
 
+interface CategoryValidatorOption {
+  id: number;
+  code: string;
+  name: string;
+}
+
 interface FormParameterCategory {
   id: number;
   code: string;
@@ -64,6 +71,7 @@ interface FormParameterCategory {
   project_type?: number;
   project_type_name?: string | null;
   blocks?: FormCategoryBlock[];
+  validators?: CategoryValidatorOption[];
 }
 
 interface EditFormParameterCategoryModalProps {
@@ -238,6 +246,20 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
     }
   }, [category?.id, open, initialSortedBlocks]);
 
+  const [assignedValidators, setAssignedValidators] = useState<CategoryValidatorOption[]>([]);
+  const [validatorSearch, setValidatorSearch] = useState('');
+  // Sincronizar validadores con la categoría al abrir o al cambiar de categoría (persistencia al reabrir)
+  useEffect(() => {
+    if (!open) return;
+    const raw = category?.validators;
+    const list = Array.isArray(raw)
+      ? raw
+          .filter((v): v is CategoryValidatorOption => v != null && typeof v === 'object' && 'id' in v)
+          .map((v) => ({ id: v.id, code: v.code ?? '', name: v.name ?? v.code ?? '' }))
+      : [];
+    setAssignedValidators(list);
+  }, [open, category?.id, category?.validators]);
+
   const [blockEngineEdits, setBlockEngineEdits] = useState<Record<number, { name: string; is_collapsible: boolean }>>({});
   useEffect(() => {
     if (!category?.blocks) {
@@ -269,6 +291,24 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
       return list;
     },
     enabled: open && mode === 'copy' && isNewSection && !!projectTypeId,
+  });
+
+  const { data: validatorOptions = [], isLoading: loadingValidators } = useQuery({
+    queryKey: ['category-validators', validatorSearch],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (validatorSearch.trim()) params.set('search', validatorSearch.trim());
+      const url = params.toString()
+        ? `${API_URL}/api/parameters/category-validators/?${params.toString()}`
+        : `${API_URL}/api/parameters/category-validators/`;
+      const res = await axios.get(url, {
+        headers: { Authorization: accessToken ? `Bearer ${accessToken}` : undefined },
+        withCredentials: true,
+      });
+      const list = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
+      return list as CategoryValidatorOption[];
+    },
+    enabled: open,
   });
 
   const copyMutation = useMutation({
@@ -314,6 +354,7 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
     setMode('create');
     setSelectedSourceCategory(null);
     setTargetParentId(null);
+    setValidatorSearch('');
     setError(null);
     copyMutation.reset();
     onClose();
@@ -424,6 +465,7 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
         description: description.trim() || '',
         parent: parent || null,
         is_active: isActive,
+        validators: assignedValidators.map((v) => v.id),
       });
       for (const [blockIdStr, data] of Object.entries(blockEngineEdits)) {
         await axios.patch(
@@ -599,6 +641,48 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
               ))}
             </TextField>
           )}
+
+          <Box>
+            <Typography variant="subtitle2" sx={{ mb: 1 }}>Validadores</Typography>
+            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
+              Asignados a esta sección. Quita con la X del chip; agrega buscando abajo. Se guardan al pulsar Guardar.
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
+              {assignedValidators.map((v) => (
+                <Chip
+                  key={v.id}
+                  label={v.name || v.code}
+                  size="small"
+                  onDelete={() =>
+                    setAssignedValidators((prev) => prev.filter((x) => x.id !== v.id))
+                  }
+                />
+              ))}
+            </Box>
+            <Autocomplete
+              options={validatorOptions.filter(
+                (opt) => !assignedValidators.some((a) => a.id === opt.id)
+              )}
+              getOptionLabel={(opt) => opt.name || opt.code || ''}
+              value={null}
+              onChange={(_, newValue: CategoryValidatorOption | null) => {
+                if (newValue && !assignedValidators.some((a) => a.id === newValue.id)) {
+                  setAssignedValidators((prev) => [...prev, newValue]);
+                }
+              }}
+              inputValue={validatorSearch}
+              onInputChange={(_, value) => setValidatorSearch(value)}
+              loading={loadingValidators}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  size="small"
+                  placeholder="Buscar y agregar validador..."
+                  label="Agregar validador"
+                />
+              )}
+            />
+          </Box>
 
           {category && (
             <Box>

@@ -54,7 +54,7 @@ interface SectionTreeWithModesProps {
   mode?: SectionTreeMode;
   subprojectId?: number; // Para modo editable (usuario final)
   values?: Record<string, any>; // Valores actuales del formulario (modo editable)
-  onChange?: (categoryId: number, code: string, value: any) => void; // Callback para cambios (modo editable); categoryId es la sección que contiene el parámetro
+  onChange?: (categoryId: number, code: string, value: any, selectedOption?: any) => void; // Callback para cambios (modo editable); selectedOption para form_rules (ej. value_source "region")
   onSectionExpand?: (sectionId: number) => Promise<void>; // Callback cuando se expande una sección (para cargar valores)
   activeSectionId?: number; // ID de la sección que debe estar expandida por defecto
   sectionMode?: 'view' | 'editable'; // Modo específico para esta sección (solo para usuario final)
@@ -76,7 +76,7 @@ interface GridBlockViewProps {
   mode: SectionTreeMode;
   effectiveMode: SectionTreeMode;
   values: Record<string, any>;
-  onChange: (code: string, value: any) => void;
+  onChange: (code: string, value: any, selectedOption?: any) => void;
   mutations: ReturnType<typeof useFormCategoryMutations>;
   onAddParameter: (row: number, column: number) => void;
   onEditParameter: (param: FormParameter) => void;
@@ -640,6 +640,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
           }}
           onSectionModeChange={onSectionModeChange}
           subprojectId={subprojectId}
+          values={values}
           setCreatingSubcategory={setCreatingSubcategory}
           setEditCategoryModalOpen={setEditCategoryModalOpen}
         />

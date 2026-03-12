@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback } from 'react';
  */
 export function useSectionValues(
   externalValues: Record<string, any>,
-  externalOnChange: ((categoryId: number, code: string, value: any) => void) | undefined,
+  externalOnChange: ((categoryId: number, code: string, value: any, selectedOption?: any) => void) | undefined,
   sectionId: number
 ) {
   const [localValues, setLocalValues] = useState<Record<string, any>>(externalValues);
@@ -25,9 +25,9 @@ export function useSectionValues(
   }, []);
 
   const onChange = useCallback(
-    (code: string, value: any) => {
+    (code: string, value: any, selectedOption?: any) => {
       if (externalOnChange) {
-        externalOnChange(sectionId, code, value);
+        externalOnChange(sectionId, code, value, selectedOption);
       } else {
         handleLocalChange(code, value);
       }

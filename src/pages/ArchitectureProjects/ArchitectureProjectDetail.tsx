@@ -28,14 +28,17 @@ import type { FormParameterCategory, UIAlert } from '../../components/Admin/Sect
 import { api } from '../../services/api';
 import styles from './ArchitectureProjectDetail.module.scss';
 import ListadoDeAntecedentes from './ListadoDeAntecedentes';
+import ActivityAlert from '../../components/ActivityAlert/ActivityAlert';
 
 const ArchitectureProjectDetail: React.FC = () => {
   const { projectId, architectureId } = useParams<{ projectId: string; architectureId: string }>();
   const navigate = useNavigate();
   const { accessToken } = useAuth();
 
-  const [activeStageId, setActiveStageId] = useState<number | string | null>(null);
-  
+  // Pestañas del proceso del permiso de edificación (ADR: etapas del proyecto)
+  type ProcessTabId = 'solicitud' | 'listado' | 'especialidades' | 'aprobacion';
+  const [activeProcessTab, setActiveProcessTab] = useState<ProcessTabId>('solicitud');
+
   // Hook para generación asíncrona de PDFs
   const {
     generatePDF,
@@ -44,12 +47,6 @@ const ArchitectureProjectDetail: React.FC = () => {
     error: pdfError,
     isGenerating: generatingPDF,
   } = usePDFGeneration();
-  
-  // Etapa fija para la maqueta
-  const fixedStage = {
-    id: 'fixed-2-1-1',
-    name: '2-1.1 Obra Nueva'
-  };
   const [generalData, setGeneralData] = useState<GeneralData | undefined>(undefined);
   const [propertyData, setPropertyData] = useState<PropertyData | undefined>(undefined);
   const [cipData, setCipData] = useState<CIPData | undefined>(undefined);
@@ -59,8 +56,8 @@ const ArchitectureProjectDetail: React.FC = () => {
   // Estados para formulario dinámico
   const [formValues, setFormValues] = useState<Record<string, Record<string, any>>>({}); // { categoryId: { paramCode: value } }
   const [categoryAlerts, setCategoryAlerts] = useState<Record<number, UIAlert[]>>({}); // Alertas de validación por categoría
-  // Modo por sección: { sectionId: 'view' | 'editable' }
-  const [sectionModes, setSectionModes] = useState<Record<number, 'view' | 'editable'>>({});
+  // Modo global del formulario: Vista | Editable (aplica a todas las secciones)
+  const [formMode, setFormMode] = useState<'view' | 'editable'>('view');
   const queryClient = useQueryClient();
   const location = useLocation();
 
@@ -77,23 +74,9 @@ const ArchitectureProjectDetail: React.FC = () => {
     }
   }, [location.hash]);
   
-  // Handler para cambiar el modo de una sección específica
-  const handleSectionModeChange = useCallback((sectionId: number, mode: 'view' | 'editable') => {
-    setSectionModes(prev => {
-      const newModes = mode === 'view'
-        ? (() => {
-            const updated = { ...prev };
-            delete updated[sectionId];
-            const updatedAny = updated as Record<string | number, 'view' | 'editable'>;
-            delete updatedAny[String(sectionId)];
-            return updated;
-          })()
-        : {
-            ...prev,
-            [sectionId]: mode,
-          };
-      return newModes;
-    });
+  // Handler para cambiar el modo global del formulario (Vista/Editable aplica a todas las secciones)
+  const handleSectionModeChange = useCallback((_sectionId: number, mode: 'view' | 'editable') => {
+    setFormMode(mode);
   }, []);
 
   // Obtener el proyecto principal para el breadcrumb
@@ -179,11 +162,10 @@ const ArchitectureProjectDetail: React.FC = () => {
     }
   }, [formStructureError, projectTypeId, architectureId]);
 
-  // Cargar valores de una categoría (lazy loading cuando se expande)
+  // Cargar valores de una categoría (se usa al expandir y en la carga inicial de todas las secciones)
   const loadCategoryValues = useCallback(async (categoryId: number) => {
     if (!architectureId) return;
-    
-    // Si ya tenemos los valores en el estado, no cargar de nuevo
+    // Evitar refetch si ya tenemos valores (p. ej. tras carga inicial o al reexpandir)
     if (formValues[categoryId]) {
       return formValues[categoryId];
     }
@@ -192,7 +174,7 @@ const ArchitectureProjectDetail: React.FC = () => {
       const response = await api.get(
         `parameters/node-parameters/by-category/${categoryId}/?subproject_id=${architectureId}`
       );
-      
+
       const values = response.data.values || {};
       const alerts = (response.data.alerts || []) as UIAlert[];
       setFormValues(prev => ({
@@ -208,7 +190,31 @@ const ArchitectureProjectDetail: React.FC = () => {
       console.error(`Error loading values for category ${categoryId}:`, error);
       return {};
     }
-  }, [architectureId, accessToken]);
+  }, [architectureId, accessToken, formValues]);
+
+  // Obtener todos los IDs de categoría (secciones y subsecciones) de la estructura
+  const getAllCategoryIds = useCallback((sections: FormParameterCategory[]): number[] => {
+    const ids: number[] = [];
+    const visit = (sec: FormParameterCategory) => {
+      ids.push(sec.id);
+      sec.subcategories?.forEach(visit);
+    };
+    sections.forEach(visit);
+    return ids;
+  }, []);
+
+  // Cargar valores de todas las secciones al tener estructura (para que el chip de obligatorios se contabilice siempre, sin abrir la sección)
+  const initialValuesLoadedKeyRef = React.useRef<string | null>(null);
+  useEffect(() => {
+    if (!formStructure?.sections?.length || !architectureId) return;
+    const key = `${architectureId}-${getAllCategoryIds(formStructure.sections).join(',')}`;
+    if (initialValuesLoadedKeyRef.current === key) return;
+    initialValuesLoadedKeyRef.current = key;
+    const categoryIds = getAllCategoryIds(formStructure.sections);
+    categoryIds.forEach((categoryId) => loadCategoryValues(categoryId));
+    // loadCategoryValues no en deps para evitar bucle (cambia con formValues)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formStructure?.sections, architectureId, getAllCategoryIds]);
 
   // Refetch de datos de una categoría (valores + alertas) tras actualizar un valor
   const refetchCategoryData = useCallback(async (categoryId: number) => {
@@ -252,17 +258,63 @@ const ArchitectureProjectDetail: React.FC = () => {
     },
   });
 
-  // Handler para cambios de valores
-  const handleParameterChange = useCallback((categoryId: number, parameterCode: string, value: any) => {
-    setFormValues(prev => ({
-      ...prev,
-      [categoryId]: {
-        ...(prev[categoryId] || {}),
-        [parameterCode]: value,
-      },
-    }));
+  // Helper: obtener sección por id desde la estructura (incluye subcategorías)
+  const getSectionById = useCallback((sectionId: number): FormParameterCategory | undefined => {
+    if (!formStructure?.sections) return undefined;
+    const findIn = (sections: FormParameterCategory[]): FormParameterCategory | undefined => {
+      for (const s of sections) {
+        if (s.id === sectionId) return s;
+        if (s.subcategories?.length) {
+          const found = findIn(s.subcategories);
+          if (found) return found;
+        }
+      }
+      return undefined;
+    };
+    return findIn(formStructure.sections);
+  }, [formStructure?.sections]);
+
+  // Resolver valor para set_value según value_source (y selectedOption para "region" / "region.id")
+  const resolveSetValue = useCallback((rule: { value_source?: string; value_mapping?: Record<string, string> }, triggerValue: any, selectedOption: any): any => {
+    const src = rule.value_source;
+    if (src === 'self') return triggerValue;
+    if (src === 'display' && selectedOption != null) {
+      const label = (selectedOption as any).comuna ?? (selectedOption as any).region ?? (selectedOption as any).name;
+      return typeof label === 'string' ? label : String(triggerValue);
+    }
+    if (src === 'region' && selectedOption != null) return (selectedOption as any).region ?? null;
+    if (src === 'region.id' && selectedOption != null) return (selectedOption as any).region_id ?? (selectedOption as any).region ?? null;
+    if (src === 'constant' && rule.value_mapping) return rule.value_mapping[''] ?? Object.values(rule.value_mapping)[0] ?? null;
+    if (src === 'mapping' && rule.value_mapping != null && triggerValue != null) return rule.value_mapping[String(triggerValue)] ?? null;
+    return null;
+  }, []);
+
+  // Handler para cambios de valores: actualiza el parámetro y aplica form_rules (clear_value / set_value)
+  const handleParameterChange = useCallback((categoryId: number, parameterCode: string, value: any, selectedOption?: any) => {
+    const section = getSectionById(categoryId);
+    const paramDef = section?.form_parameters?.find((fp: any) => (fp.parameter_definition?.code ?? fp.parameter_definition_code) === parameterCode)?.parameter_definition;
+    const formRules: Array<{ action: string; target_parameter_code: string; value_source?: string; value_mapping?: Record<string, string> }> = paramDef?.form_rules ?? [];
+
+    const nextValues: Record<string, any> = {};
+    setFormValues(prev => {
+      Object.assign(nextValues, prev[categoryId] || {}, { [parameterCode]: value });
+      for (const rule of formRules) {
+        const targetCode = rule.target_parameter_code;
+        if (!targetCode) continue;
+        if (rule.action === 'clear_value') nextValues[targetCode] = null;
+        else if (rule.action === 'set_value') nextValues[targetCode] = resolveSetValue(rule, value, selectedOption);
+      }
+      return { ...prev, [categoryId]: { ...nextValues } };
+    });
+
     updateValueMutation.mutate({ categoryId, parameterCode, value });
-  }, [updateValueMutation]);
+    for (const rule of formRules) {
+      const targetCode = rule.target_parameter_code;
+      if (!targetCode) continue;
+      if (rule.action === 'clear_value') updateValueMutation.mutate({ categoryId, parameterCode: targetCode, value: null });
+      else if (rule.action === 'set_value') updateValueMutation.mutate({ categoryId, parameterCode: targetCode, value: resolveSetValue(rule, value, selectedOption) });
+    }
+  }, [getSectionById, resolveSetValue, updateValueMutation]);
 
   // Get all stages for the selector
   const { projects: stages, reorderNodes, createProject, updateProject } = useProjectNodes<ProjectNode>({ parent: Number(architectureId), type: 'stage' });
@@ -295,12 +347,101 @@ const ArchitectureProjectDetail: React.FC = () => {
   const [newStageName, setNewStageName] = useState('');
   const [stageError, setStageError] = useState<string | null>(null);
 
+  // Aprobación del permiso (pestaña Aprobación)
+  const [approvalPermitNumber, setApprovalPermitNumber] = useState('');
+  const [approvalPermitDate, setApprovalPermitDate] = useState('');
+  const [approvalRequestNumber, setApprovalRequestNumber] = useState('');
+  const [approvalRequestDate, setApprovalRequestDate] = useState('');
+  const [approvalFile, setApprovalFile] = useState<File | null>(null);
+  const [approvalComment, setApprovalComment] = useState('');
+  const [approvalSuccess, setApprovalSuccess] = useState<string | null>(null);
+  const [approvalError, setApprovalError] = useState<string | null>(null);
+
+  const { data: permitApproval, isLoading: isLoadingPermitApproval } = useQuery<{
+    id: number;
+    permit_number: string;
+    permit_date: string;
+    request_number: string | null;
+    request_date: string | null;
+    file: string | null;
+    file_url: string | null;
+    permit_comment: string | null;
+  } | null>({
+    queryKey: ['permit-approval', architectureId],
+    queryFn: async () => {
+      if (!architectureId) return null;
+      const res = await api.get(`projects/project-nodes/${architectureId}/permit-approval/`);
+      return res.data ?? null;
+    },
+    enabled: !!architectureId && !!accessToken,
+  });
+
+  const registerApprovalMutation = useMutation({
+    mutationFn: async (payload: {
+      permit_number: string;
+      permit_date: string;
+      request_number?: string;
+      request_date?: string;
+      file?: File;
+      permit_comment?: string;
+    }) => {
+      const formData = new FormData();
+      formData.append('permit_number', payload.permit_number);
+      formData.append('permit_date', payload.permit_date);
+      if (payload.request_number) formData.append('request_number', payload.request_number);
+      if (payload.request_date) formData.append('request_date', payload.request_date);
+      if (payload.permit_comment) formData.append('permit_comment', payload.permit_comment);
+      if (payload.file) formData.append('file', payload.file);
+      const { data } = await api.post(
+        `projects/project-nodes/${architectureId}/register-permit-approval/`,
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['permit-approval', architectureId] });
+      setApprovalSuccess('Aprobación registrada correctamente.');
+      setApprovalError(null);
+      setApprovalFile(null);
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.detail || err?.response?.data?.permit_number?.[0] || err?.response?.data?.permit_date?.[0] || err?.message || 'Error al registrar la aprobación.';
+      setApprovalError(Array.isArray(msg) ? msg.join(' ') : msg);
+      setApprovalSuccess(null);
+    },
+  });
+
   useEffect(() => {
-    // Inicializar con la etapa fija para la maqueta
-    if (!activeStageId) {
-      setActiveStageId('fixed-2-1-1');
+    if (permitApproval) {
+      setApprovalPermitNumber(permitApproval.permit_number || '');
+      setApprovalPermitDate(permitApproval.permit_date ? permitApproval.permit_date.slice(0, 10) : '');
+      setApprovalRequestNumber(permitApproval.request_number || '');
+      setApprovalRequestDate(permitApproval.request_date ? permitApproval.request_date.slice(0, 10) : '');
+      setApprovalComment(permitApproval.permit_comment || '');
     }
-  }, [activeStageId]);
+  }, [permitApproval]);
+
+  const handleSubmitApproval = () => {
+    setApprovalSuccess(null);
+    setApprovalError(null);
+    if (!approvalPermitNumber.trim()) {
+      setApprovalError('El número de permiso es obligatorio.');
+      return;
+    }
+    if (!approvalPermitDate) {
+      setApprovalError('La fecha de permiso es obligatoria.');
+      return;
+    }
+    registerApprovalMutation.mutate({
+      permit_number: approvalPermitNumber.trim(),
+      permit_date: approvalPermitDate,
+      request_number: approvalRequestNumber.trim() || undefined,
+      request_date: approvalRequestDate || undefined,
+      file: approvalFile || undefined,
+      permit_comment: approvalComment.trim() || undefined,
+    });
+  };
 
   // Inicializar generalData cuando architectureProject esté disponible
   useEffect(() => {
@@ -404,6 +545,7 @@ const ArchitectureProjectDetail: React.FC = () => {
 
   return (
     <ProjectProvider projectNodeId={Number(architectureId)}>
+      <ActivityAlert />
       <div className={styles.container}>
         <header className={styles.header}>
           {/* Primera fila: Breadcrumb (izquierda) + Botón Volver (derecha) */}
@@ -478,31 +620,39 @@ const ArchitectureProjectDetail: React.FC = () => {
         
         <div className={styles.stagesNavigation}>
           <div className={styles.stagesContainer}>
-            {/* Etapa fija para la maqueta */}
             <button
-              key={fixedStage.id}
-              className={`${styles.stageButton} ${activeStageId === fixedStage.id ? styles.active : ''}`}
-              onClick={() => setActiveStageId(fixedStage.id)}
+              key="solicitud"
+              className={`${styles.stageButton} ${activeProcessTab === 'solicitud' ? styles.active : ''}`}
+              onClick={() => setActiveProcessTab('solicitud')}
             >
-              {fixedStage.name}
+              Solicitud
             </button>
-            
-            {/* Etapas dinámicas del backend (cuando estén disponibles) */}
-            {(stages || []).map((stage: ProjectNode) => (
-              <button
-                key={stage.id}
-                className={`${styles.stageButton} ${activeStageId === stage.id ? styles.active : ''}`}
-                onClick={() => setActiveStageId(stage.id)}
-              >
-                {stage.name}
-              </button>
-            ))}
+            <button
+              key="listado"
+              className={`${styles.stageButton} ${activeProcessTab === 'listado' ? styles.active : ''}`}
+              onClick={() => setActiveProcessTab('listado')}
+            >
+              Listado de antecedentes
+            </button>
+            <button
+              key="especialidades"
+              className={`${styles.stageButton} ${activeProcessTab === 'especialidades' ? styles.active : ''}`}
+              onClick={() => setActiveProcessTab('especialidades')}
+            >
+              Especialidades
+            </button>
+            <button
+              key="aprobacion"
+              className={`${styles.stageButton} ${activeProcessTab === 'aprobacion' ? styles.active : ''}`}
+              onClick={() => setActiveProcessTab('aprobacion')}
+            >
+              Aprobación
+            </button>
           </div>
         </div>
 
-        {activeStageId && (
+        {activeProcessTab === 'solicitud' && (
           <>
-            {activeStageId === 'fixed-2-1-1' ? (
               <div className={styles.fixedStageContent}>
                 {isLoadingProject || isLoadingForm ? (
                   <div>Cargando formulario...</div>
@@ -560,35 +710,25 @@ const ArchitectureProjectDetail: React.FC = () => {
                           };
                           
                           const sectionValues = getAllSectionValues(section);
-                          // Leer el modo actual directamente de sectionModes cada vez que se renderiza
-                          // IMPORTANTE: Las keys de objetos en JavaScript son siempre strings cuando usas Object.keys()
-                          // pero puedes acceder con números también. Intentar primero con string.
-                          const sectionId = section.id;
-                          const sectionModesAny = sectionModes as Record<string | number, 'view' | 'editable'>;
-                          // Intentar primero con string (como aparece en Object.keys), luego con número
-                          const currentSectionMode = sectionModesAny[String(sectionId)] || sectionModesAny[sectionId];
-
+                          // Modo global del formulario: Vista | Editable (mismo para todas las secciones)
                           return (
                             <SectionTreeWithModes
-                              key={`section-${section.id}`} // Usar solo el ID, no el modo (para mantener el estado del componente)
+                              key={`section-${section.id}`}
                               section={section}
                               level={0}
                               projectTypeId={projectTypeId!}
                               allSections={getAllSections(formStructure?.sections || [])}
                               onSectionUpdated={() => {
-                                // Recargar estructura si es necesario
                                 queryClient.invalidateQueries({ queryKey: ['form-structure', projectTypeId] });
                               }}
-                              mode="view" // Modo base, cada sección tiene su propio modo
+                              mode="view"
                               subprojectId={Number(architectureId)}
                               values={sectionValues}
-                              onChange={(categoryId: number, code: string, value: any) => {
-                                handleParameterChange(categoryId, code, value);
+                              onChange={(categoryId: number, code: string, value: any, selectedOption?: any) => {
+                                handleParameterChange(categoryId, code, value, selectedOption);
                               }}
                               onSectionExpand={async (sectionId: number) => {
-                                // Cargar valores cuando se expande una sección
                                 await loadCategoryValues(sectionId);
-                                // También cargar valores de subcategorías
                                 const getAllSubcategoryIds = (sec: FormParameterCategory): number[] => {
                                   const ids = [sec.id];
                                   if (sec.subcategories) {
@@ -602,12 +742,9 @@ const ArchitectureProjectDetail: React.FC = () => {
                                 await Promise.all(allIds.map(id => loadCategoryValues(id)));
                               }}
                               activeSectionId={activeSectionId}
-                              sectionMode={currentSectionMode} // Modo específico de esta sección (undefined = usar modo base)
-                              onSectionModeChange={handleSectionModeChange} // Callback para cambiar el modo
-                              getSectionMode={(sectionId: number) => {
-                                const sectionModesAny = sectionModes as Record<string | number, 'view' | 'editable'>;
-                                return sectionModesAny[String(sectionId)] || sectionModesAny[sectionId];
-                              }}
+                              sectionMode={formMode}
+                              onSectionModeChange={handleSectionModeChange}
+                              getSectionMode={() => formMode}
                               categoryAlerts={categoryAlerts}
                               onMotorAppliedChange={refreshAllSectionValues}
                             />
@@ -669,8 +806,8 @@ const ArchitectureProjectDetail: React.FC = () => {
                       <div className={styles.pdfSuccess}>
                         ✓ PDF generado exitosamente. La descarga debería iniciarse automáticamente.
                       </div>
-                    )}
-                  </>
+                )}
+              </>
                 ) : (
                   <div style={{ padding: '1rem' }}>
                     <p>No se pudo cargar la estructura del formulario.</p>
@@ -683,14 +820,124 @@ const ArchitectureProjectDetail: React.FC = () => {
                   </div>
                 )}
               </div>
+            </>
+        )}
+
+        {activeProcessTab === 'listado' && (
+          <div className={styles.fixedStageContent}>
+            <ListadoDeAntecedentes
+              stageId={sortedStages.length > 0 ? sortedStages[0].id : 0}
+              projectId={Number(projectId)}
+              architectureProjectId={Number(architectureId)}
+            />
+          </div>
+        )}
+
+        {activeProcessTab === 'especialidades' && (
+          <div className={styles.fixedStageContent}>
+            <p className={styles.emptyTabPlaceholder}>Contenido en desarrollo.</p>
+          </div>
+        )}
+
+        {activeProcessTab === 'aprobacion' && (
+          <div className={styles.fixedStageContent}>
+            <h3>Registrar aprobación del permiso</h3>
+            <p className={styles.approvalIntro}>
+              Suba el documento oficial de la Dirección de Obras e ingrese el número y fecha del permiso aprobado.
+            </p>
+            {isLoadingPermitApproval ? (
+              <p className={styles.emptyTabPlaceholder}>Cargando...</p>
             ) : (
-              <ListadoDeAntecedentes 
-                stageId={typeof activeStageId === 'number' ? activeStageId : 0}
-                projectId={Number(projectId)}
-                architectureProjectId={Number(architectureId)}
-              />
+              <>
+                {permitApproval?.file_url && (
+                  <div className={styles.approvalCurrentFile}>
+                    <strong>Documento actual:</strong>{' '}
+                    <a href={permitApproval.file_url} target="_blank" rel="noopener noreferrer">
+                      Ver documento
+                    </a>
+                  </div>
+                )}
+                <div className={styles.approvalRow}>
+                  <div className={styles.formGroup}>
+                    <label htmlFor="approval-request-number">Número de solicitud (opcional)</label>
+                    <input
+                      id="approval-request-number"
+                      type="text"
+                      value={approvalRequestNumber}
+                      onChange={(e) => setApprovalRequestNumber(e.target.value)}
+                      placeholder="Ej: 1234"
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label htmlFor="approval-request-date">Fecha de solicitud (opcional)</label>
+                    <input
+                      id="approval-request-date"
+                      type="date"
+                      value={approvalRequestDate}
+                      onChange={(e) => setApprovalRequestDate(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className={styles.approvalRow}>
+                  <div className={styles.formGroup}>
+                    <label htmlFor="approval-permit-number">Número de permiso *</label>
+                    <input
+                      id="approval-permit-number"
+                      type="text"
+                      value={approvalPermitNumber}
+                      onChange={(e) => setApprovalPermitNumber(e.target.value)}
+                      placeholder="Ej: 1234"
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label htmlFor="approval-permit-date">Fecha de permiso *</label>
+                    <input
+                      id="approval-permit-date"
+                      type="date"
+                      value={approvalPermitDate}
+                      onChange={(e) => setApprovalPermitDate(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="approval-file">Documento oficial (PDF, JPG)</label>
+                  <input
+                    id="approval-file"
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={(e) => setApprovalFile(e.target.files?.[0] ?? null)}
+                  />
+                  {approvalFile && <span className={styles.fileName}>{approvalFile.name}</span>}
+                </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="approval-comment">Comentario (opcional)</label>
+                  <input
+                    id="approval-comment"
+                    type="text"
+                    value={approvalComment}
+                    onChange={(e) => setApprovalComment(e.target.value)}
+                    placeholder="Comentario del permiso"
+                  />
+                </div>
+                {approvalError && (
+                  <div className={styles.approvalError}>{approvalError}</div>
+                )}
+                {approvalSuccess && (
+                  <div className={styles.approvalSuccess}>{approvalSuccess}</div>
+                )}
+                <div className={styles.formActions}>
+                  <button
+                    type="button"
+                    className={styles.saveButton}
+                    onClick={handleSubmitApproval}
+                    disabled={registerApprovalMutation.isPending}
+                  >
+                    {registerApprovalMutation.isPending ? 'Guardando...' : 'Registrar aprobación'}
+                  </button>
+                </div>
+              </>
             )}
-          </>
+          </div>
         )}
       </section>
 

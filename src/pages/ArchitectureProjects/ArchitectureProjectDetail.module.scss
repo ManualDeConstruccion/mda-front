@@ -560,7 +560,7 @@
   }
 }
 
-// Estilos para la etapa fija
+// Estilos para el contenido de las pestañas del proceso
 .fixedStageContent {
   padding: $spacing-lg;
   background: $background-paper;
@@ -584,6 +584,12 @@
       color: $text-primary;
     }
   }
+}
+
+.emptyTabPlaceholder {
+  margin: 0;
+  color: $text-secondary;
+  font-style: italic;
 
   .placeholderContent {
     background: rgba($primary-color, 0.05);
@@ -600,6 +606,58 @@
       }
     }
   }
+}
+
+.approvalIntro {
+  margin: 0 0 $spacing-md 0;
+  color: $text-secondary;
+  font-size: $font-size-sm;
+}
+
+.approvalRow {
+  display: flex;
+  gap: $spacing-lg;
+  margin-bottom: $spacing-md;
+
+  .formGroup {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.approvalCurrentFile {
+  margin-bottom: $spacing-md;
+  font-size: $font-size-sm;
+
+  a {
+    color: $primary-color;
+    text-decoration: underline;
+  }
+}
+
+.approvalError {
+  margin-bottom: $spacing-md;
+  padding: $spacing-sm $spacing-md;
+  background: rgba($error-color, 0.1);
+  color: $error-color;
+  border-radius: $border-radius-sm;
+  font-size: $font-size-sm;
+}
+
+.approvalSuccess {
+  margin-bottom: $spacing-md;
+  padding: $spacing-sm $spacing-md;
+  background: rgba($primary-color, 0.1);
+  color: darken($primary-color, 10%);
+  border-radius: $border-radius-sm;
+  font-size: $font-size-sm;
+}
+
+.fileName {
+  display: inline-block;
+  margin-left: $spacing-sm;
+  font-size: $font-size-sm;
+  color: $text-secondary;
 }
 
 // Estilos para las secciones del formulario

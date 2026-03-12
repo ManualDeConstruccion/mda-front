@@ -34,6 +34,10 @@ interface FormGridCell {
   grid_span: number;
   content: string;
   style?: FormGridCellStyle | any;
+  help_brief?: string;
+  help_extended?: string;
+  help_web_url?: string;
+  help_video_url?: string;
   is_active: boolean;
 }
 
@@ -73,6 +77,10 @@ const AddEditFormGridCellModal: React.FC<AddEditFormGridCellModalProps> = ({
   const [hasLightBlueBackground, setHasLightBlueBackground] = useState(false);
   const [isBold, setIsBold] = useState(false);
   const [cellType, setCellType] = useState<'normal' | 'title'>('normal');
+  const [helpBrief, setHelpBrief] = useState('');
+  const [helpExtended, setHelpExtended] = useState('');
+  const [helpWebUrl, setHelpWebUrl] = useState('');
+  const [helpVideoUrl, setHelpVideoUrl] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   // Resetear valores cuando cambia el modal o los datos iniciales
@@ -82,6 +90,10 @@ const AddEditFormGridCellModal: React.FC<AddEditFormGridCellModalProps> = ({
       setColumn(editingCell.grid_column);
       setSpan(editingCell.grid_span);
       setContent(editingCell.content);
+      setHelpBrief(editingCell.help_brief ?? '');
+      setHelpExtended(editingCell.help_extended ?? '');
+      setHelpWebUrl(editingCell.help_web_url ?? '');
+      setHelpVideoUrl(editingCell.help_video_url ?? '');
       // Cargar estilos del objeto style
       const style = editingCell.style || {};
       setTextAlign(style.textAlign || 'left');
@@ -93,6 +105,10 @@ const AddEditFormGridCellModal: React.FC<AddEditFormGridCellModalProps> = ({
       setColumn(initialData.column);
       setSpan(initialData.span);
       setContent(initialData.content);
+      setHelpBrief('');
+      setHelpExtended('');
+      setHelpWebUrl('');
+      setHelpVideoUrl('');
       // Valores por defecto para nuevos elementos
       setTextAlign('left');
       setHasLightBlueBackground(false);
@@ -103,6 +119,10 @@ const AddEditFormGridCellModal: React.FC<AddEditFormGridCellModalProps> = ({
       setColumn(1);
       setSpan(1);
       setContent('');
+      setHelpBrief('');
+      setHelpExtended('');
+      setHelpWebUrl('');
+      setHelpVideoUrl('');
       // Valores por defecto
       setTextAlign('left');
       setHasLightBlueBackground(false);
@@ -146,6 +166,10 @@ const AddEditFormGridCellModal: React.FC<AddEditFormGridCellModalProps> = ({
             grid_span: span,
             content: content.trim(),
             style: style,
+            help_brief: helpBrief.trim(),
+            help_extended: helpExtended.trim(),
+            help_web_url: helpWebUrl.trim(),
+            help_video_url: helpVideoUrl.trim(),
           },
           {
             headers: {
@@ -163,6 +187,10 @@ const AddEditFormGridCellModal: React.FC<AddEditFormGridCellModalProps> = ({
           grid_span: span,
           content: content.trim(),
           style: style,
+          help_brief: helpBrief.trim(),
+          help_extended: helpExtended.trim(),
+          help_web_url: helpWebUrl.trim(),
+          help_video_url: helpVideoUrl.trim(),
           is_active: true,
         };
         if (blockId != null) payload.block = blockId;
@@ -305,6 +333,45 @@ const AddEditFormGridCellModal: React.FC<AddEditFormGridCellModalProps> = ({
             fullWidth
             required
             error={!!error && !content.trim()}
+          />
+
+          <Divider sx={{ my: 1 }} />
+          <Typography variant="subtitle2" fontWeight="bold">
+            Ayuda (tooltip)
+          </Typography>
+          <TextField
+            label="Ayuda breve"
+            placeholder="Texto que se muestra al pasar el mouse"
+            multiline
+            rows={2}
+            value={helpBrief}
+            onChange={(e) => setHelpBrief(e.target.value)}
+            fullWidth
+          />
+          <TextField
+            label="Ayuda extendida"
+            placeholder="Texto adicional (se muestra tras 1 segundo)"
+            multiline
+            rows={3}
+            value={helpExtended}
+            onChange={(e) => setHelpExtended(e.target.value)}
+            fullWidth
+          />
+          <TextField
+            label="Web del trámite"
+            placeholder="https://..."
+            type="url"
+            value={helpWebUrl}
+            onChange={(e) => setHelpWebUrl(e.target.value)}
+            fullWidth
+          />
+          <TextField
+            label="Video tutorial"
+            placeholder="https://..."
+            type="url"
+            value={helpVideoUrl}
+            onChange={(e) => setHelpVideoUrl(e.target.value)}
+            fullWidth
           />
         </Box>
       </DialogContent>

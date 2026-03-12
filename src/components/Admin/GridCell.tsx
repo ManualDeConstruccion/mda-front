@@ -17,6 +17,8 @@ import { CSS } from '@dnd-kit/utilities';
 import { formatNumberLocale } from '../../utils/helpers';
 import { GRID_LABEL_LIGHTBLUE } from '../../utils/gridStandard';
 import ParameterInput from './ParameterInput';
+import { useOptionDisplayLabel } from '../../hooks/useOptionDisplayLabel';
+import HelpTooltip from '../common/HelpTooltip/HelpTooltip';
 import type { GridCellProps, FormParameter, FormGridCell, SectionTreeMode } from '../../types/formParameters.types';
 
 const MIN_CELL_WIDTH_FOR_INLINE_INPUT = 180; // Por debajo de este ancho se usa modal para editar
@@ -26,6 +28,7 @@ const GridCell: React.FC<GridCellProps> = ({
   row,
   column,
   span,
+  spanPercent,
   isDragging = false,
   onEdit,
   onDelete,
@@ -39,6 +42,7 @@ const GridCell: React.FC<GridCellProps> = ({
   const [cellWidth, setCellWidth] = useState<number | null>(null);
   const [inputModalOpen, setInputModalOpen] = useState(false);
   const [modalValue, setModalValue] = useState<any>(null);
+  const [modalOption, setModalOption] = useState<any>(undefined);
 
   // Solo usar useSortable en modo admin
   const sortable = useSortable({ id: cellId, disabled: mode !== 'admin' });
@@ -94,6 +98,14 @@ const GridCell: React.FC<GridCellProps> = ({
   // Obtener is_required del FormParameter
   const isRequired = isParameter ? (cell as FormParameter).is_required : false;
 
+  // Resolver id → etiqueta para modo vista cuando el parámetro es un selector (options_source)
+  const optionDisplay = useOptionDisplayLabel(
+    paramDef?.options_source ?? null,
+    paramDef?.options_filter_by ?? [],
+    values ?? {},
+    cellCode != null ? values?.[cellCode] : undefined
+  );
+
   // Determinar el color de fondo
   const getBackgroundColor = () => {
     if (mode === 'editable') {
@@ -138,17 +150,18 @@ const GridCell: React.FC<GridCellProps> = ({
       style={style}
       {...(mode === 'admin' ? sortable.attributes : {})}
       sx={{
-        p: isTitleType ? { py: 3, px: 1.5 } : 1.5,
+        p: isTitleType ? { py: 2, px: 1.5 } : { py: 0.75, px: 1.25 },
         border: isTitleType ? 'none' : '1px solid',
         borderColor: isDragging ? 'primary.main' : 'divider',
         borderRadius: 1,
         bgcolor: getBackgroundColor(),
         position: 'relative',
-        minHeight: '80px',
+        minHeight: 0,
         display: 'flex',
         flexDirection: 'column',
         justifyContent: mode === 'view' ? 'center' : 'flex-start',
         cursor: mode === 'admin' ? 'grab' : 'default',
+        ...(mode === 'view' && { height: '100%', flex: 1 }),
         '&:hover': mode === 'admin' ? {
           borderColor: 'primary.main',
           boxShadow: 1,
@@ -175,11 +188,13 @@ const GridCell: React.FC<GridCellProps> = ({
       <Box sx={{
         flex: 1,
         ml: mode === 'admin' ? 4 : 0,
+        px: '5px',
         display: 'flex',
         flexDirection: 'column',
-        ...(mode === 'view' && isParameter ? {
+        // En vista: contenido (parámetros y bloques de texto) alineado verticalmente al centro
+        ...(mode === 'view' ? {
           justifyContent: 'center',
-          alignItems: 'center',
+          alignItems: isParameter ? 'center' : 'stretch',
         } : {})
       }}>
         {isParameter ? (
@@ -220,7 +235,11 @@ const GridCell: React.FC<GridCellProps> = ({
                     if (unit) displayValue += ` ${unit}`;
                     break;
                   case 'boolean':
-                    displayValue = currentValue ? 'Sí' : 'No';
+                    displayValue = currentValue === null || currentValue === undefined
+                      ? 'No aplica'
+                      : currentValue
+                        ? 'Sí'
+                        : 'No';
                     break;
                   case 'date':
                     try {
@@ -260,6 +279,7 @@ const GridCell: React.FC<GridCellProps> = ({
                     <Box
                       onClick={() => {
                         setModalValue(values?.[cellCode] ?? null);
+                        setModalOption(undefined);
                         setInputModalOpen(true);
                       }}
                       sx={{
@@ -285,18 +305,24 @@ const GridCell: React.FC<GridCellProps> = ({
                           <ParameterInput
                             dataType={dataType as any}
                             value={modalValue}
-                            onChange={(newValue) => setModalValue(newValue)}
+                            onChange={(newValue, selectedOption) => {
+                              setModalValue(newValue);
+                              setModalOption(selectedOption);
+                            }}
                             label={undefined}
                             unit={unit}
                             required={isRequired}
                             disabled={false}
+                            optionsSource={paramDef?.options_source ?? undefined}
+                            optionsFilterBy={paramDef?.options_filter_by ?? []}
+                            filterValues={values ?? {}}
                           />
                         </Box>
                       </DialogContent>
                       <DialogActions>
                         <Button
                           onClick={() => {
-                            handleChange?.(cellCode, modalValue);
+                            handleChange?.(cellCode, modalValue, modalOption);
                             setInputModalOpen(false);
                           }}
                           variant="contained"
@@ -313,17 +339,20 @@ const GridCell: React.FC<GridCellProps> = ({
                   <ParameterInput
                     dataType={dataType as any}
                     value={values?.[cellCode]}
-                    onChange={(newValue) => {
-                      handleChange?.(cellCode, newValue);
+                    onChange={(newValue, selectedOption) => {
+                      handleChange?.(cellCode, newValue, selectedOption);
                     }}
-                      label={undefined}
-                      unit={unit}
-                      required={isRequired}
-                      disabled={false}
-                      persistOnBlur
-                    />
-                  </Box>
-                );
+                    label={undefined}
+                    unit={unit}
+                    required={isRequired}
+                    disabled={false}
+                    persistOnBlur
+                    optionsSource={paramDef?.options_source ?? undefined}
+                    optionsFilterBy={paramDef?.options_filter_by ?? []}
+                    filterValues={values ?? {}}
+                  />
+                </Box>
+              );
             })()}
             {/* En modo vista, mostrar solo el valor formateado, grande y centrado */}
             {mode === 'view' && cellCode && (() => {
@@ -347,7 +376,11 @@ const GridCell: React.FC<GridCellProps> = ({
                     if (unit) displayValue += ` ${unit}`;
                     break;
                   case 'boolean':
-                    displayValue = value ? 'Sí' : 'No';
+                    displayValue = value === null || value === undefined
+                      ? 'No aplica'
+                      : value
+                        ? 'Sí'
+                        : 'No';
                     break;
                   case 'date':
                     try {
@@ -362,15 +395,19 @@ const GridCell: React.FC<GridCellProps> = ({
                     }
                     break;
                   default:
-                    displayValue = String(value);
+                    // Para selectores (options_source) mostrar la etiqueta, no el id
+                    if (paramDef?.options_source && (typeof value === 'number' || (typeof value === 'string' && value !== '' && !Number.isNaN(Number(value))))) {
+                      displayValue = optionDisplay.isLoading ? '…' : optionDisplay.displayLabel;
+                    } else {
+                      displayValue = String(value);
+                    }
                 }
               }
 
               return (
                 <Typography
-                  variant="h6"
+                  variant="body1"
                   sx={{
-                    fontWeight: 'medium',
                     textAlign: 'center',
                     width: '100%',
                   }}
@@ -382,12 +419,13 @@ const GridCell: React.FC<GridCellProps> = ({
           </>
         ) : (
           (() => {
-            // Obtener estilos de la celda de texto
-            const cellStyle = (cell as FormGridCell).style || {};
+            const textCell = cell as FormGridCell;
+            const cellStyle = textCell.style || {};
             const textAlign = cellStyle.textAlign || 'left';
             const fontWeight = cellStyle.fontWeight || 'normal';
+            const hasHelp = textCell.help_brief != null && String(textCell.help_brief).trim() !== '';
 
-            return (
+            const contentNode = (
               <Typography
                 variant="body2"
                 color="text.secondary"
@@ -396,44 +434,75 @@ const GridCell: React.FC<GridCellProps> = ({
                   fontStyle: mode === 'view' ? 'normal' : 'italic',
                   textAlign: textAlign,
                   fontWeight: fontWeight,
-                  width: '100%',
+                  ...(hasHelp ? { width: 'fit-content', maxWidth: '100%' } : { width: '100%' }),
                 }}
               >
                 {cellContent}
               </Typography>
             );
+
+            // Ícono de ayuda: al costado del texto en una línea; poco margen; respeta alineación (left/center/right)
+            const justifyContent = textAlign === 'center' ? 'center' : textAlign === 'right' ? 'flex-end' : 'flex-start';
+            if (hasHelp) {
+              return (
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent, gap: 0.5, width: '100%', minHeight: 0, flexWrap: 'wrap' }}>
+                  {contentNode}
+                  <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+                    <HelpTooltip
+                      modelName="FormGridCell"
+                      fieldName={String(textCell.id)}
+                      iconSize="medium"
+                      helpTextData={{
+                        brief_text: textCell.help_brief ?? '',
+                        extended_text: textCell.help_extended ?? '',
+                        help_web_url: textCell.help_web_url ?? '',
+                        help_video_url: textCell.help_video_url ?? '',
+                      }}
+                    />
+                  </Box>
+                </Box>
+              );
+            }
+            return contentNode;
           })()
         )}
       </Box>
 
       {mode === 'admin' && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 'auto' }}>
-          {onEdit && (
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit(cell);
-              }}
-            >
-              <EditIcon fontSize="small" />
-            </IconButton>
-          )}
-          {onDelete && (
-            <IconButton
-              size="small"
-              color="error"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(cell);
-              }}
-            >
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          )}
-          {isParameter && isRequired && (
-            <Typography variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
-              Requerido
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 0.5, mt: 'auto', width: '100%' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            {onEdit && (
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(cell);
+                }}
+              >
+                <EditIcon fontSize="small" />
+              </IconButton>
+            )}
+            {onDelete && (
+              <IconButton
+                size="small"
+                color="error"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(cell);
+                }}
+              >
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+            )}
+            {isParameter && isRequired && (
+              <Typography variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
+                Requerido
+              </Typography>
+            )}
+          </Box>
+          {spanPercent != null && (
+            <Typography component="span" variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
+              {Math.round(spanPercent)}%
             </Typography>
           )}
         </Box>

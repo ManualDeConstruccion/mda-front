@@ -12,6 +12,8 @@ export interface FieldHelpTextData {
   field_name: string;
   brief_text: string;
   extended_text?: string;
+  help_web_url?: string;
+  help_video_url?: string;
   media?: {
     images?: string[];
     videos?: string[];

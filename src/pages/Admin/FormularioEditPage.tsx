@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -57,12 +57,14 @@ interface FormParameter {
     name: string;
     data_type: string;
     unit?: string;
+    is_calculated?: boolean;
   };
   order: number;
   is_required: boolean;
   is_visible: boolean;
   parameter_definition_name?: string;
   parameter_definition_code?: string;
+  parameter_definition_is_calculated?: boolean;
 }
 
 interface ArchitectureProjectType {
@@ -107,6 +109,16 @@ const SectionTree: React.FC<SectionTreeProps> = ({
   const hasSubcategories = section.subcategories && section.subcategories.length > 0;
   const hasParameters = section.form_parameters && section.form_parameters.length > 0;
 
+  const obligatoryCount = useMemo(() => {
+    const params = section.form_parameters ?? [];
+    return params.filter((p) => {
+      if (!p.is_required) return false;
+      const isCalculated = p.parameter_definition_is_calculated
+        ?? (typeof p.parameter_definition === 'object' ? p.parameter_definition?.is_calculated : undefined);
+      return !isCalculated;
+    }).length;
+  }, [section.form_parameters]);
+
   return (
     <Box
       sx={{
@@ -144,7 +156,7 @@ const SectionTree: React.FC<SectionTreeProps> = ({
           
           {hasParameters && (
             <Chip
-              label={`${section.form_parameters?.length} parámetros`}
+              label={`${obligatoryCount} campos`}
               size="small"
               color="primary"
               variant="outlined"

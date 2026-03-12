@@ -23,6 +23,9 @@ import {
   type FormParameterCategory 
 } from './SectionTreeWithModes';
 
+/** Espacio entre celdas (horizontal) y entre filas (vertical). Usa unidades del tema MUI (1 = 8px). */
+const GRID_SPACING = 0.8;
+
 interface GridRowProps {
   row: number;
   rowColumns: number;
@@ -44,7 +47,7 @@ interface GridRowProps {
   onAddTextCell: (row: number, column: number) => void;
   onAddParameter: (row: number, column: number) => void;
   values?: Record<string, any>;
-  onChange?: (code: string, value: any) => void;
+  onChange?: (code: string, value: any, selectedOption?: any) => void;
 }
 
 const GridRow: React.FC<GridRowProps> = React.memo(({
@@ -68,30 +71,48 @@ const GridRow: React.FC<GridRowProps> = React.memo(({
   values,
   onChange,
 }) => {
-  // Verificar si la fila tiene contenido (solo en modo vista)
+  const isParameterCell = React.useCallback((c: FormParameter | FormGridCell) => {
+    const hasParam = 'parameter_definition' in c;
+    const hasContent = 'content' in c && typeof (c as FormGridCell).content === 'string';
+    return !!hasParam && !hasContent;
+  }, []);
+
   const hasRowContent = React.useMemo(() => {
-    if (mode === 'admin') {
-      // En modo admin, siempre mostrar la fila
-      return true;
-    }
-    
-    // En modo vista/editable, verificar si hay al menos una celda con contenido
+    if (mode === 'admin') return true;
     for (let col = 1; col <= rowColumns; col++) {
       const cell = rowCells[col];
-      if (cell && !(cell as any).__occupied) {
-        return true;
-      }
+      if (cell && !(cell as any).__occupied) return true;
     }
     return false;
   }, [mode, rowCells, rowColumns]);
-  
-  // En modo vista, si la fila no tiene contenido, no renderizar nada
+
+  // Algoritmo: cada columna tiene span efectivo 1 por defecto (incl. vacías y ocupadas por span de otra).
+  // factorX = totalColumnas / sumaDeSpans → redistribución flex = factorX * spanEfectivo.
+  const { effectiveSpanPerCol, sumOfSpans, factorX } = React.useMemo(() => {
+    const effective: Record<number, number> = {};
+    let sum = 0;
+    for (let col = 1; col <= rowColumns; col++) {
+      const cell = rowCells[col];
+      const span = cell && !(cell as any).__occupied
+        ? (isParameterCell(cell) ? (cell as FormParameter).grid_span ?? 1 : (cell as FormGridCell).grid_span ?? 1)
+        : 1;
+      effective[col] = span;
+      sum += span;
+    }
+    const total = Math.max(sum, 1);
+    return {
+      effectiveSpanPerCol: effective,
+      sumOfSpans: total,
+      factorX: rowColumns / total,
+    };
+  }, [rowCells, rowColumns, isParameterCell]);
+
   if (mode === 'view' && !hasRowContent) {
     return null;
   }
   
   return (
-    <Box sx={{ mb: 2 }}>
+    <Box sx={{ mb: GRID_SPACING }}>
       {/* Controles de fila (solo en modo admin) */}
       {mode === 'admin' && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
@@ -140,74 +161,75 @@ const GridRow: React.FC<GridRowProps> = React.memo(({
         </Box>
       )}
       
-      {/* Grilla de la fila: en modo admin, envolver en contenedor con scroll horizontal si las columnas no caben */}
-      <Box
-        sx={
-          mode === 'admin'
-            ? {
-                overflowX: 'auto',
-                overflowY: 'visible',
-                // Evitar que la barra de scroll ocupe espacio extra en algunos navegadores
-                scrollbarGutter: 'stable',
-              }
-            : undefined
-        }
-      >
+      {/* Grilla de la fila: las columnas siempre caben en el ancho disponible (flex reparte el espacio) */}
+      <Box sx={{ width: '100%', minWidth: 0 }}>
         <Box
           sx={{
-            display: 'grid',
-            gridTemplateColumns: `repeat(${rowColumns}, 1fr)`,
-            gap: 2,
-            ...(mode === 'admin' && {
-              // Ancho mínimo para que cada columna tenga al menos ~200px; si no caben, aparece barra horizontal
-              minWidth: rowColumns * 200,
-            }),
+            display: 'flex',
+            flexWrap: 'nowrap',
+            width: '100%',
+            minWidth: 0,
+            gap: GRID_SPACING,
+            alignItems: mode === 'view' ? 'stretch' : undefined,
           }}
         >
         {Array.from({ length: rowColumns }, (_, colIndex) => {
           const col = colIndex + 1;
           const cell = rowCells[col];
+          const effectiveSpan = effectiveSpanPerCol[col] ?? 1;
+          const flexValue = factorX * effectiveSpan;
           
-          // Si la celda está ocupada por un span, no renderizar
           if (cell && (cell as any).__occupied) {
-            return null;
-          }
-          
-          // Si hay una celda real en esta posición
-          if (cell && !(cell as any).__occupied) {
-            // Determinar si es parámetro o celda de texto usando propiedades específicas
-            // FormParameter tiene 'parameter_definition', FormGridCell tiene 'content'
-            const hasParameterDefinition = 'parameter_definition' in cell;
-            const hasContent = 'content' in cell && typeof (cell as FormGridCell).content === 'string';
-            // Si tiene content, es una celda de texto. Si tiene parameter_definition, es un parámetro.
-            // Preferir content sobre parameter_definition para evitar confusión
-            const isParameter = hasParameterDefinition && !hasContent;
-            
             return (
-              <SortableGridCell
-                key={`${isParameter ? 'param' : 'text'}-${cell.id}`}
-                cell={cell}
-                row={row}
-                column={col}
-                span={isParameter ? (cell as FormParameter).grid_span || 1 : (cell as FormGridCell).grid_span}
-                isDragging={activeId === `cell-${isParameter ? 'param' : 'text'}-${cell.id}`}
-                onEdit={(c) => {
-                  if (isParameter) {
-                    onEditParameter(c as FormParameter);
-                  } else {
-                    onEditTextCell(c as FormGridCell);
-                  }
+              <Box
+                key={`occupied-${row}-${col}`}
+                sx={{
+                  flex: `${flexValue} 0 0`,
+                  minWidth: 0,
+                  minHeight: mode === 'admin' ? 48 : 0,
                 }}
-                onDelete={(c) => onDeleteCell(c, !!isParameter)}
-                mode={mode}
-                isParameter={!!isParameter}
-                values={values}
-                onChange={onChange}
               />
             );
           }
           
-          // Celda vacía
+          if (cell && !(cell as any).__occupied) {
+            const isParameter = isParameterCell(cell);
+            const span = isParameter
+              ? (cell as FormParameter).grid_span ?? 1
+              : (cell as FormGridCell).grid_span ?? 1;
+            const spanPercent = mode === 'admin'
+              ? Math.round((effectiveSpan / sumOfSpans) * 100)
+              : undefined;
+            return (
+              <Box
+                key={`${isParameter ? 'param' : 'text'}-${cell.id}`}
+                sx={{
+                  flex: `${flexValue} 0 0`,
+                  minWidth: 0,
+                  ...(mode === 'view' && { display: 'flex', minHeight: 0 }),
+                }}
+              >
+                <SortableGridCell
+                  cell={cell}
+                  row={row}
+                  column={col}
+                  span={span}
+                  spanPercent={spanPercent}
+                  isDragging={activeId === `cell-${isParameter ? 'param' : 'text'}-${cell.id}`}
+                  onEdit={(c) => {
+                    if (isParameter) onEditParameter(c as FormParameter);
+                    else onEditTextCell(c as FormGridCell);
+                  }}
+                  onDelete={(c) => onDeleteCell(c, !!isParameter)}
+                  mode={mode}
+                  isParameter={!!isParameter}
+                  values={values}
+                  onChange={onChange}
+                />
+              </Box>
+            );
+          }
+          
           if (mode === 'admin') {
             return (
               <Box
@@ -217,7 +239,9 @@ const GridRow: React.FC<GridRowProps> = React.memo(({
                 data-row={row}
                 data-column={col}
                 sx={{
-                  minHeight: '80px',
+                  flex: `${flexValue} 0 0`,
+                  minWidth: 0,
+                  minHeight: '48px',
                   border: '2px dashed',
                   borderColor: 'divider',
                   borderRadius: 1,
@@ -249,7 +273,6 @@ const GridRow: React.FC<GridRowProps> = React.memo(({
             );
           }
           
-          // En modo vista/editable, no mostrar celdas vacías
           return null;
         })}
         </Box>

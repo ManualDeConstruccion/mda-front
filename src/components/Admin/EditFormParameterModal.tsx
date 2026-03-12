@@ -22,7 +22,9 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import { useSnapshotSourceFields } from '../../hooks/useSnapshotSourceFields';
 import CreateParameterCategoryModal from './CreateParameterCategoryModal';
+import type { OptionSourceItem } from './CreateParameterDefinitionModal';
 
 interface FormParameter {
   id: number;
@@ -69,6 +71,9 @@ interface ParameterDefinition {
   snapshot_source: string;
   source_field?: string;
   update_policy: string;
+  options_source?: string | null;
+  options_filter_by?: string[];
+  form_rules?: any[];
 }
 
 interface ParameterCategory {
@@ -125,6 +130,13 @@ const EditFormParameterModal: React.FC<EditFormParameterModalProps> = ({
   const [sourceField, setSourceField] = useState('');
   const [updatePolicy, setUpdatePolicy] = useState('manual');
   const [validationRules, setValidationRules] = useState('{}');
+  const [optionsSource, setOptionsSource] = useState('');
+  const [optionsFilterBy, setOptionsFilterBy] = useState('[]');
+  const [formRules, setFormRules] = useState('[]');
+
+  const { fields: snapshotSourceFields, isLoading: snapshotFieldsLoading } = useSnapshotSourceFields(
+    snapshotSource as 'property' | 'user' | 'none' | 'manual'
+  );
 
   // Fetch categorías
   const { data: categories } = useQuery<ParameterCategory[]>({
@@ -144,6 +156,29 @@ const EditFormParameterModal: React.FC<EditFormParameterModalProps> = ({
     },
     enabled: open && !!accessToken,
   });
+
+  const { data: optionSources } = useQuery<OptionSourceItem[]>({
+    queryKey: ['option-sources'],
+    queryFn: async () => {
+      const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+      const response = await axios.get(
+        `${API_URL}/api/parameters/option-sources/`,
+        {
+          withCredentials: true,
+          headers: {
+            'Authorization': accessToken ? `Bearer ${accessToken}` : undefined,
+          },
+        }
+      );
+      return response.data;
+    },
+    enabled: open && !!accessToken,
+    staleTime: 24 * 60 * 60 * 1000,
+  });
+
+  const selectedOptionSource = optionsSource
+    ? (optionSources ?? []).find((s) => s.code === optionsSource)
+    : null;
 
   // Obtener el ID del parameter_definition (puede ser número o objeto)
   const getParameterDefinitionId = (): number | null => {
@@ -233,6 +268,17 @@ const EditFormParameterModal: React.FC<EditFormParameterModalProps> = ({
       setSourceField(parameterDefinition.source_field || '');
       setUpdatePolicy(parameterDefinition.update_policy);
       setValidationRules(JSON.stringify(parameterDefinition.validation_rules || {}, null, 2));
+      setOptionsSource(parameterDefinition.options_source || '');
+      setOptionsFilterBy(
+        parameterDefinition.options_filter_by != null
+          ? JSON.stringify(parameterDefinition.options_filter_by, null, 2)
+          : '[]'
+      );
+      setFormRules(
+        parameterDefinition.form_rules != null
+          ? JSON.stringify(parameterDefinition.form_rules, null, 2)
+          : '[]'
+      );
     }
   }, [parameterDefinition, open]);
 
@@ -335,6 +381,36 @@ const EditFormParameterModal: React.FC<EditFormParameterModalProps> = ({
         return;
       }
 
+      let parsedOptionsFilterBy: string[] = [];
+      if (optionsFilterBy.trim()) {
+        try {
+          const parsed = JSON.parse(optionsFilterBy);
+          if (!Array.isArray(parsed)) {
+            setError('Filtrar opciones por debe ser un array JSON válido (ej: ["region"])');
+            return;
+          }
+          parsedOptionsFilterBy = parsed.map((x: unknown) => String(x));
+        } catch (e) {
+          setError('Filtrar opciones por debe ser un array JSON válido (ej: ["region"])');
+          return;
+        }
+      }
+
+      let parsedFormRules: any[] = [];
+      if (formRules.trim()) {
+        try {
+          const parsed = JSON.parse(formRules);
+          if (!Array.isArray(parsed)) {
+            setError('Reglas de formulario deben ser un array JSON válido');
+            return;
+          }
+          parsedFormRules = parsed;
+        } catch (e) {
+          setError('Reglas de formulario deben ser un array JSON válido');
+          return;
+        }
+      }
+
       if (parameterDefinitionId) {
         await updateParameterDefinitionMutation.mutateAsync({
           form_pdf_code: formPdfCode.trim() || '',
@@ -356,6 +432,9 @@ const EditFormParameterModal: React.FC<EditFormParameterModalProps> = ({
           source_field: sourceField.trim() || '',
           update_policy: updatePolicy,
           validation_rules: parsedValidationRules,
+          options_source: optionsSource.trim() || null,
+          options_filter_by: parsedOptionsFilterBy,
+          form_rules: parsedFormRules,
         });
       }
 
@@ -661,13 +740,46 @@ const EditFormParameterModal: React.FC<EditFormParameterModalProps> = ({
               </FormControl>
 
               {snapshotSource !== 'none' && (
-                <TextField
-                  label="Campo Fuente"
-                  value={sourceField}
-                  onChange={(e) => setSourceField(e.target.value)}
-                  fullWidth
-                  helperText="Campo del modelo fuente (ej: 'rol_number', 'sector', 'address')"
-                />
+                snapshotSource === 'property' || snapshotSource === 'user' ? (
+                  <FormControl fullWidth>
+                    <InputLabel>Campo Fuente</InputLabel>
+                    <Select
+                      label="Campo Fuente"
+                      value={sourceField}
+                      onChange={(e) => setSourceField(e.target.value)}
+                      disabled={snapshotFieldsLoading}
+                      displayEmpty
+                      renderValue={(v) => v || ''}
+                    >
+                      <MenuItem value="">
+                        <em>Ninguno</em>
+                      </MenuItem>
+                      {[
+                        ...snapshotSourceFields,
+                        ...(sourceField && !snapshotSourceFields.some((f) => f.value === sourceField)
+                          ? [{ value: sourceField, label: sourceField }]
+                          : []),
+                      ]
+                        .sort((a, b) => a.value.localeCompare(b.value))
+                        .map((f) => (
+                          <MenuItem key={f.value} value={f.value}>
+                            {f.label}
+                          </MenuItem>
+                        ))}
+                    </Select>
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                      Campos disponibles desde el modelo {snapshotSource === 'property' ? 'Property' : 'ProjectCollaborator'}
+                    </Typography>
+                  </FormControl>
+                ) : (
+                  <TextField
+                    label="Campo Fuente"
+                    value={sourceField}
+                    onChange={(e) => setSourceField(e.target.value)}
+                    fullWidth
+                    helperText="Snapshot manual: campo fuente opcional"
+                  />
+                )
               )}
 
               <FormControl fullWidth>
@@ -698,6 +810,64 @@ const EditFormParameterModal: React.FC<EditFormParameterModalProps> = ({
                 fullWidth
                 helperText='JSON con reglas: {"min": 0, "max": 100, "min_length": 5, "max_length": 50, "pattern": "^[A-Z]+$"}'
               />
+
+              <Divider sx={{ my: 1 }} />
+
+              <Typography variant="subtitle2" fontWeight="bold">
+                Reglas de formulario (selector y disparadores)
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                Origen de opciones para desplegable (Comuna, Región) y reglas que se ejecutan al cambiar este parámetro.
+              </Typography>
+
+              <FormControl fullWidth sx={{ mt: 1 }}>
+                <InputLabel>Origen de opciones</InputLabel>
+                <Select
+                  value={optionsSource}
+                  onChange={(e) => setOptionsSource(e.target.value)}
+                  label="Origen de opciones"
+                >
+                  <MenuItem value="">Ninguno (campo libre)</MenuItem>
+                  {(optionSources ?? []).map((s) => (
+                    <MenuItem key={s.id} value={s.code}>
+                      {s.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                  Si se define, este parámetro se mostrará como desplegable con opciones del catálogo.
+                </Typography>
+              </FormControl>
+
+              <TextField
+                label="Filtrar opciones por"
+                value={optionsFilterBy}
+                onChange={(e) => setOptionsFilterBy(e.target.value)}
+                multiline
+                rows={2}
+                fullWidth
+                placeholder='["propiedad_region"]'
+              />
+              {selectedOptionSource?.help_filter_by ? (
+                <Alert severity="info" sx={{ mt: 0.5 }}>
+                  {selectedOptionSource.help_filter_by}
+                </Alert>
+              ) : null}
+
+              <TextField
+                label="Reglas al cambiar este parámetro"
+                value={formRules}
+                onChange={(e) => setFormRules(e.target.value)}
+                multiline
+                rows={4}
+                fullWidth
+                placeholder='[{"action": "clear_value", "target_parameter_code": "comuna"}]'
+              />
+              {selectedOptionSource?.help_form_rules ? (
+                <Alert severity="info" sx={{ mt: 0.5 }}>
+                  {selectedOptionSource.help_form_rules}
+                </Alert>
+              ) : null}
             </Box>
           )}
         </DialogContent>

@@ -33,6 +33,15 @@ export interface SectionEngine {
   es_formulario_minvu?: boolean;
 }
 
+/** Regla que dispara un parámetro al cambiar (clear_value, set_value sobre otro parámetro). */
+export interface FormRule {
+  action: 'clear_value' | 'set_value';
+  target_parameter_code: string;
+  /** 'region' | 'region.id' para tomar del ítem seleccionado (ej. comuna.region); 'self' | 'display' | 'constant' | 'mapping' estándar. */
+  value_source?: 'self' | 'display' | 'constant' | 'mapping' | string;
+  value_mapping?: Record<string, string>;
+}
+
 /** Bloque dentro de una sección: grilla o motor. */
 export interface FormCategoryBlock {
   id: number;
@@ -58,6 +67,7 @@ export interface FormParameterCategory {
   form_parameters?: FormParameter[];
   grid_cells?: FormGridCell[];
   subcategories?: FormParameterCategory[];
+  validators?: { id: number; code: string; name: string }[];
   display_config?: {
     layout_type?: string;
     grid_config?: {
@@ -77,6 +87,9 @@ export interface FormParameter {
     data_type: string;
     unit?: string;
     is_calculated?: boolean;
+    options_source?: string | null;
+    options_filter_by?: string[];
+    form_rules?: FormRule[];
   };
   order: number;
   is_required: boolean;
@@ -106,6 +119,10 @@ export interface FormGridCell {
   grid_span: number;
   content: string;
   style?: FormGridCellStyle | Record<string, unknown>;
+  help_brief?: string;
+  help_extended?: string;
+  help_web_url?: string;
+  help_video_url?: string;
   is_active: boolean;
 }
 
@@ -115,11 +132,14 @@ export interface GridCellProps {
   row: number;
   column: number;
   span: number;
+  /** Porcentaje del ancho de la fila que ocupa esta celda (solo modo admin, entero). */
+  spanPercent?: number;
   isDragging?: boolean;
   onEdit?: (cell: FormParameter | FormGridCell) => void;
   onDelete?: (cell: FormParameter | FormGridCell) => void;
   mode: SectionTreeMode;
   isParameter: boolean;
   values?: Record<string, any>;
-  onChange?: (code: string, value: any) => void;
+  /** selectedOption: objeto completo al elegir en un selector (ej. comuna con region); se usa para form_rules set_value value_source "region". */
+  onChange?: (code: string, value: any, selectedOption?: any) => void;
 }
