@@ -14,8 +14,9 @@ import {
   Select,
   FormControl,
   InputLabel,
-  Tabs,
-  Tab,
+  List,
+  ListItemButton,
+  ListItemText,
   Chip,
   Typography,
   Divider,
@@ -52,6 +53,17 @@ interface ParameterDefinition {
   options_source?: string | null;
   options_filter_by?: string[];
   form_rules?: any[];
+  show_in_agenda?: boolean;
+  agenda_message?: string;
+  agenda_message_when_false?: string;
+  agenda_display_type?: string;
+  agenda_snackbar_undo?: boolean;
+  agenda_banner_cancel?: boolean;
+  agenda_banner_accept_changes?: boolean;
+  agenda_banner_accept_without_changes?: boolean;
+  agenda_modal_cancel?: boolean;
+  agenda_modal_accept_changes?: boolean;
+  agenda_modal_accept_without_changes?: boolean;
 }
 
 interface ParameterCategory {
@@ -109,6 +121,17 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
   const [optionsSource, setOptionsSource] = useState('');
   const [optionsFilterBy, setOptionsFilterBy] = useState('[]');
   const [formRules, setFormRules] = useState('[]');
+  const [showInAgenda, setShowInAgenda] = useState(false);
+  const [agendaMessage, setAgendaMessage] = useState('');
+  const [agendaMessageWhenFalse, setAgendaMessageWhenFalse] = useState('');
+  const [agendaDisplayType, setAgendaDisplayType] = useState('toast');
+  const [agendaSnackbarUndo, setAgendaSnackbarUndo] = useState(false);
+  const [agendaBannerCancel, setAgendaBannerCancel] = useState(false);
+  const [agendaBannerAcceptChanges, setAgendaBannerAcceptChanges] = useState(false);
+  const [agendaBannerAcceptWithoutChanges, setAgendaBannerAcceptWithoutChanges] = useState(false);
+  const [agendaModalCancel, setAgendaModalCancel] = useState(false);
+  const [agendaModalAcceptChanges, setAgendaModalAcceptChanges] = useState(false);
+  const [agendaModalAcceptWithoutChanges, setAgendaModalAcceptWithoutChanges] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createCategoryModalOpen, setCreateCategoryModalOpen] = useState(false);
   const [tabValue, setTabValue] = useState(0);
@@ -267,6 +290,17 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
       setFormRules(
         param.form_rules != null ? JSON.stringify(param.form_rules, null, 2) : '[]'
       );
+      setShowInAgenda((param.show_in_agenda as boolean | undefined) ?? false);
+      setAgendaMessage((param.agenda_message as string | undefined) ?? '');
+      setAgendaMessageWhenFalse((param.agenda_message_when_false as string | undefined) ?? '');
+      setAgendaDisplayType((param.agenda_display_type as string | undefined) ?? 'toast');
+      setAgendaSnackbarUndo((param.agenda_snackbar_undo as boolean | undefined) ?? false);
+      setAgendaBannerCancel((param.agenda_banner_cancel as boolean | undefined) ?? false);
+      setAgendaBannerAcceptChanges((param.agenda_banner_accept_changes as boolean | undefined) ?? false);
+      setAgendaBannerAcceptWithoutChanges((param.agenda_banner_accept_without_changes as boolean | undefined) ?? false);
+      setAgendaModalCancel((param.agenda_modal_cancel as boolean | undefined) ?? false);
+      setAgendaModalAcceptChanges((param.agenda_modal_accept_changes as boolean | undefined) ?? false);
+      setAgendaModalAcceptWithoutChanges((param.agenda_modal_accept_without_changes as boolean | undefined) ?? false);
       // regulation_articles viene como array de IDs o objetos con id
       const regArticles = param.regulation_articles as unknown[] | undefined;
       if (regArticles && Array.isArray(regArticles)) {
@@ -299,6 +333,17 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
       setOptionsSource('');
       setOptionsFilterBy('[]');
       setFormRules('[]');
+      setShowInAgenda(false);
+      setAgendaMessage('');
+      setAgendaMessageWhenFalse('');
+      setAgendaDisplayType('toast');
+      setAgendaSnackbarUndo(false);
+      setAgendaBannerCancel(false);
+      setAgendaBannerAcceptChanges(false);
+      setAgendaBannerAcceptWithoutChanges(false);
+      setAgendaModalCancel(false);
+      setAgendaModalAcceptChanges(false);
+      setAgendaModalAcceptWithoutChanges(false);
       setSelectedRegulationArticles([]);
       setTabValue(0);
     }
@@ -480,6 +525,17 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
       options_source: optionsSource.trim() || null,
       options_filter_by: parsedOptionsFilterBy,
       form_rules: parsedFormRules,
+      show_in_agenda: showInAgenda,
+      agenda_message: agendaMessage.trim() || '',
+      agenda_message_when_false: agendaMessageWhenFalse.trim() || '',
+      agenda_display_type: agendaDisplayType,
+      agenda_snackbar_undo: agendaSnackbarUndo,
+      agenda_banner_cancel: agendaBannerCancel,
+      agenda_banner_accept_changes: agendaBannerAcceptChanges,
+      agenda_banner_accept_without_changes: agendaBannerAcceptWithoutChanges,
+      agenda_modal_cancel: agendaModalCancel,
+      agenda_modal_accept_changes: agendaModalAcceptChanges,
+      agenda_modal_accept_without_changes: agendaModalAcceptWithoutChanges,
     };
 
     // regulation_articles se manejan después de crear/actualizar ya que es ManyToMany
@@ -500,14 +556,39 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
           </Alert>
         )}
 
-        <Tabs value={tabValue} onChange={(_, newValue) => setTabValue(newValue)} sx={{ mb: 2 }}>
-          <Tab label="Información Básica" />
-          <Tab label="Validación y Cálculo" />
-          <Tab label="Snapshot y Políticas" />
-          <Tab label="Referencias Normativas" />
-          <Tab label="Reglas de formulario" />
-        </Tabs>
+        <Box sx={{ display: 'flex', gap: 2, mt: 1, minHeight: 420 }}>
+          {/* Navegación lateral */}
+          <List
+            dense
+            sx={{
+              width: 200,
+              flexShrink: 0,
+              borderRight: 1,
+              borderColor: 'divider',
+              py: 0,
+            }}
+          >
+            {[
+              'Información Básica',
+              'Validación y Cálculo',
+              'Snapshot y Políticas',
+              'Referencias Normativas',
+              'Reglas de formulario',
+              'Actividades',
+            ].map((label, index) => (
+              <ListItemButton
+                key={label}
+                selected={tabValue === index}
+                onClick={() => setTabValue(index)}
+                sx={{ borderRadius: 1, mx: 0.5, mb: 0.25 }}
+              >
+                <ListItemText primary={label} primaryTypographyProps={{ variant: 'body2' }} />
+              </ListItemButton>
+            ))}
+          </List>
 
+          {/* Contenido del panel */}
+          <Box sx={{ flex: 1, minWidth: 0 }}>
         {/* Tab 1: Información Básica */}
         {tabValue === 0 && (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -988,6 +1069,160 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
             ) : null}
           </Box>
         )}
+
+        {/* Tab 6: Actividades (agenda / bitácora) */}
+        {tabValue === 5 && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Typography variant="h6" sx={{ mb: 1 }}>Bitácora y agenda de actividad</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              Si este parámetro se muestra en la agenda, al actualizarlo se creará una entrada en la bitácora (toast, snackbar, banner o modal) según el tipo de presentación.
+            </Typography>
+
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={showInAgenda}
+                  onChange={(e) => setShowInAgenda(e.target.checked)}
+                />
+              }
+              label="Mostrar en agenda"
+            />
+            <Typography variant="caption" color="text.secondary" sx={{ ml: 4.5, mt: -0.5, display: 'block' }}>
+              Si está activo, al actualizar este parámetro se crea una entrada en la bitácora.
+            </Typography>
+
+            {showInAgenda && (
+              <>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 1 }}>
+                  Mensajes según el valor del parámetro
+                </Typography>
+                <TextField
+                  label="Cuando el valor es True (Sí)"
+                  value={agendaMessage}
+                  onChange={(e) => setAgendaMessage(e.target.value)}
+                  multiline
+                  rows={4}
+                  fullWidth
+                  helperText="Mensaje mostrado en la alerta cuando el usuario activa el parámetro (ej. «Sí» en un booleano). Si está vacío se usa «Se actualizó {nombre del parámetro}»."
+                  placeholder="Se agregó el trámite de Alteración. Se agregarán los documentos: Listado de alteraciones, Presupuesto. ¿Aplicar estos cambios?"
+                />
+                <TextField
+                  label="Cuando el valor es False (No / No aplica)"
+                  value={agendaMessageWhenFalse}
+                  onChange={(e) => setAgendaMessageWhenFalse(e.target.value)}
+                  multiline
+                  rows={4}
+                  fullWidth
+                  helperText="Para parámetros booleanos: mensaje cuando el usuario desactiva el parámetro. Si está vacío, en algunos parámetros (ej. Alteración) el sistema usa un mensaje por defecto según el estado del proyecto."
+                  placeholder="Se quitarán los documentos del Listado de Antecedentes: Listado de alteraciones, Presupuesto. ¿Aplicar estos cambios?"
+                />
+
+                <FormControl fullWidth>
+                  <InputLabel>Tipo de presentación</InputLabel>
+                  <Select
+                    value={agendaDisplayType}
+                    onChange={(e) => setAgendaDisplayType(e.target.value)}
+                    label="Tipo de presentación"
+                  >
+                    <MenuItem value="toast">Toast (efímero, sin botones)</MenuItem>
+                    <MenuItem value="snackbar">Snackbar (con acción Deshacer)</MenuItem>
+                    <MenuItem value="banner">Banner (requiere decisión)</MenuItem>
+                    <MenuItem value="modal">Modal (requiere decisión, bloquea pantalla)</MenuItem>
+                  </Select>
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, ml: 1.75 }}>
+                    Toast/snackbar ejecutan el handler al instante; banner/modal quedan pendientes hasta que el usuario resuelva.
+                  </Typography>
+                </FormControl>
+
+                {agendaDisplayType === 'snackbar' && (
+                  <Box sx={{ pl: 1 }}>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={agendaSnackbarUndo}
+                          onChange={(e) => setAgendaSnackbarUndo(e.target.checked)}
+                        />
+                      }
+                      label="Incluir botón Deshacer"
+                    />
+                  </Box>
+                )}
+
+                {(agendaDisplayType === 'banner' || agendaDisplayType === 'modal') && (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, pl: 1 }}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Botones disponibles para este tipo:
+                    </Typography>
+                    {agendaDisplayType === 'banner' && (
+                      <>
+                        <FormControlLabel
+                          control={
+                            <Switch
+                              checked={agendaBannerCancel}
+                              onChange={(e) => setAgendaBannerCancel(e.target.checked)}
+                            />
+                          }
+                          label="Cancelar (revierte el valor)"
+                        />
+                        <FormControlLabel
+                          control={
+                            <Switch
+                              checked={agendaBannerAcceptChanges}
+                              onChange={(e) => setAgendaBannerAcceptChanges(e.target.checked)}
+                            />
+                          }
+                          label="Aceptar Cambios"
+                        />
+                        <FormControlLabel
+                          control={
+                            <Switch
+                              checked={agendaBannerAcceptWithoutChanges}
+                              onChange={(e) => setAgendaBannerAcceptWithoutChanges(e.target.checked)}
+                            />
+                          }
+                          label="Aceptar sin cambios"
+                        />
+                      </>
+                    )}
+                    {agendaDisplayType === 'modal' && (
+                      <>
+                        <FormControlLabel
+                          control={
+                            <Switch
+                              checked={agendaModalCancel}
+                              onChange={(e) => setAgendaModalCancel(e.target.checked)}
+                            />
+                          }
+                          label="Cancelar (revierte el valor)"
+                        />
+                        <FormControlLabel
+                          control={
+                            <Switch
+                              checked={agendaModalAcceptChanges}
+                              onChange={(e) => setAgendaModalAcceptChanges(e.target.checked)}
+                            />
+                          }
+                          label="Aceptar Cambios"
+                        />
+                        <FormControlLabel
+                          control={
+                            <Switch
+                              checked={agendaModalAcceptWithoutChanges}
+                              onChange={(e) => setAgendaModalAcceptWithoutChanges(e.target.checked)}
+                            />
+                          }
+                          label="Aceptar sin cambios"
+                        />
+                      </>
+                    )}
+                  </Box>
+                )}
+              </>
+            )}
+          </Box>
+        )}
+          </Box>
+        </Box>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancelar</Button>
