@@ -1,0 +1,114 @@
+---
+description: Protocolo de documentación al agregar o modificar cualquier feature
+alwaysApply: true
+---
+
+# Protocolo de documentación — Frontend (mda-front)
+
+## Regla general: toda PR documenta lo que toca
+
+Con cada cambio de código, actualiza los archivos de documentación correspondientes
+en el mismo commit. No dejes documentación como "pendiente para después".
+
+---
+
+## 1. CHANGELOG.md — obligatorio en cada PR
+
+Agrega una entrada bajo `[Unreleased]` siguiendo el formato Keep a Changelog:
+
+```markdown
+### Added | Changed | Fixed | Removed
+- Descripción breve del cambio.
+```
+
+---
+
+## 2. Nuevo componente reutilizable (`src/components/`)
+
+- Agrega una fila en `docs/components/overview.md`:
+  ```markdown
+  | NombreComponente | Descripción breve | Props principales | Cuándo usarlo |
+  ```
+- Agrega JSDoc encima de la función del componente:
+  ```tsx
+  /**
+   * Muestra el encabezado de una sección con título y acciones opcionales.
+   * Usado en páginas de detalle de proyecto y formularios.
+   */
+  export function SectionHeader({ title, actions }: Props) {
+  ```
+
+## 3. Nueva página o feature (`src/pages/`)
+
+- Agrega o actualiza el archivo correspondiente en `docs/features/`:
+  - Qué hace la feature
+  - Qué componentes y hooks usa
+  - Qué endpoint(s) del backend consume (con link a `mdc/docs/api/`)
+  - Flujo de navegación si aplica
+
+## 4. Nuevo hook (`src/hooks/`)
+
+- Agrega JSDoc al hook:
+  ```tsx
+  /**
+   * Obtiene y cachea los nodos de un proyecto dado.
+   * @param projectId - ID del nodo raíz del proyecto
+   * @returns { data, isLoading, error }
+   */
+  export function useProjectNodes(projectId: number) {
+  ```
+- Si introduce un patrón nuevo (ej. optimistic update, polling), menciónalo en
+  `docs/architecture/state-management.md`.
+
+## 5. Nueva llamada a la API (`src/services/`)
+
+Agrega al archivo `docs/api/services.md`:
+
+```markdown
+### fetchProjectNodes(projectId)
+Llama a `GET /api/projects/{id}/nodes/`.
+**Params:** `projectId: number`
+**Returns:** `Promise<ProjectNode[]>`
+```
+
+## 6. Cambio en autenticación o rutas protegidas
+
+Actualiza `docs/features/auth.md` con el flujo afectado.
+
+## 7. Decisión de arquitectura significativa
+
+Agrega una sección en `docs/architecture/overview.md` o crea un archivo nuevo en
+`docs/architecture/` explicando: contexto, decisión tomada y alternativas descartadas.
+
+---
+
+## Dónde vive cada tipo de doc
+
+| Cambio | Archivo a actualizar |
+|--------|---------------------|
+| Componente reutilizable | `docs/components/overview.md` |
+| Página / feature | `docs/features/<feature>.md` |
+| Hook con patrón nuevo | `docs/architecture/state-management.md` |
+| Llamada a la API | `docs/api/services.md` |
+| Cambio de auth o rutas | `docs/features/auth.md` |
+| Decisión de diseño | `docs/architecture/overview.md` |
+| Gotcha de desarrollo | `AGENTS.md` |
+| Todo lo anterior | `CHANGELOG.md` |
+
+## Lo que NO hace falta documentar
+
+- Cambios de estilos menores (CSS, colores)
+- Renombrado de variables internas
+- Fixes de typos
+- Tests (el nombre del test describe su propósito)
+
+---
+
+## Referencia cruzada con el backend
+
+Los contratos de API están documentados en el repo `mdc`:
+- Endpoints: `mdc/docs/api/endpoints.md`
+- Modelos de datos: `mdc/docs/features/<app>.md`
+
+Al documentar una llamada en `docs/api/services.md`, incluye el link correspondiente
+al endpoint en el backend.
