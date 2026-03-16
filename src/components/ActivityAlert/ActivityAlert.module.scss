@@ -23,6 +23,28 @@
   color: rgba(0, 0, 0, 0.87);
 }
 
-.acceptButton {
-  margin-top: 4px;
+.messageLine {
+  display: block;
+  margin-bottom: 0.25em;
+}
+
+.messageList {
+  margin: 0.5em 0 0 1em;
+  padding-left: 0.5em;
+  list-style-type: disc;
+}
+
+.messageList li {
+  margin-bottom: 0.25em;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.actionButton {
+  flex-shrink: 0;
 }

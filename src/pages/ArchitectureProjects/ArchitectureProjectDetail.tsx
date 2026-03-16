@@ -30,6 +30,8 @@ import styles from './ArchitectureProjectDetail.module.scss';
 import ListadoDeAntecedentes from './ListadoDeAntecedentes';
 import ActivityAlert from '../../components/ActivityAlert/ActivityAlert';
 
+const ACTIVITY_LOGS_QUERY_KEY = 'activity-logs-pending';
+
 const ArchitectureProjectDetail: React.FC = () => {
   const { projectId, architectureId } = useParams<{ projectId: string; architectureId: string }>();
   const navigate = useNavigate();
@@ -255,6 +257,11 @@ const ArchitectureProjectDetail: React.FC = () => {
     },
     onSuccess: (_data, variables) => {
       refetchCategoryData(variables.categoryId);
+      if (projectId) {
+        queryClient.invalidateQueries({
+          queryKey: [ACTIVITY_LOGS_QUERY_KEY, Number(projectId)],
+        });
+      }
     },
   });
 
@@ -545,7 +552,14 @@ const ArchitectureProjectDetail: React.FC = () => {
 
   return (
     <ProjectProvider projectNodeId={Number(architectureId)}>
-      <ActivityAlert />
+      <ActivityAlert
+        projectNodeId={projectId ? Number(projectId) : undefined}
+        onResolveSuccess={(action) => {
+          if (action === 'cancel') {
+            refreshAllSectionValues();
+          }
+        }}
+      />
       <div className={styles.container}>
         <header className={styles.header}>
           {/* Primera fila: Breadcrumb (izquierda) + Botón Volver (derecha) */}
