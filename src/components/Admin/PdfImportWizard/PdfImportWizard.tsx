@@ -79,7 +79,17 @@ export default function PdfImportWizard({
   projectTypeId,
   pdfTemplates,
 }: PdfImportWizardProps) {
-  const { jobId, statusQuery, proposalsQuery, startMutation, applyMutation, reset } = usePdfImport();
+  const {
+    jobId,
+    statusQuery,
+    proposalsQuery,
+    startMutation,
+    applyMutation,
+    reset,
+    sections,
+    proposalsBySection,
+    sectionFieldCounts,
+  } = usePdfImport();
   const [step, setStep] = useState(1);
 
   const [pdfFile, setPdfFile] = useState<File | null>(null);
@@ -165,6 +175,14 @@ export default function PdfImportWizard({
     });
     return rows;
   }, [draftProposals]);
+
+  const proposalRowById = useMemo(() => {
+    const m: Record<string, ProposalRow> = {};
+    for (const r of proposalRows) {
+      m[r.fieldId] = r;
+    }
+    return m;
+  }, [proposalRows]);
 
   const startAnalyze = async () => {
     if (!pdfFile) throw new Error('Debes subir un PDF.');
@@ -373,83 +391,116 @@ export default function PdfImportWizard({
                   </FormControl>
                 </Box>
 
-                <Box sx={{ overflowX: 'auto' }}>
-                  <Table size="small" className={styles.table}>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Campo</TableCell>
-                        <TableCell>Acción</TableCell>
-                        <TableCell>Code</TableCell>
-                        <TableCell>Conf.</TableCell>
-                        <TableCell>Evidence</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {proposalRows.map((r) => {
-                        const confidence = (r.confidence ?? '').toLowerCase();
-                        const rowClass = confidence === 'low' || confidence === 'medium' ? styles.rowWarning : '';
-                        const isPending = r.code?.startsWith('PENDING_') || r.action === 'ignore';
-                        const rowClass2 = r.action === 'ignore' ? styles.rowError : rowClass;
-                        return (
-                          <TableRow key={r.fieldId} className={`${rowClass2}`}>
-                            <TableCell className={styles.cell}>
-                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                {r.fieldId}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                page: {r.pdf_meta?.page ?? '-'} type: {r.pdf_meta?.type ?? '-'}
-                              </Typography>
-                            </TableCell>
-                            <TableCell className={styles.cell} sx={{ width: 160 }}>
-                              <FormControl size="small" fullWidth>
-                                <Select
-                                  value={r.action}
-                                  onChange={(e) => {
-                                    const newAction = String(e.target.value);
-                                    setDraftProposals((prev) => ({
-                                      ...prev,
-                                      [r.fieldId]: { ...prev[r.fieldId], action: newAction },
-                                    }));
-                                  }}
-                                >
-                                  <MenuItem value="assign_existing">assign_existing</MenuItem>
-                                  <MenuItem value="create_new">create_new</MenuItem>
-                                  <MenuItem value="ignore">ignore</MenuItem>
-                                </Select>
-                              </FormControl>
-                            </TableCell>
-                            <TableCell className={styles.cell} sx={{ width: 220 }}>
-                              <TextField
-                                size="small"
-                                fullWidth
-                                value={r.code ?? ''}
-                                onChange={(e) => {
-                                  const newCode = e.target.value;
-                                  setDraftProposals((prev) => ({
-                                    ...prev,
-                                    [r.fieldId]: { ...prev[r.fieldId], code: newCode },
-                                  }));
-                                }}
-                              />
-                              {isPending && (
-                                <Typography variant="caption" color="text.secondary">
-                                  Se omitirá si el code queda con prefijo PENDING_
-                                </Typography>
-                              )}
-                            </TableCell>
-                            <TableCell className={styles.cell} sx={{ width: 110 }}>
-                              <Typography variant="body2">{r.confidence ?? '-'}</Typography>
-                            </TableCell>
-                            <TableCell className={styles.cell}>
-                              <Typography variant="body2" className={styles.smallMuted}>
-                                {r.evidence ?? ''}
-                              </Typography>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+                <Box className={styles.proposalsSectionsWrapper}>
+                  {(sections?.length ? sections : [{ number: '0', name: 'Datos Generales' }]).map((section) => {
+                    const fieldIds = proposalsBySection?.[section.name] ?? [];
+                    if (fieldIds.length === 0) return null;
+
+                    const rowsForSection = fieldIds
+                      .map((fid) => proposalRowById[fid])
+                      .filter((x): x is ProposalRow => !!x)
+                      .sort((a, b) => {
+                        const pa = a.pdf_meta?.page ?? 0;
+                        const pb = b.pdf_meta?.page ?? 0;
+                        if (pa !== pb) return pa - pb;
+                        return a.fieldId.localeCompare(b.fieldId);
+                      });
+
+                    if (rowsForSection.length === 0) return null;
+
+                    const count = sectionFieldCounts?.[section.name] ?? rowsForSection.length;
+
+                    return (
+                      <div key={section.name} className={styles.proposalsSectionGroup}>
+                        <div className={styles.sectionGroupHeader}>
+                          <span className={styles.sectionNumber}>{section.number}</span>
+                          <span className={styles.sectionName}>{section.name}</span>
+                          <span className={styles.sectionCount}>
+                            {count} campo{count !== 1 ? 's' : ''}
+                          </span>
+                        </div>
+
+                        <Box sx={{ overflowX: 'auto' }}>
+                          <Table size="small" className={styles.table}>
+                            <TableHead>
+                              <TableRow>
+                                <TableCell>Campo</TableCell>
+                                <TableCell>Acción</TableCell>
+                                <TableCell>Code</TableCell>
+                                <TableCell>Conf.</TableCell>
+                                <TableCell>Evidence</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {rowsForSection.map((r) => {
+                                const confidence = (r.confidence ?? '').toLowerCase();
+                                const rowClass = confidence === 'low' || confidence === 'medium' ? styles.rowWarning : '';
+                                const isPending = r.code?.startsWith('PENDING_') || r.action === 'ignore';
+                                const rowClass2 = r.action === 'ignore' ? styles.rowError : rowClass;
+                                return (
+                                  <TableRow key={r.fieldId} className={`${rowClass2}`}>
+                                    <TableCell className={styles.cell}>
+                                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                        {r.fieldId}
+                                      </Typography>
+                                      <Typography variant="caption" color="text.secondary">
+                                        page: {r.pdf_meta?.page ?? '-'} type: {r.pdf_meta?.type ?? '-'}
+                                      </Typography>
+                                    </TableCell>
+                                    <TableCell className={styles.cell} sx={{ width: 160 }}>
+                                      <FormControl size="small" fullWidth>
+                                        <Select
+                                          value={r.action}
+                                          onChange={(e) => {
+                                            const newAction = String(e.target.value);
+                                            setDraftProposals((prev) => ({
+                                              ...prev,
+                                              [r.fieldId]: { ...prev[r.fieldId], action: newAction },
+                                            }));
+                                          }}
+                                        >
+                                          <MenuItem value="assign_existing">assign_existing</MenuItem>
+                                          <MenuItem value="create_new">create_new</MenuItem>
+                                          <MenuItem value="ignore">ignore</MenuItem>
+                                        </Select>
+                                      </FormControl>
+                                    </TableCell>
+                                    <TableCell className={styles.cell} sx={{ width: 220 }}>
+                                      <TextField
+                                        size="small"
+                                        fullWidth
+                                        value={r.code ?? ''}
+                                        onChange={(e) => {
+                                          const newCode = e.target.value;
+                                          setDraftProposals((prev) => ({
+                                            ...prev,
+                                            [r.fieldId]: { ...prev[r.fieldId], code: newCode },
+                                          }));
+                                        }}
+                                      />
+                                      {isPending && (
+                                        <Typography variant="caption" color="text.secondary">
+                                          Se omitirá si el code queda con prefijo PENDING_
+                                        </Typography>
+                                      )}
+                                    </TableCell>
+                                    <TableCell className={styles.cell} sx={{ width: 110 }}>
+                                      <Typography variant="body2">{r.confidence ?? '-'}</Typography>
+                                    </TableCell>
+                                    <TableCell className={styles.cell}>
+                                      <Typography variant="body2" className={styles.smallMuted}>
+                                        {r.evidence ?? ''}
+                                      </Typography>
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                            </TableBody>
+                          </Table>
+                        </Box>
+                      </div>
+                    );
+                  })}
                 </Box>
 
                 <DialogActions sx={{ px: 0 }}>

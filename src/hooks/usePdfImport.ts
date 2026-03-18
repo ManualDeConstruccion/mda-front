@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../services/api';
 
@@ -20,6 +20,11 @@ export interface PdfImportStatus {
   progress_message: string;
   error_message: string;
   pdf_semantic_url?: string | null;
+}
+
+export interface PdfImportSection {
+  number: string;
+  name: string;
 }
 
 export type PdfImportProposals = Record<
@@ -52,6 +57,10 @@ export function usePdfImport() {
   const [jobId, setJobId] = useState<number | null>(null);
   const queryClient = useQueryClient();
 
+  const [sections, setSections] = useState<PdfImportSection[]>([]);
+  const [proposalsBySection, setProposalsBySection] = useState<Record<string, string[]>>({});
+  const [sectionFieldCounts, setSectionFieldCounts] = useState<Record<string, number>>({});
+
   const statusQuery = useQuery<PdfImportStatus>({
     queryKey: ['pdf-import-status', jobId],
     enabled: !!jobId,
@@ -61,8 +70,10 @@ export function usePdfImport() {
       return data as PdfImportStatus;
     },
     refetchInterval: (data) => {
-      if (!data) return 2000;
-      if (data.status === 'done' || data.status === 'error') return false;
+      // En esta versión de tanstack, `refetchInterval` recibe el query como parámetro.
+      const d = (data as any)?.state?.data as PdfImportStatus | undefined;
+      if (!d) return 2000;
+      if (d.status === 'done' || d.status === 'error') return false;
       return 2000;
     },
   });
@@ -73,6 +84,9 @@ export function usePdfImport() {
     field_info: any[];
     proposals: PdfImportProposals;
     mapping: any;
+    sections?: PdfImportSection[];
+    proposals_by_section?: Record<string, string[]>;
+    section_field_counts?: Record<string, number>;
   }>({
     queryKey: ['pdf-import-proposals', jobId],
     enabled:
@@ -86,6 +100,13 @@ export function usePdfImport() {
       return data;
     },
   });
+
+  useEffect(() => {
+    if (!proposalsQuery.data) return;
+    setSections(proposalsQuery.data.sections ?? []);
+    setProposalsBySection(proposalsQuery.data.proposals_by_section ?? {});
+    setSectionFieldCounts(proposalsQuery.data.section_field_counts ?? {});
+  }, [proposalsQuery.data]);
 
   const startMutation = useMutation({
     mutationFn: async (payload: PdfImportStartPayload) => {
@@ -105,6 +126,9 @@ export function usePdfImport() {
       return res.data as { job_id: number };
     },
     onSuccess: (data) => {
+      setSections([]);
+      setProposalsBySection({});
+      setSectionFieldCounts({});
       setJobId(data.job_id);
     },
   });
@@ -128,6 +152,9 @@ export function usePdfImport() {
 
   const reset = useCallback(() => {
     setJobId(null);
+    setSections([]);
+    setProposalsBySection({});
+    setSectionFieldCounts({});
     queryClient.removeQueries({ queryKey: ['pdf-import-status'] });
     queryClient.removeQueries({ queryKey: ['pdf-import-proposals'] });
   }, [queryClient]);
@@ -139,6 +166,9 @@ export function usePdfImport() {
     startMutation,
     applyMutation,
     reset,
+    sections,
+    proposalsBySection,
+    sectionFieldCounts,
   };
 }
 
