@@ -159,3 +159,17 @@ Estados: `idle → pending → processing → success | failed | timeout`
 
 Ver [mdc/docs/features/blocks-engines.md](../../../mdc/docs/features/blocks-engines.md)
 para la configuración de plantillas PDF en el backend.
+
+---
+
+### Admin: Importación de formulario desde PDF
+
+En el panel admin (página `FormularioEditPage.tsx`) existe el wizard `PdfImportWizard` (4 pasos):
+
+1. (Condicional) Si NO existe template activo para el tipo del formulario, se sube el PDF y se ingresa `form_code`.
+   - Si SÍ existe template activo, el wizard salta Paso 1.
+2. Ejecutar análisis visual con IA (Claude Vision) en background.
+3. Revisar y editar el mapeo de `field_id` del PDF hacia `ParameterDefinition` (asignar existente / crear nuevo / ignorar).
+4. Confirmar y aplicar: se crea/actualiza la estructura MDA (`FormParameterCategory`, `FormCategoryBlock`, `FormParameter`, `FormGridCell`) y se genera un PDF semántico.
+
+Endpoints (backend): ver `mdc/docs/api/endpoints.md` (sección “Importación de Formularios desde PDF”).

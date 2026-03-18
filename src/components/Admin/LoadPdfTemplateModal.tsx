@@ -27,8 +27,10 @@ import { useAuth } from '../../context/AuthContext';
 interface PdfTemplateItem {
   id: number;
   name: string;
+  description?: string;
   is_active: boolean;
   uploaded_at: string;
+  pdf_file_url?: string;
   architecture_project_type: number;
   architecture_project_type_name?: string;
   architecture_project_type_code?: string;
@@ -60,12 +62,23 @@ const LoadPdfTemplateModal: React.FC<LoadPdfTemplateModalProps> = ({
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [activePdfFileUrl, setActivePdfFileUrl] = useState<string | null>(null);
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
   const [minvuFormCode, setMinvuFormCode] = useState('');
   const [version, setVersion] = useState('');
   const [isActive, setIsActive] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const objectUrlRef = useRef<string | null>(null);
 
   const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+  const resolvedPdfPreviewUrl = (() => {
+    if (!pdfPreviewUrl) return null;
+    // URLs locales (blob) no deben tocarse.
+    if (pdfPreviewUrl.startsWith('blob:')) return pdfPreviewUrl;
+    // `pdf_file_url` suele venir como `/media/...` desde backend.
+    if (pdfPreviewUrl.startsWith('/')) return `${API_URL}${pdfPreviewUrl}`;
+    return pdfPreviewUrl;
+  })();
 
   // Listado de templates del tipo de proyecto (filtrado por architecture_project_type)
   const { data: templatesData, isLoading: loadingTemplates } = useQuery<
@@ -87,29 +100,66 @@ const LoadPdfTemplateModal: React.FC<LoadPdfTemplateModalProps> = ({
 
   const templatesList = Array.isArray(templatesData) ? templatesData : templatesData?.results ?? [];
   const hasTemplates = templatesList.length > 0;
+  const templatesCount = templatesList.length;
+  const showTabs = templatesCount > 1;
 
   useEffect(() => {
     if (open) {
-      setName('');
-      setDescription('');
+      const active = templatesList.find((t) => t.is_active) ?? templatesList[0] ?? null;
+
+      // Si existen templates, queremos que "Editar template PDF" abra directamente el formulario
+      // para que el usuario pueda modificar metadata (sin necesidad de ir a la pestaña Listado).
+      setActiveTab(hasTemplates && showTabs ? 1 : 0);
+
+      setName(active?.name ?? '');
+      setDescription(active?.description ?? '');
+      setMinvuFormCode(active?.minvu_form_code ?? '');
+      setVersion(active?.version ?? '');
+      setIsActive(active?.is_active ?? true);
       setPdfFile(null);
-      setMinvuFormCode('');
-      setVersion('');
-      setIsActive(true);
-      setActiveTab(hasTemplates ? 0 : 0);
+      setActivePdfFileUrl(active?.pdf_file_url ?? null);
+      setPdfPreviewUrl(active?.pdf_file_url ?? null);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
-  }, [open]);
+  }, [open, hasTemplates, showTabs]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    // Si el usuario selecciona un PDF nuevo, creamos una URL local para vista previa.
+    if (!open) return;
+
+    if (pdfFile) {
+      if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+      const url = URL.createObjectURL(pdfFile);
+      objectUrlRef.current = url;
+      setPdfPreviewUrl(url);
+      return;
+    }
+
+    // Si no hay archivo nuevo seleccionado, volvemos al URL del template activo.
+    setPdfPreviewUrl(activePdfFileUrl);
+
+    return () => {
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = null;
+      }
+    };
+  }, [pdfFile, open, activePdfFileUrl]);
 
 
   const uploadMutation = useMutation({
     mutationFn: async () => {
-      if (!pdfFile) throw new Error('Debe seleccionar un archivo PDF');
+      // Al editar un template existente el PDF no siempre es obligatorio:
+      // si no se sube, el backend debe mantener el pdf_file actual.
+      const requirePdf = !hasTemplates;
+      if (requirePdf && !pdfFile) throw new Error('Debe seleccionar un archivo PDF');
       const formData = new FormData();
       formData.append('architecture_project_type', String(architectureProjectTypeId));
       formData.append('name', name.trim() || architectureProjectTypeName);
       formData.append('description', description);
-      formData.append('pdf_file', pdfFile);
+      if (pdfFile) {
+        formData.append('pdf_file', pdfFile);
+      }
       formData.append('minvu_form_code', minvuFormCode);
       formData.append('version', version);
       formData.append('is_active', String(isActive));
@@ -222,7 +272,7 @@ const LoadPdfTemplateModal: React.FC<LoadPdfTemplateModalProps> = ({
       />
       <Box sx={{ mt: 2, mb: 1 }}>
         <Typography variant="body2" color="text.secondary" gutterBottom>
-          Archivo PDF *
+          Archivo PDF {hasTemplates ? '(opcional si solo editas metadata)' : '*'}
         </Typography>
         <input
           ref={fileInputRef}
@@ -239,6 +289,19 @@ const LoadPdfTemplateModal: React.FC<LoadPdfTemplateModalProps> = ({
         >
           {pdfFile ? pdfFile.name : 'Seleccionar PDF'}
         </Button>
+
+        {pdfPreviewUrl && (
+          <Button
+            sx={{ ml: 2 }}
+            variant="text"
+            component="a"
+            href={resolvedPdfPreviewUrl ?? undefined}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Vista previa
+          </Button>
+        )}
       </Box>
       <FormControlLabel
         control={<Switch checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />}
@@ -268,7 +331,7 @@ const LoadPdfTemplateModal: React.FC<LoadPdfTemplateModalProps> = ({
           Tipo de proyecto: <strong>{architectureProjectTypeName}</strong>
         </Typography>
 
-        {hasTemplates ? (
+        {showTabs ? (
           <>
             <Tabs
               value={activeTab}
@@ -276,7 +339,7 @@ const LoadPdfTemplateModal: React.FC<LoadPdfTemplateModalProps> = ({
               sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}
             >
               <Tab label="Listado" id="pdf-tab-list" />
-              <Tab label="Crear nuevo" id="pdf-tab-create" />
+              <Tab label="Editar" id="pdf-tab-create" />
             </Tabs>
             {activeTab === 0 && (
               <Box>
@@ -290,7 +353,23 @@ const LoadPdfTemplateModal: React.FC<LoadPdfTemplateModalProps> = ({
                 ) : (
                   <List dense>
                     {templatesList.map((t) => (
-                      <ListItem key={t.id} sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
+                      <ListItem
+                        key={t.id}
+                        button
+                        onClick={() => {
+                          setActiveTab(1);
+                          setName(t.name ?? '');
+                          setDescription(t.description ?? '');
+                          setMinvuFormCode(t.minvu_form_code ?? '');
+                          setVersion(t.version ?? '');
+                          setIsActive(t.is_active ?? true);
+                          setPdfFile(null);
+                          setActivePdfFileUrl(t.pdf_file_url ?? null);
+                          setPdfPreviewUrl(t.pdf_file_url ?? null);
+                          if (fileInputRef.current) fileInputRef.current.value = '';
+                        }}
+                        sx={{ borderBottom: '1px solid', borderColor: 'divider' }}
+                      >
                         <ListItemText
                           primary={t.name}
                           secondary={formatDate(t.uploaded_at)}
@@ -321,14 +400,18 @@ const LoadPdfTemplateModal: React.FC<LoadPdfTemplateModalProps> = ({
         <Button onClick={handleClose} disabled={uploadMutation.isPending}>
           Cerrar
         </Button>
-        {(!hasTemplates || activeTab === 1) && (
+        {( !showTabs || activeTab === 1 ) && (
           <Button
             type="submit"
             form="load-pdf-form"
             variant="contained"
-            disabled={!pdfFile || uploadMutation.isPending}
+            disabled={uploadMutation.isPending || (!hasTemplates && !pdfFile)}
           >
-            {uploadMutation.isPending ? 'Cargando…' : 'Cargar template'}
+            {uploadMutation.isPending
+              ? 'Cargando…'
+              : hasTemplates
+                ? 'Guardar cambios'
+                : 'Cargar template'}
           </Button>
         )}
       </DialogActions>

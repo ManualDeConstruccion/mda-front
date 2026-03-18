@@ -34,6 +34,8 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import EditNoteIcon from '@mui/icons-material/EditNote';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
+import PdfImportWizard from '../../components/Admin/PdfImportWizard';
 
 interface FormParameterCategory {
   id: number;
@@ -342,6 +344,7 @@ const FormularioEditPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [addSectionModalOpen, setAddSectionModalOpen] = useState(false);
   const [loadPdfTemplateModalOpen, setLoadPdfTemplateModalOpen] = useState(false);
+  const [pdfImportWizardOpen, setPdfImportWizardOpen] = useState(false);
   const [mode, setMode] = useState<SectionTreeMode>('admin');
 
   // Función para obtener todas las secciones de forma plana
@@ -522,6 +525,13 @@ const FormularioEditPage: React.FC = () => {
                   {hasPdfTemplates ? 'Editar template PDF' : 'Cargar template PDF'}
                 </Button>
                 <Button
+                  variant="outlined"
+                  startIcon={<UploadFileIcon />}
+                  onClick={() => setPdfImportWizardOpen(true)}
+                >
+                  Importar desde PDF
+                </Button>
+                <Button
                   variant="contained"
                   startIcon={<AddIcon />}
                   onClick={() => setAddSectionModalOpen(true)}
@@ -579,6 +589,18 @@ const FormularioEditPage: React.FC = () => {
           architectureProjectTypeId={formStructure.project_type.id}
           architectureProjectTypeName={formStructure.project_type.name}
           architectureProjectTypeCode={formStructure.project_type.code}
+        />
+
+        <PdfImportWizard
+          open={pdfImportWizardOpen}
+          onClose={() => setPdfImportWizardOpen(false)}
+          onImported={() => {
+            // Refrescar la estructura del formulario para reflejar las nuevas secciones.
+            queryClient.invalidateQueries({ queryKey: ['form-structure', projectTypeId] });
+            window.location.reload();
+          }}
+          projectTypeId={Number(projectTypeId)}
+          pdfTemplates={pdfTemplatesList}
         />
       </Box>
     </Container>

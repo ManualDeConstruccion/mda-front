@@ -103,6 +103,7 @@ Usados exclusivamente en el panel de administración de plantillas de formulario
 | `SectionGrid` | Renderizador de grilla de parámetros y celdas |
 | `GridCell` | Celda individual (parámetro o texto) con drag-drop en modo admin |
 | `EngineBlockRenderer` | Dispatcher de motores de sección (superficies, ocupación, etc.) |
+| `PdfImportWizard` | Wizard overlay de 4 pasos para “Importar desde PDF” (análisis IA + revisión + aplicación) |
 | `NormativeTree` | Browser de jerarquía normativa OGUC/LGUC |
 | `PublicationEditor` | Editor de publicaciones normativas |
 

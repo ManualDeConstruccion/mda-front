@@ -12,6 +12,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 - `AGENTS.md` con instrucciones de setup y protocolo de documentación para agentes IA
 - `.cursor/rules/documentation.mdc` con reglas de documentación para Cursor
 - `.github/PULL_REQUEST_TEMPLATE.md` con checklist de calidad y documentación
+- Admin UI: wizard async “Importar desde PDF” con revisión editable de mapeos y ejecución del import.
+- Admin UI: se unifica flujo importador; si no hay templates activos, el wizard permite `form_code` manual y al aplicar se deja listo el `BasePDFTemplate`.
+- Admin UI: el wizard salta el Paso 1 cuando existe template activo y permite analizar con IA usando `template_id` (sin volver a subir el PDF).
 
 ---
 
