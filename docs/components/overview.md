@@ -35,6 +35,7 @@ específicos de una sola página viven en `src/pages/` junto a la página que lo
 | `EditFormParameterModal` | `Admin/EditFormParameterModal.tsx` | Editar propiedades de un parámetro en formulario |
 | `CreateParameterCategoryModal` | `Admin/CreateParameterCategoryModal.tsx` | Nueva categoría de parámetros |
 | `CreateProjectTypeModal` | `Admin/CreateProjectTypeModal.tsx` | Nuevo tipo de proyecto arquitectónico |
+| `CreateParameterDefinitionModal` | `Admin/CreateParameterDefinitionModal.tsx` | Crear/editar `ParameterDefinition` con tabs: Información básica, Validación, Snapshot, Normativa, Reglas de formulario, Actividades (agenda). |
 
 ---
 
@@ -51,7 +52,7 @@ específicos de una sola página viven en `src/pages/` junto a la página que lo
 | Componente | Archivo | Props principales | Cuándo usarlo |
 |-----------|---------|------------------|---------------|
 | `Toast` | `common/Toast.tsx` | `message, severity` | Notificaciones temporales (éxito, error, info) |
-| `ActivityAlert` | `ActivityAlert/` | — | Indicador de actividad en progreso |
+| `ActivityAlert` | `ActivityAlert/` | `projectNodeId, onResolveSuccess` | Overlay de alertas de bitácora pendientes (banner/modal). Obtiene logs `status=pending` y los resuelve vía `POST .../resolve/` con botones dinámicos del backend. Ver [features/activity.md](../features/activity.md). |
 
 ---
 

@@ -21,6 +21,7 @@ API REST en `http://localhost:8000/api/`. Ver `mdc/docs/` para contratos de API 
 | [features/auth.md](features/auth.md) | Flujo OAuth → JWT → localStorage → interceptores |
 | [features/forms.md](features/forms.md) | Sistema de formularios dinámicos y método CAM |
 | [features/project-tree.md](features/project-tree.md) | Árbol de nodos: componentes, hooks, drag-drop |
+| [features/activity.md](features/activity.md) | ActivityAlert: alertas de bitácora pendientes y flujo de resolución |
 
 ## Componentes
 
