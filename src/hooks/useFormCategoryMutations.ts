@@ -34,6 +34,36 @@ export function useFormCategoryMutations(
     [section.id, section.display_config, onSectionUpdated]
   );
 
+  /**
+   * Actualiza la configuración de columnas por fila (rows_columns) para un bloque específico.
+   * Usa display_config.grid_config.rows_columns_by_block[blockId] si existe (o lo crea).
+   */
+  const updateDisplayConfigForBlock = useCallback(
+    async (blockId: number, row: number, columns: number) => {
+      const currentConfig = section.display_config || {};
+      const currentGridConfig = currentConfig.grid_config || {};
+      const currentRowsColumnsByBlock = (currentGridConfig as any).rows_columns_by_block || {};
+      const blockKey = String(blockId);
+      const currentBlockRows = currentRowsColumnsByBlock[blockKey] || {};
+      const newDisplayConfig = {
+        ...currentConfig,
+        grid_config: {
+          ...currentGridConfig,
+          rows_columns_by_block: {
+            ...currentRowsColumnsByBlock,
+            [blockKey]: {
+              ...currentBlockRows,
+              [String(row)]: columns,
+            },
+          },
+        },
+      };
+      await api.patch(categoryUrl, { display_config: newDisplayConfig });
+      onSectionUpdated();
+    },
+    [section.id, section.display_config, onSectionUpdated]
+  );
+
   const patchCategory = useCallback(
     async (payload: { display_config?: object }) => {
       await api.patch(categoryUrl, payload);
@@ -179,8 +209,23 @@ export function useFormCategoryMutations(
     onSectionUpdated();
   }, [section.id, section.display_config, onSectionUpdated]);
 
+  /** Divide una grilla (bloque grid) e inserta un motor en medio (bulk atómico). */
+  const splitInsertEngine = useCallback(
+    async (blockId: number, splitRow: number, sectionEngineId: number, payload?: { name?: string; is_collapsible?: boolean }) => {
+      await api.post(`parameters/form-category-blocks/${blockId}/split-insert-engine/`, {
+        split_row: splitRow,
+        section_engine_id: sectionEngineId,
+        name: payload?.name ?? '',
+        is_collapsible: payload?.is_collapsible ?? false,
+      });
+      onSectionUpdated();
+    },
+    [onSectionUpdated]
+  );
+
   return {
     updateDisplayConfig,
+    updateDisplayConfigForBlock,
     patchCategory,
     deleteCategory,
     createBlock,
@@ -195,5 +240,6 @@ export function useFormCategoryMutations(
     deleteParameter,
     deleteGridCell,
     addFirstRow,
+    splitInsertEngine,
   };
 }

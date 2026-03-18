@@ -1,5 +1,21 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { Box, Typography, Collapse, Button } from '@mui/material';
+import {
+  Box,
+  Typography,
+  Collapse,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  TextField,
+  FormControlLabel,
+  Checkbox,
+} from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import {
   KeyboardSensor,
@@ -87,6 +103,8 @@ interface GridBlockViewProps {
   addRowAfter: (targetRow: number) => Promise<void>;
   deleteRow: (targetRow: number) => Promise<void>;
   updateDisplayConfig: (row: number, columns: number) => Promise<void>;
+  /** Abre flujo para insertar motor entre esta fila y la siguiente (admin). */
+  onInsertEngineAfterRow?: (row: number) => void;
 }
 
 const GridBlockView: React.FC<GridBlockViewProps> = ({
@@ -106,6 +124,7 @@ const GridBlockView: React.FC<GridBlockViewProps> = ({
   addRowAfter,
   deleteRow,
   updateDisplayConfig,
+  onInsertEngineAfterRow,
 }) => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeRow, setActiveRow] = useState<number | null>(null);
@@ -143,6 +162,7 @@ const GridBlockView: React.FC<GridBlockViewProps> = ({
           onAddRowAfter={addRowAfter}
           onDeleteRow={deleteRow}
           onUpdateDisplayConfig={updateDisplayConfig}
+          onInsertEngineAfterRow={onInsertEngineAfterRow}
           onEditParameter={onEditParameter}
           onEditTextCell={onEditTextCell}
           onDeleteCell={onDeleteCell}
@@ -229,6 +249,23 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
   const [currentBlockIdForNewParam, setCurrentBlockIdForNewParam] = useState<number | null>(null);
   const [engineBlockToEdit, setEngineBlockToEdit] = useState<FormCategoryBlock | null>(null);
   const { sectionEngines } = useSectionEngines({ enabled: mode === 'admin' });
+  
+  // Modal: split + insertar motor en medio de una grilla (admin)
+  const [insertEngineModalOpen, setInsertEngineModalOpen] = useState(false);
+  const [insertEngineTargetBlockId, setInsertEngineTargetBlockId] = useState<number | null>(null);
+  const [insertEngineSplitRow, setInsertEngineSplitRow] = useState<number>(1);
+  const [insertEngineId, setInsertEngineId] = useState<number | ''>('');
+  const [insertEngineName, setInsertEngineName] = useState<string>('');
+  const [insertEngineIsCollapsible, setInsertEngineIsCollapsible] = useState<boolean>(false);
+
+  const openInsertEngineModal = useCallback((blockId: number, row: number) => {
+    setInsertEngineTargetBlockId(blockId);
+    setInsertEngineSplitRow(row);
+    setInsertEngineId('');
+    setInsertEngineName('');
+    setInsertEngineIsCollapsible(false);
+    setInsertEngineModalOpen(true);
+  }, []);
   
   const [gridCells, setGridCells] = useState<FormGridCell[]>(section.grid_cells || []);
   useEffect(() => {
@@ -709,10 +746,20 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
                   const filteredCells = gridCells.filter(
                     (c) => (c as FormGridCell & { block?: number }).block === block.id
                   );
+                  const rowsColumnsByBlock = (section.display_config as any)?.grid_config?.rows_columns_by_block;
+                  const blockRowsColumns = rowsColumnsByBlock?.[String(block.id)];
+                  const virtualDisplayConfig = {
+                    ...(section.display_config || {}),
+                    grid_config: {
+                      ...((section.display_config || {}).grid_config || {}),
+                      rows_columns: blockRowsColumns ?? (section.display_config as any)?.grid_config?.rows_columns ?? {},
+                    },
+                  };
                   const virtualSection = {
                     ...section,
                     form_parameters: filteredParams,
                     grid_cells: filteredCells,
+                    display_config: virtualDisplayConfig,
                   };
                   const gridBlockCount = sortedBlocks.filter((b) => b.block_type === 'grid').length;
                   const gridBlockNumber = sortedBlocks.slice(0, blockIndex).filter((b) => b.block_type === 'grid').length + 1;
@@ -747,7 +794,15 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
                       addRowBefore={addRowBefore}
                       addRowAfter={addRowAfter}
                       deleteRow={deleteRow}
-                      updateDisplayConfig={updateDisplayConfig}
+                      updateDisplayConfig={async (row, columns) => {
+                        const maybe = (mutations as any).updateDisplayConfigForBlock;
+                        if (typeof maybe === 'function') {
+                          await maybe(block.id, row, columns);
+                        } else {
+                          await updateDisplayConfig(row, columns);
+                        }
+                      }}
+                      onInsertEngineAfterRow={(row) => openInsertEngineModal(block.id, row)}
                     />
                     </Box>
                   );
@@ -825,6 +880,72 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
       </Box>
 
       {/* Modales */}
+      {mode === 'admin' && (
+        <Dialog open={insertEngineModalOpen} onClose={() => setInsertEngineModalOpen(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>Insertar motor entre filas</DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Se insertará un motor entre la fila {insertEngineSplitRow} y la fila {insertEngineSplitRow + 1}.
+            </Typography>
+            <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+              <InputLabel>Motor</InputLabel>
+              <Select
+                label="Motor"
+                value={insertEngineId}
+                onChange={(e) => setInsertEngineId(Number(e.target.value))}
+              >
+                {sectionEngines.map((eng) => (
+                  <MenuItem key={eng.id} value={eng.id}>
+                    {eng.name} ({eng.code})
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <TextField
+              fullWidth
+              size="small"
+              label="Nombre (opcional)"
+              value={insertEngineName}
+              onChange={(e) => setInsertEngineName(e.target.value)}
+              sx={{ mb: 2 }}
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={insertEngineIsCollapsible}
+                  onChange={(e) => setInsertEngineIsCollapsible(e.target.checked)}
+                />
+              }
+              label="Colapsable en vista usuario"
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setInsertEngineModalOpen(false)}>Cancelar</Button>
+            <Button
+              variant="contained"
+              disabled={insertEngineTargetBlockId == null || insertEngineId === ''}
+              onClick={async () => {
+                if (insertEngineTargetBlockId == null || insertEngineId === '') return;
+                try {
+                  await (mutations as any).splitInsertEngine(
+                    insertEngineTargetBlockId,
+                    insertEngineSplitRow,
+                    Number(insertEngineId),
+                    { name: insertEngineName, is_collapsible: insertEngineIsCollapsible }
+                  );
+                  setInsertEngineModalOpen(false);
+                } catch (e) {
+                  console.error('Error al insertar motor en medio:', e);
+                  alert('Error al insertar el motor en medio de la grilla');
+                }
+              }}
+            >
+              Insertar
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
+
       <EditFormParameterCategoryModal
         open={editCategoryModalOpen}
         onClose={() => {

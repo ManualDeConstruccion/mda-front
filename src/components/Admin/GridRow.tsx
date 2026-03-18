@@ -41,6 +41,8 @@ interface GridRowProps {
   onAddRowAfter: (row: number) => void;
   onDeleteRow: (row: number) => void;
   onUpdateDisplayConfig: (row: number, columns: number) => void;
+  /** Inserta un motor entre esta fila y la siguiente (solo admin). */
+  onInsertEngineAfterRow?: (row: number) => void;
   onEditParameter: (param: FormParameter) => void;
   onEditTextCell: (cell: FormGridCell) => void;
   onDeleteCell: (cell: FormParameter | FormGridCell, isParameter: boolean) => Promise<void>;
@@ -63,6 +65,7 @@ const GridRow: React.FC<GridRowProps> = React.memo(({
   onAddRowAfter,
   onDeleteRow,
   onUpdateDisplayConfig,
+  onInsertEngineAfterRow,
   onEditParameter,
   onEditTextCell,
   onDeleteCell,
@@ -129,6 +132,16 @@ const GridRow: React.FC<GridRowProps> = React.memo(({
             size="small" 
             sx={{ minWidth: 70, fontWeight: 'medium' }}
           />
+          {onInsertEngineAfterRow && (
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<SettingsIcon />}
+              onClick={() => onInsertEngineAfterRow(row)}
+            >
+              Insertar motor aquí
+            </Button>
+          )}
           <Button
             size="small"
             variant="outlined"
