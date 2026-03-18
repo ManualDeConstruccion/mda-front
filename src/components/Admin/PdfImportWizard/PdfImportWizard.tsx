@@ -36,6 +36,7 @@ type PdfTemplateLite = {
   minvu_form_code?: string;
   version?: string;
   is_active: boolean;
+  uploaded_at?: string;
 };
 
 type PdfImportWizardProps = {
@@ -85,11 +86,11 @@ export default function PdfImportWizard({
     proposalsQuery,
     startMutation,
     applyMutation,
-    reset,
+    discardDraft,
     sections,
     proposalsBySection,
     sectionFieldCounts,
-  } = usePdfImport();
+  } = usePdfImport({ projectTypeId, wizardOpen: open });
   const [step, setStep] = useState(1);
 
   const [pdfFile, setPdfFile] = useState<File | null>(null);
@@ -107,14 +108,16 @@ export default function PdfImportWizard({
 
   useEffect(() => {
     if (!open) {
-      reset();
-      setStep(1);
       setPdfFile(null);
       setDraftProposals({});
-      setFormCode('');
-      setActiveTemplateId(null);
-      setCreateSections(true);
       return;
+    }
+
+    let hasStoredJob = false;
+    try {
+      hasStoredJob = !!localStorage.getItem(`mda-pdf-import-job-${projectTypeId}`);
+    } catch {
+      /* ignore */
     }
 
     const activeTemplates = pdfTemplates.filter((t) => t.is_active);
@@ -123,7 +126,6 @@ export default function PdfImportWizard({
         ? [...activeTemplates].sort((a, b) => {
             const ta = Date.parse(a.uploaded_at ?? '');
             const tb = Date.parse(b.uploaded_at ?? '');
-            // fallback por id si las fechas no parsean
             if (Number.isNaN(ta) || Number.isNaN(tb)) return (b.id ?? 0) - (a.id ?? 0);
             return tb - ta || (b.id ?? 0) - (a.id ?? 0);
           })[0]
@@ -131,14 +133,21 @@ export default function PdfImportWizard({
     if (active) {
       setActiveTemplateId(active.id);
       setFormCode(active.minvu_form_code ?? '');
-      // Si hay template activo, saltamos UI de Paso 1: solo queda iniciar el análisis con un botón.
-      setStep(2);
+      if (!hasStoredJob) {
+        setStep(2);
+      } else {
+        setStep((s) => (s < 2 ? 2 : s));
+      }
     } else {
       setActiveTemplateId(null);
       setFormCode('');
-      setStep(1);
+      if (!hasStoredJob) {
+        setStep(1);
+      } else {
+        setStep((s) => (s < 2 ? 2 : s));
+      }
     }
-  }, [open, pdfTemplates, reset]);
+  }, [open, pdfTemplates, projectTypeId]);
 
   useEffect(() => {
     if (open && proposalsObj) {
@@ -148,6 +157,10 @@ export default function PdfImportWizard({
 
   useEffect(() => {
     if (!open) return;
+    if (status === 'analyzing' || status === 'pending' || status === 'applying') {
+      if (step > 2) setStep(2);
+      return;
+    }
     if (status === 'review' && step < 3) setStep(3);
     if (status === 'done' && step < 4) setStep(4);
   }, [open, status, step]);
@@ -220,17 +233,30 @@ export default function PdfImportWizard({
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <UploadFileIcon />
           <Box>
             <Typography variant="h6">Importar desde PDF</Typography>
             <Typography variant="caption" color="text.secondary">
-              Wizard de 4 pasos (AI + revisión + aplicación)
+              El análisis se guarda en este navegador: puedes cerrar y retomar la revisión sin volver a gastar tokens.
             </Typography>
           </Box>
         </Box>
-        <Box />
+        {jobId != null && (
+          <Button
+            size="small"
+            color="warning"
+            variant="outlined"
+            onClick={() => {
+              discardDraft();
+              setStep(activeTemplateId ? 2 : 1);
+              setDraftProposals({});
+            }}
+          >
+            Descartar borrador
+          </Button>
+        )}
       </DialogTitle>
 
       <DialogContent>

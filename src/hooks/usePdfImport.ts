@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../services/api';
 
@@ -46,14 +46,28 @@ export interface PdfImportApplyPayload {
   create_sections: boolean;
 }
 
+const storageKeyForProject = (projectTypeId: number) =>
+  `mda-pdf-import-job-${projectTypeId}`;
+
+export type UsePdfImportOptions = {
+  /** Tipo de proyecto del formulario (clave de persistencia del borrador). */
+  projectTypeId: number;
+  /** Solo restaurar `jobId` desde localStorage cuando el wizard está abierto. */
+  wizardOpen: boolean;
+};
+
 /**
  * Orquesta la importación desde PDF vía endpoints del backend:
  * 1) inicia el análisis (multipart) -> crea un `PdfImportJob`,
  * 2) hace polling del estado hasta llegar a `review`,
  * 3) entrega `proposals` editables,
  * 4) aplica confirmación creando/actualizando la estructura MDA.
+ *
+ * El `jobId` del último análisis se persiste en localStorage por `projectTypeId`
+ * para poder cerrar el wizard y retomar en revisión sin volver a gastar tokens.
  */
-export function usePdfImport() {
+export function usePdfImport({ projectTypeId, wizardOpen }: UsePdfImportOptions) {
+  const storageKey = storageKeyForProject(projectTypeId);
   const [jobId, setJobId] = useState<number | null>(null);
   const queryClient = useQueryClient();
 
@@ -108,6 +122,66 @@ export function usePdfImport() {
     setSectionFieldCounts(proposalsQuery.data.section_field_counts ?? {});
   }, [proposalsQuery.data]);
 
+  /**
+   * Al abrir el wizard: cargar el job guardado para este `projectTypeId`.
+   * Si cambias de formulario (otro tipo), se limpia el job del otro tipo.
+   */
+  useLayoutEffect(() => {
+    if (!wizardOpen) return;
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) {
+        const id = parseInt(raw, 10);
+        if (!Number.isNaN(id)) {
+          setJobId(id);
+          return;
+        }
+      }
+      setJobId(null);
+    } catch {
+      setJobId(null);
+    }
+  }, [wizardOpen, storageKey]);
+
+  const persistJobId = useCallback(
+    (id: number) => {
+      try {
+        localStorage.setItem(storageKey, String(id));
+      } catch {
+        /* ignore */
+      }
+    },
+    [storageKey],
+  );
+
+  const clearPersistedJob = useCallback(() => {
+    try {
+      localStorage.removeItem(storageKey);
+    } catch {
+      /* ignore */
+    }
+    setJobId(null);
+    setSections([]);
+    setProposalsBySection({});
+    setSectionFieldCounts({});
+    queryClient.removeQueries({ queryKey: ['pdf-import-status'] });
+    queryClient.removeQueries({ queryKey: ['pdf-import-proposals'] });
+  }, [storageKey, queryClient]);
+
+  /** Job fallido en servidor: limpiar borrador para permitir un nuevo análisis. */
+  useEffect(() => {
+    const st = statusQuery.data?.status;
+    if (st !== 'error') return;
+    try {
+      localStorage.removeItem(storageKey);
+    } catch {
+      /* ignore */
+    }
+    setJobId(null);
+    queryClient.removeQueries({ queryKey: ['pdf-import-status'] });
+    queryClient.removeQueries({ queryKey: ['pdf-import-proposals'] });
+  }, [statusQuery.data?.status, storageKey, queryClient]);
+
   const startMutation = useMutation({
     mutationFn: async (payload: PdfImportStartPayload) => {
       const form = new FormData();
@@ -130,6 +204,7 @@ export function usePdfImport() {
       setProposalsBySection({});
       setSectionFieldCounts({});
       setJobId(data.job_id);
+      persistJobId(data.job_id);
     },
   });
 
@@ -140,7 +215,7 @@ export function usePdfImport() {
       return res.data as any;
     },
     onSuccess: () => {
-      // El usuario normalmente recarga/renueva la estructura, pero invalidar por si acaso.
+      clearPersistedJob();
       queryClient.invalidateQueries();
     },
   });
@@ -150,14 +225,10 @@ export function usePdfImport() {
     return s === 'review' || s === 'done' || s === 'applying';
   }, [statusQuery.data?.status]);
 
-  const reset = useCallback(() => {
-    setJobId(null);
-    setSections([]);
-    setProposalsBySection({});
-    setSectionFieldCounts({});
-    queryClient.removeQueries({ queryKey: ['pdf-import-status'] });
-    queryClient.removeQueries({ queryKey: ['pdf-import-proposals'] });
-  }, [queryClient]);
+  /** Descarta el borrador guardado y vuelve a estado inicial (nuevo análisis). */
+  const discardDraft = useCallback(() => {
+    clearPersistedJob();
+  }, [clearPersistedJob]);
 
   return {
     jobId,
@@ -165,7 +236,7 @@ export function usePdfImport() {
     proposalsQuery: canFetchProposals ? proposalsQuery : undefined,
     startMutation,
     applyMutation,
-    reset,
+    discardDraft,
     sections,
     proposalsBySection,
     sectionFieldCounts,

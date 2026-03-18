@@ -15,6 +15,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 - Admin UI: wizard async “Importar desde PDF” con revisión editable de mapeos y ejecución del import.
 - Admin UI: se unifica flujo importador; si no hay templates activos, el wizard permite `form_code` manual y al aplicar se deja listo el `BasePDFTemplate`.
 - Admin UI: el wizard salta el Paso 1 cuando existe template activo y permite analizar con IA usando `template_id` (sin volver a subir el PDF).
+- Admin UI: wizard “Importar desde PDF” persiste el borrador del análisis en `localStorage` (por tipo de proyecto) para cerrar el modal y retomar en revisión sin volver a gastar tokens; botón «Descartar borrador» y limpieza al aplicar o si el job falla.
 
 ---
 

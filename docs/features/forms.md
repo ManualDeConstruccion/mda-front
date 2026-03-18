@@ -172,4 +172,6 @@ En el panel admin (página `FormularioEditPage.tsx`) existe el wizard `PdfImport
 3. Revisar y editar el mapeo de `field_id` del PDF hacia `ParameterDefinition` (asignar existente / crear nuevo / ignorar).
 4. Confirmar y aplicar: se crea/actualiza la estructura MDA (`FormParameterCategory`, `FormCategoryBlock`, `FormParameter`, `FormGridCell`) y se genera un PDF semántico.
 
+**Persistencia:** el `jobId` del último análisis se guarda en `localStorage` por tipo de proyecto (`mda-pdf-import-job-{projectTypeId}`). Así puedes cerrar el modal y volver a abrirlo en el paso de revisión sin repetir el análisis (ahorra llamadas a la API de IA). Tras aplicar el import o con «Descartar borrador» se limpia. Si el job queda en error, el borrador se invalida solo.
+
 Endpoints (backend): ver `mdc/docs/api/endpoints.md` (sección “Importación de Formularios desde PDF”).
