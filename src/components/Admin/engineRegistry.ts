@@ -3,6 +3,7 @@ import SuperficiesSectionContent from './SuperficiesSectionContent';
 import OcupacionSectionContent from './OcupacionSectionContent';
 import PropiedadSectionContent from './PropiedadSectionContent';
 import UsuariosSectionContent from './UsuariosSectionContent';
+import CIPSectionContent from './CIPSectionContent';
 
 interface EngineComponentProps {
   subprojectId: number;
@@ -19,6 +20,7 @@ const ENGINE_COMPONENTS: Record<string, ComponentType<EngineComponentProps>> = {
   ocupacion: OcupacionSectionContent,
   propiedad: PropiedadSectionContent,
   usuarios: UsuariosSectionContent,
+  cip: CIPSectionContent,
 };
 
 export type { EngineComponentProps };
