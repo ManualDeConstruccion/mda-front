@@ -44,6 +44,7 @@ export type PdfImportProposals = Record<
 export interface PdfImportApplyPayload {
   proposals: PdfImportProposals;
   create_sections: boolean;
+  import_mode?: 'full_import' | 'create_sections' | 'semantic_only';
 }
 
 const storageKeyForProject = (projectTypeId: number) =>

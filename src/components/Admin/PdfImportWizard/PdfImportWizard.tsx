@@ -63,6 +63,8 @@ type ProposalRow = {
   };
 };
 
+type FinalActionMode = 'full_import' | 'create_sections' | 'semantic_only';
+
 const steps = ['Upload + Form Code', 'Análisis con IA', 'Revisión de mapeos', 'Confirmar e importar'];
 
 function deepCloneProposals(p: PdfImportProposals): PdfImportProposals {
@@ -98,7 +100,7 @@ export default function PdfImportWizard({
   const [activeTemplateId, setActiveTemplateId] = useState<number | null>(null);
 
   const [draftProposals, setDraftProposals] = useState<PdfImportProposals>({});
-  const [createSections, setCreateSections] = useState(true);
+  const [finalActionMode, setFinalActionMode] = useState<FinalActionMode>('full_import');
 
   const status = statusQuery.data?.status;
   const progress = statusQuery.data?.progress ?? 0;
@@ -220,9 +222,11 @@ export default function PdfImportWizard({
   };
 
   const applyImport = async () => {
+    const createSections = finalActionMode !== 'semantic_only';
     await applyMutation.mutateAsync({
       proposals: draftProposals,
       create_sections: createSections,
+      import_mode: finalActionMode,
     });
     onImported?.();
     onClose();
@@ -407,14 +411,18 @@ export default function PdfImportWizard({
                   <FormControl size="small" sx={{ minWidth: 200 }}>
                     <InputLabel>Acción final</InputLabel>
                     <Select
-                      value={createSections ? 'yes' : 'no'}
+                      value={finalActionMode}
                       label="Acción final"
-                      onChange={(e) => setCreateSections(String(e.target.value) === 'yes')}
+                      onChange={(e) => setFinalActionMode(String(e.target.value) as FinalActionMode)}
                     >
-                      <MenuItem value="yes">Crear secciones MDA</MenuItem>
-                      <MenuItem value="no">Solo PDF semántico + parámetros</MenuItem>
+                      <MenuItem value="full_import">Importación completa</MenuItem>
+                      <MenuItem value="create_sections">Crear secciones MDA</MenuItem>
+                      <MenuItem value="semantic_only">Solo PDF semántico + parámetros</MenuItem>
                     </Select>
                   </FormControl>
+                  <Typography variant="caption" color="text.secondary">
+                    Importación completa aplica PDF semántico + parámetros + secciones MDA.
+                  </Typography>
                 </Box>
 
                 <Box className={styles.proposalsSectionsWrapper}>

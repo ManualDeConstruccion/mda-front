@@ -1,0 +1,11 @@
+---
+description: Estilo de comandos para respuestas operativas en mda-front
+alwaysApply: true
+---
+
+# Comandos operativos (mda-front)
+
+- Entregar comandos de terminal en una sola línea, sin usar `\` para continuaciones.
+- Priorizar comandos con `docker-compose -f docker-compose-dev.yml` cuando la tarea involucre servicios del stack local.
+- Evitar proponer comandos directos del host salvo que el usuario lo pida explícitamente.
+- Cuando sea posible, dar comandos listos para copiar/pegar sin pasos intermedios implícitos.

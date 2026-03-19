@@ -20,6 +20,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 ### Changed
 - Admin UI: en la grilla de sección, los controles/acciones se muestran solo en la fila activa seleccionada al clickear sobre un elemento de la fila.
 - Admin UI: en el modal de edición de sección (`Bloques de la sección`) se agrega acción **Cambiar sección** por bloque con selector de secciones del mismo formulario.
+- Admin UI: en el Paso 3 del wizard “Importar desde PDF”, la acción final ahora incluye opción por defecto **Importación completa** (PDF semántico + parámetros + secciones MDA), manteniendo opciones explícitas para “Crear secciones MDA” y “Solo PDF semántico + parámetros”.
+- Admin UI: el Paso 3 envía `import_mode` al backend para separar flujos reales (`full_import`, `create_sections`, `semantic_only`) en vez de depender solo de un booleano.
 
 ---
 
