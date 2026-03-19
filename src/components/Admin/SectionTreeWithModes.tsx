@@ -137,6 +137,22 @@ const GridBlockView: React.FC<GridBlockViewProps> = ({
     []
   );
 
+  useEffect(() => {
+    if (mode !== 'admin') return;
+
+    const handleDocumentClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+      if (target.closest('[data-grid-row-root="true"]')) return;
+      setActiveRow(null);
+    };
+
+    document.addEventListener('click', handleDocumentClick);
+    return () => {
+      document.removeEventListener('click', handleDocumentClick);
+    };
+  }, [mode]);
+
   const {
     maxRow,
     gridLayout,
@@ -201,7 +217,11 @@ const GridBlockView: React.FC<GridBlockViewProps> = ({
       <Box sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1, bgcolor: 'background.paper' }}>
         <SectionGrid
           mode={mode}
-          gridContent={<>{gridRows}</>}
+          gridContent={
+            <Box onClick={() => mode === 'admin' && setActiveRow(null)}>
+              {gridRows}
+            </Box>
+          }
           allCells={allCells}
           activeId={activeId || ''}
           sensors={sensors}
@@ -383,6 +403,22 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
     },
     []
   );
+
+  useEffect(() => {
+    if (mode !== 'admin') return;
+
+    const handleDocumentClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+      if (target.closest('[data-grid-row-root="true"]')) return;
+      setActiveRow(null);
+    };
+
+    document.addEventListener('click', handleDocumentClick);
+    return () => {
+      document.removeEventListener('click', handleDocumentClick);
+    };
+  }, [mode]);
 
   // Handlers para drag and drop (modo admin)
   const handleDragStart = (event: DragStartEvent) => {
@@ -618,6 +654,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
           borderRadius: 1,
           bgcolor: 'background.paper',
         }}
+        onClick={() => mode === 'admin' && setActiveRow(null)}
       >
         {gridRows}
       </Box>

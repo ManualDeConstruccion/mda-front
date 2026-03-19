@@ -127,6 +127,7 @@ const GridRow: React.FC<GridRowProps> = React.memo(({
   
   return (
     <Box
+      data-grid-row-root="true"
       sx={{
         mb: GRID_SPACING,
         borderRadius: 1,
@@ -136,7 +137,8 @@ const GridRow: React.FC<GridRowProps> = React.memo(({
         p: mode === 'admin' && isRowActive ? 1 : 0,
         transition: 'border-color 0.15s ease, background-color 0.15s ease',
       }}
-      onClick={() => {
+      onClick={(e) => {
+        e.stopPropagation();
         onActivateRow?.(row);
       }}
     >
