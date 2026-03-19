@@ -67,6 +67,10 @@ Componente central del formulario. Renderiza todas las secciones con soporte par
 />
 ```
 
+En modo `admin`, la grilla de una sección muestra controles/acciones (agregar/quitar filas, insertar motor, eliminar, etc.)
+solo en la fila activa. La fila activa se define al hacer click sobre algún elemento de la fila; el resto de filas se
+renderiza con apariencia de `view` (sin botones de administración).
+
 ### DynamicField
 
 Renderiza el input correcto según el `data_type` del parámetro:

@@ -33,6 +33,10 @@ interface GridRowProps {
   mode: SectionTreeMode;
   maxRow: number;
   activeId: string;
+  /** Admin: define si esta fila es la fila activa (se muestran controles/acciones). */
+  isRowActive?: boolean;
+  /** Admin: activa la fila al clickear cualquier elemento de la fila. */
+  onActivateRow?: (row: number) => void;
   hasParameters: boolean;
   section: {
     form_parameters?: FormParameter[];
@@ -59,6 +63,8 @@ const GridRow: React.FC<GridRowProps> = React.memo(({
   mode,
   maxRow,
   activeId,
+  isRowActive = false,
+  onActivateRow,
   hasParameters,
   section,
   onAddRowBefore,
@@ -74,6 +80,11 @@ const GridRow: React.FC<GridRowProps> = React.memo(({
   values,
   onChange,
 }) => {
+  const effectiveRowMode: SectionTreeMode = mode === 'admin' && !isRowActive ? 'view' : mode;
+  const cellMode: SectionTreeMode = mode === 'admin' ? (isRowActive ? 'admin' : 'view') : mode;
+  const showRowControls = mode === 'admin' && isRowActive;
+  const showEmptyButtons = mode === 'admin' && isRowActive;
+
   const isParameterCell = React.useCallback((c: FormParameter | FormGridCell) => {
     const hasParam = 'parameter_definition' in c;
     const hasContent = 'content' in c && typeof (c as FormGridCell).content === 'string';
@@ -115,9 +126,14 @@ const GridRow: React.FC<GridRowProps> = React.memo(({
   }
   
   return (
-    <Box sx={{ mb: GRID_SPACING }}>
+    <Box
+      sx={{ mb: GRID_SPACING }}
+      onClick={() => {
+        onActivateRow?.(row);
+      }}
+    >
       {/* Controles de fila (solo en modo admin) */}
-      {mode === 'admin' && (
+      {showRowControls && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
           <Button
             size="small"
@@ -183,7 +199,7 @@ const GridRow: React.FC<GridRowProps> = React.memo(({
             width: '100%',
             minWidth: 0,
             gap: GRID_SPACING,
-            alignItems: mode === 'view' ? 'stretch' : undefined,
+            alignItems: effectiveRowMode === 'view' ? 'stretch' : undefined,
           }}
         >
         {Array.from({ length: rowColumns }, (_, colIndex) => {
@@ -210,7 +226,7 @@ const GridRow: React.FC<GridRowProps> = React.memo(({
             const span = isParameter
               ? (cell as FormParameter).grid_span ?? 1
               : (cell as FormGridCell).grid_span ?? 1;
-            const spanPercent = mode === 'admin'
+            const spanPercent = effectiveRowMode === 'admin'
               ? Math.round((effectiveSpan / sumOfSpans) * 100)
               : undefined;
             return (
@@ -219,7 +235,7 @@ const GridRow: React.FC<GridRowProps> = React.memo(({
                 sx={{
                   flex: `${flexValue} 0 0`,
                   minWidth: 0,
-                  ...(mode === 'view' && { display: 'flex', minHeight: 0 }),
+                  ...(effectiveRowMode === 'view' && { display: 'flex', minHeight: 0 }),
                 }}
               >
                 <SortableGridCell
@@ -234,7 +250,7 @@ const GridRow: React.FC<GridRowProps> = React.memo(({
                     else onEditTextCell(c as FormGridCell);
                   }}
                   onDelete={(c) => onDeleteCell(c, !!isParameter)}
-                  mode={mode}
+                  mode={cellMode}
                   isParameter={!!isParameter}
                   values={values}
                   onChange={onChange}
@@ -264,24 +280,29 @@ const GridRow: React.FC<GridRowProps> = React.memo(({
                   justifyContent: 'center',
                   gap: 1,
                   p: 1,
+                  opacity: showEmptyButtons ? 1 : 0.7,
                 }}
               >
-                <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<TextFieldsIcon />}
-                  onClick={() => onAddTextCell(row, col)}
-                >
-                  Agregar Texto
-                </Button>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<SettingsIcon />}
-                  onClick={() => onAddParameter(row, col)}
-                >
-                  Agregar Parámetro
-                </Button>
+                {showEmptyButtons && (
+                  <>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={<TextFieldsIcon />}
+                      onClick={() => onAddTextCell(row, col)}
+                    >
+                      Agregar Texto
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={<SettingsIcon />}
+                      onClick={() => onAddParameter(row, col)}
+                    >
+                      Agregar Parámetro
+                    </Button>
+                  </>
+                )}
               </Box>
             );
           }

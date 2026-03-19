@@ -17,6 +17,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 - Admin UI: el wizard salta el Paso 1 cuando existe template activo y permite analizar con IA usando `template_id` (sin volver a subir el PDF).
 - Admin UI: wizard “Importar desde PDF” persiste el borrador del análisis en `localStorage` (por tipo de proyecto) para cerrar el modal y retomar en revisión sin volver a gastar tokens; botón «Descartar borrador» y limpieza al aplicar o si el job falla.
 
+### Changed
+- Admin UI: en la grilla de sección, los controles/acciones se muestran solo en la fila activa seleccionada al clickear sobre un elemento de la fila.
+
 ---
 
 ## [Versión anterior — historial previo al CHANGELOG]

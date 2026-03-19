@@ -128,6 +128,15 @@ const GridBlockView: React.FC<GridBlockViewProps> = ({
 }) => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeRow, setActiveRow] = useState<number | null>(null);
+
+  const handleActivateRow = useCallback(
+    (row: number) => {
+      setActiveRow(row);
+      setActiveId(null);
+    },
+    []
+  );
+
   const {
     maxRow,
     gridLayout,
@@ -156,6 +165,8 @@ const GridBlockView: React.FC<GridBlockViewProps> = ({
           mode={effectiveMode}
           maxRow={maxRow}
           activeId={activeId || ''}
+          isRowActive={effectiveMode === 'admin' ? activeRow === r : true}
+          onActivateRow={effectiveMode === 'admin' ? handleActivateRow : undefined}
           hasParameters={!!hasParameters}
           section={section}
           onAddRowBefore={addRowBefore}
@@ -174,7 +185,7 @@ const GridBlockView: React.FC<GridBlockViewProps> = ({
       );
     }
     return rows;
-  }, [effectiveMode, maxRow, gridLayout, activeId, hasParameters, section, values, onChange, getColumnsForRow, addRowBefore, addRowAfter, deleteRow, updateDisplayConfig, onEditParameter, onEditTextCell, onDeleteCell, onAddTextCell, onAddParameter]);
+  }, [effectiveMode, maxRow, gridLayout, activeId, activeRow, hasParameters, section, values, onChange, getColumnsForRow, addRowBefore, addRowAfter, deleteRow, updateDisplayConfig, onEditParameter, onEditTextCell, onDeleteCell, onAddTextCell, onAddParameter, handleActivateRow]);
   const hasRealContent = hasParameters || hasGridCells;
   if (!hasRealContent && mode !== 'admin') return null;
   if (maxRow === 0 && mode === 'admin') {
@@ -365,6 +376,14 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
     useSensor(KeyboardSensor)
   );
 
+  const handleActivateRow = useCallback(
+    (row: number) => {
+      setActiveRow(row);
+      setActiveId(null);
+    },
+    []
+  );
+
   // Handlers para drag and drop (modo admin)
   const handleDragStart = (event: DragStartEvent) => {
     const activeIdStr = event.active.id as string;
@@ -396,7 +415,6 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveId(null);
-    setActiveRow(null);
     
     if (!over || active.id === over.id || mode !== 'admin') return;
     
@@ -530,6 +548,8 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
           mode={effectiveMode}
           maxRow={maxRow}
           activeId={activeId || ''}
+          isRowActive={effectiveMode === 'admin' ? activeRow === r : true}
+          onActivateRow={effectiveMode === 'admin' ? handleActivateRow : undefined}
           hasParameters={!!hasParameters}
           section={section}
           onAddRowBefore={addRowBefore}
@@ -554,7 +574,7 @@ const SectionTreeWithModes: React.FC<SectionTreeWithModesProps> = ({
     }
     
     return rows;
-  }, [effectiveMode, maxRow, gridLayout, activeId, hasParameters, section, values, onChange, addRowBefore, addRowAfter, deleteRow, updateDisplayConfig, handleDeleteCell, getColumnsForRow]);
+  }, [effectiveMode, maxRow, gridLayout, activeId, activeRow, handleActivateRow, hasParameters, section, values, onChange, addRowBefore, addRowAfter, deleteRow, updateDisplayConfig, handleDeleteCell, getColumnsForRow]);
   
   const renderGrid = () => {
     // Verificar si realmente hay contenido (parámetros o celdas de texto)
