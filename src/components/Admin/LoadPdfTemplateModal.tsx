@@ -175,16 +175,33 @@ const LoadPdfTemplateModal: React.FC<LoadPdfTemplateModalProps> = ({
       );
       return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (data: unknown) => {
       queryClient.invalidateQueries({ queryKey: ['pdf-templates', architectureProjectTypeCode] });
       onSuccess();
-      setActiveTab(0);
-      setName('');
-      setDescription('');
-      setPdfFile(null);
-      setMinvuFormCode('');
-      setVersion('');
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      const updated = data as Partial<PdfTemplateItem> | undefined;
+      if (hasTemplates && updated) {
+        // Edición: mantener formulario con datos actuales o con la respuesta del servidor
+        if (updated.name !== undefined) setName(updated.name);
+        if (updated.description !== undefined) setDescription(updated.description ?? '');
+        if (updated.minvu_form_code !== undefined) setMinvuFormCode(updated.minvu_form_code ?? '');
+        if (updated.version !== undefined) setVersion(updated.version ?? '');
+        if (updated.is_active !== undefined) setIsActive(updated.is_active);
+        if (updated.pdf_file_url !== undefined) {
+          setActivePdfFileUrl(updated.pdf_file_url ?? null);
+          setPdfPreviewUrl(updated.pdf_file_url ?? null);
+        }
+        setPdfFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      } else if (!hasTemplates) {
+        // Nueva carga: blanquear para permitir otra carga
+        setActiveTab(0);
+        setName('');
+        setDescription('');
+        setPdfFile(null);
+        setMinvuFormCode('');
+        setVersion('');
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
     },
   });
 
@@ -289,6 +306,11 @@ const LoadPdfTemplateModal: React.FC<LoadPdfTemplateModalProps> = ({
         >
           {pdfFile ? pdfFile.name : 'Seleccionar PDF'}
         </Button>
+        {!pdfFile && activePdfFileUrl && (
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            PDF cargado: <strong>{activePdfFileUrl.split('/').pop() ?? 'documento'}</strong>
+          </Typography>
+        )}
 
         {pdfPreviewUrl && (
           <Button
