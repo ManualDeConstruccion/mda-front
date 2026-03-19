@@ -71,6 +71,11 @@ En modo `admin`, la grilla de una sección muestra controles/acciones (agregar/q
 solo en la fila activa. La fila activa se define al hacer click sobre algún elemento de la fila; el resto de filas se
 renderiza con apariencia de `view` (sin botones de administración).
 
+Además, en el modal **Editar Sección** (bloques), cada bloque puede:
+- reordenarse por drag & drop,
+- eliminarse,
+- y **cambiar de sección** (selector de secciones del mismo tipo de proyecto), usando el endpoint backend de movimiento de bloques.
+
 ### DynamicField
 
 Renderiza el input correcto según el `data_type` del parámetro:

@@ -91,6 +91,8 @@ function SortableBlockRow({
   setBlockEngineEdits,
   onDelete,
   isDeleting,
+  onMoveToSection,
+  isMoving,
 }: {
   block: FormCategoryBlock;
   displayOrder: number;
@@ -98,6 +100,8 @@ function SortableBlockRow({
   setBlockEngineEdits: React.Dispatch<React.SetStateAction<Record<number, { name: string; is_collapsible: boolean }>>>;
   onDelete: () => void;
   isDeleting: boolean;
+  onMoveToSection: () => void;
+  isMoving: boolean;
 }) {
   const {
     attributes,
@@ -198,8 +202,18 @@ function SortableBlockRow({
         <IconButton
           edge="end"
           size="small"
+          onClick={onMoveToSection}
+          disabled={isDeleting || isMoving}
+          sx={{ flexShrink: 0 }}
+          title="Cambiar sección"
+        >
+          <ArrowBackIcon fontSize="small" />
+        </IconButton>
+        <IconButton
+          edge="end"
+          size="small"
           onClick={() => window.confirm('¿Eliminar este bloque?') && onDelete()}
-          disabled={isDeleting}
+          disabled={isDeleting || isMoving}
           sx={{ flexShrink: 0 }}
         >
           <DeleteIcon fontSize="small" />
@@ -449,6 +463,63 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
   };
 
   const [isSaving, setIsSaving] = useState(false);
+  const [moveBlockModalOpen, setMoveBlockModalOpen] = useState(false);
+  const [blockToMove, setBlockToMove] = useState<FormCategoryBlock | null>(null);
+  const [targetCategoryId, setTargetCategoryId] = useState<number | null>(null);
+
+  const selectableTargetCategories = useMemo(
+    () => parentCategories.filter((c) => c.id !== category?.id),
+    [parentCategories, category?.id]
+  );
+
+  const moveBlockMutation = useMutation({
+    mutationFn: async (payload: { blockId: number; targetCategoryId: number }) => {
+      const response = await axios.post(
+        `${API_URL}/api/parameters/form-category-blocks/${payload.blockId}/move-to-category/`,
+        { target_category_id: payload.targetCategoryId },
+        {
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        }
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['form-structure', projectTypeId] });
+      onSuccess();
+      setMoveBlockModalOpen(false);
+      setBlockToMove(null);
+      setTargetCategoryId(null);
+    },
+    onError: (err: any) => {
+      const conflictList = err?.response?.data?.conflicts;
+      if (Array.isArray(conflictList) && conflictList.length > 0) {
+        setError(
+          `No se puede mover el bloque: ya existen parámetros en la sección destino (${conflictList.join(', ')}).`
+        );
+        return;
+      }
+      setError(err.response?.data?.detail || 'Error al cambiar la sección del bloque.');
+    },
+  });
+
+  const handleOpenMoveBlockModal = (block: FormCategoryBlock) => {
+    setError(null);
+    setBlockToMove(block);
+    setTargetCategoryId(null);
+    setMoveBlockModalOpen(true);
+  };
+
+  const handleConfirmMoveBlock = async () => {
+    if (!blockToMove || !targetCategoryId) return;
+    await moveBlockMutation.mutateAsync({
+      blockId: blockToMove.id,
+      targetCategoryId,
+    });
+  };
   const handleSubmit = async () => {
     setError(null);
     if (!code.trim() || !number.trim() || !name.trim()) {
@@ -706,6 +777,8 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
                         setBlockEngineEdits={setBlockEngineEdits}
                         onDelete={() => deleteBlockMutation.mutate(b.id)}
                         isDeleting={deleteBlockMutation.isPending}
+                        onMoveToSection={() => handleOpenMoveBlockModal(b)}
+                        isMoving={moveBlockMutation.isPending}
                       />
                     ))}
                   </List>
@@ -757,6 +830,42 @@ const EditFormParameterCategoryModal: React.FC<EditFormParameterCategoryModalPro
           </>
         )}
       </DialogActions>
+
+      <Dialog open={moveBlockModalOpen} onClose={() => setMoveBlockModalOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Cambiar sección del bloque</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Selecciona la sección destino para este bloque. Se moverán todos los parámetros y celdas del bloque.
+          </Typography>
+          <FormControl fullWidth size="small">
+            <InputLabel>Sección destino</InputLabel>
+            <Select
+              value={targetCategoryId ?? ''}
+              label="Sección destino"
+              onChange={(e) => setTargetCategoryId(e.target.value === '' ? null : Number(e.target.value))}
+            >
+              <MenuItem value="">
+                <em>Selecciona una sección</em>
+              </MenuItem>
+              {selectableTargetCategories.map((cat) => (
+                <MenuItem key={cat.id} value={cat.id}>
+                  {cat.number} - {cat.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setMoveBlockModalOpen(false)}>Cancelar</Button>
+          <Button
+            variant="contained"
+            onClick={handleConfirmMoveBlock}
+            disabled={!targetCategoryId || moveBlockMutation.isPending}
+          >
+            {moveBlockMutation.isPending ? 'Moviendo...' : 'Cambiar sección'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Dialog>
   );
 };

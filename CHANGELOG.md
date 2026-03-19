@@ -19,6 +19,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ### Changed
 - Admin UI: en la grilla de sección, los controles/acciones se muestran solo en la fila activa seleccionada al clickear sobre un elemento de la fila.
+- Admin UI: en el modal de edición de sección (`Bloques de la sección`) se agrega acción **Cambiar sección** por bloque con selector de secciones del mismo formulario.
 
 ---
 
