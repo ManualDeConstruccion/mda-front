@@ -127,7 +127,15 @@ const GridRow: React.FC<GridRowProps> = React.memo(({
   
   return (
     <Box
-      sx={{ mb: GRID_SPACING }}
+      sx={{
+        mb: GRID_SPACING,
+        borderRadius: 1,
+        border: mode === 'admin' && isRowActive ? '2px solid' : '1px solid transparent',
+        borderColor: mode === 'admin' && isRowActive ? 'primary.main' : 'transparent',
+        bgcolor: mode === 'admin' && isRowActive ? 'action.hover' : 'transparent',
+        p: mode === 'admin' && isRowActive ? 1 : 0,
+        transition: 'border-color 0.15s ease, background-color 0.15s ease',
+      }}
       onClick={() => {
         onActivateRow?.(row);
       }}
