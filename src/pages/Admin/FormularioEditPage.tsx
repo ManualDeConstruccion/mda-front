@@ -16,6 +16,7 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Paper,
+  Badge,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -36,6 +37,8 @@ import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import PdfImportWizard from '../../components/Admin/PdfImportWizard';
+import TemplateRebuildDialog from '../../components/Admin/TemplateRebuildDialog';
+import { useTemplateRebuild } from '../../hooks/useTemplateRebuild';
 
 interface FormParameterCategory {
   id: number;
@@ -345,7 +348,9 @@ const FormularioEditPage: React.FC = () => {
   const [addSectionModalOpen, setAddSectionModalOpen] = useState(false);
   const [loadPdfTemplateModalOpen, setLoadPdfTemplateModalOpen] = useState(false);
   const [pdfImportWizardOpen, setPdfImportWizardOpen] = useState(false);
+  const [rebuildDialogOpen, setRebuildDialogOpen] = useState(false);
   const [mode, setMode] = useState<SectionTreeMode>('admin');
+  const { pendingQuery } = useTemplateRebuild(true);
 
   // Función para obtener todas las secciones de forma plana
   const getAllSections = (sections: FormParameterCategory[]): FormParameterCategory[] => {
@@ -531,6 +536,11 @@ const FormularioEditPage: React.FC = () => {
                 >
                   Importar desde PDF
                 </Button>
+                <Badge badgeContent={pendingQuery.data?.count || 0} color="warning">
+                  <Button variant="outlined" onClick={() => setRebuildDialogOpen(true)}>
+                    Actualizar formularios
+                  </Button>
+                </Badge>
                 <Button
                   variant="contained"
                   startIcon={<AddIcon />}
@@ -602,6 +612,7 @@ const FormularioEditPage: React.FC = () => {
           projectTypeId={Number(projectTypeId)}
           pdfTemplates={pdfTemplatesList}
         />
+        <TemplateRebuildDialog open={rebuildDialogOpen} onClose={() => setRebuildDialogOpen(false)} />
       </Box>
     </Container>
   );

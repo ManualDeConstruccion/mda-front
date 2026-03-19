@@ -102,6 +102,12 @@ Ver `src/hooks/FormHooks/useCAMApi.ts` — wrapper completo de todos los endpoin
 |---------|--------|------|------|
 | Iniciar generación | POST | `/formpdf/generate/` | `usePDFGeneration` |
 | Estado de tarea | GET | `/formpdf/tasks/{taskId}/` | `usePDFGeneration` (polling) |
+| Pendientes de rebuild | GET | `/formpdf/templates/rebuild/pending/` | `useTemplateRebuild` |
+| Preview de rebuild | GET | `/formpdf/templates/rebuild/pending-preview/` | `useTemplateRebuild` |
+| Aplicar rebuild | POST | `/formpdf/templates/rebuild/apply/` | `useTemplateRebuild` |
+| Estado de rebuild | GET | `/formpdf/templates/rebuild/{jobId}/status/` | `useTemplateRebuild` |
+| Resultado de rebuild | GET | `/formpdf/templates/rebuild/{jobId}/result/` | `useTemplateRebuild` |
+| Reintento técnico | POST | `/formpdf/templates/rebuild/{jobId}/retry-failed/` | `useTemplateRebuild` |
 
 ### Actividad — `/api/activity/`
 

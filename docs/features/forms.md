@@ -76,6 +76,12 @@ Además, en el modal **Editar Sección** (bloques), cada bloque puede:
 - eliminarse,
 - y **cambiar de sección** (selector de secciones del mismo tipo de proyecto), usando el endpoint backend de movimiento de bloques.
 
+### Actualización diferida de templates PDF
+
+Cuando se modifica `form_pdf_code` en admin, el cambio no reconstruye templates inmediatamente.
+El frontend muestra badge en **Actualizar formularios**, abre una vista de comparación (old -> new),
+y solo al confirmar **Aplicar cambios** dispara el rebuild asíncrono con seguimiento de estado.
+
 ### DynamicField
 
 Renderiza el input correcto según el `data_type` del parámetro:

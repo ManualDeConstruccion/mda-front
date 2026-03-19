@@ -24,6 +24,7 @@ import {
   Grid,
   Pagination,
   Divider,
+  Badge,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -33,6 +34,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import CreateParameterDefinitionModal from '../../components/Admin/CreateParameterDefinitionModal';
+import TemplateRebuildDialog from '../../components/Admin/TemplateRebuildDialog';
+import { useTemplateRebuild } from '../../hooks/useTemplateRebuild';
 
 interface ParameterDefinition {
   id: number;
@@ -84,6 +87,8 @@ const ParametersPage: React.FC = () => {
   // Estados del modal
   const [modalOpen, setModalOpen] = useState(false);
   const [editingParameter, setEditingParameter] = useState<ParameterDefinition | null>(null);
+  const [rebuildDialogOpen, setRebuildDialogOpen] = useState(false);
+  const { pendingQuery } = useTemplateRebuild(true);
 
   // Fetch parámetros
   const { data: parameters, isLoading, error } = useQuery<ParameterDefinition[]>({
@@ -328,6 +333,11 @@ const ParametersPage: React.FC = () => {
             </Typography>
           </Box>
           <Stack direction="row" spacing={2}>
+            <Badge badgeContent={pendingQuery.data?.count || 0} color="warning">
+              <Button variant="outlined" onClick={() => setRebuildDialogOpen(true)}>
+                Actualizar formularios
+              </Button>
+            </Badge>
             <Button
               variant="contained"
               startIcon={<AddIcon />}
@@ -577,6 +587,7 @@ const ParametersPage: React.FC = () => {
           onSuccess={handleModalSuccess}
           parameter={editingParameter}
         />
+        <TemplateRebuildDialog open={rebuildDialogOpen} onClose={() => setRebuildDialogOpen(false)} />
       </Box>
     </Container>
   );

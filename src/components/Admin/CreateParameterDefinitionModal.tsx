@@ -502,6 +502,15 @@ const CreateParameterDefinitionModal: React.FC<CreateParameterDefinitionModalPro
       }
     }
 
+    const originalPdfCode = (parameter?.form_pdf_code || '').trim();
+    const newPdfCode = formPdfCode.trim();
+    if (parameter && originalPdfCode !== newPdfCode) {
+      const confirmed = window.confirm(
+        'Este cambio quedará pendiente de "Actualizar formularios". ¿Deseas continuar?'
+      );
+      if (!confirmed) return;
+    }
+
     const mutationData: any = {
       code: trimmedCode,
       form_pdf_code: formPdfCode.trim() || '',

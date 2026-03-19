@@ -412,6 +412,14 @@ const EditFormParameterModal: React.FC<EditFormParameterModalProps> = ({
       }
 
       if (parameterDefinitionId) {
+        const originalPdfCode = (parameterDefinition?.form_pdf_code || '').trim();
+        const newPdfCode = formPdfCode.trim();
+        if (originalPdfCode !== newPdfCode) {
+          const confirmed = window.confirm(
+            'Este cambio quedará pendiente de "Actualizar formularios". ¿Deseas continuar?'
+          );
+          if (!confirmed) return;
+        }
         await updateParameterDefinitionMutation.mutateAsync({
           form_pdf_code: formPdfCode.trim() || '',
           name: name.trim(),

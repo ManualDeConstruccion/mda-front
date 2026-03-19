@@ -16,12 +16,14 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 - Admin UI: se unifica flujo importador; si no hay templates activos, el wizard permite `form_code` manual y al aplicar se deja listo el `BasePDFTemplate`.
 - Admin UI: el wizard salta el Paso 1 cuando existe template activo y permite analizar con IA usando `template_id` (sin volver a subir el PDF).
 - Admin UI: wizard “Importar desde PDF” persiste el borrador del análisis en `localStorage` (por tipo de proyecto) para cerrar el modal y retomar en revisión sin volver a gastar tokens; botón «Descartar borrador» y limpieza al aplicar o si el job falla.
+- Admin UI: nuevo flujo "Actualizar formularios" para rebuild diferido de templates PDF (badge de pendientes, preview de cambios `old -> new`, confirmación explícita para aplicar, seguimiento de job y reintento técnico de fallidos).
 
 ### Changed
 - Admin UI: en la grilla de sección, los controles/acciones se muestran solo en la fila activa seleccionada al clickear sobre un elemento de la fila.
 - Admin UI: en el modal de edición de sección (`Bloques de la sección`) se agrega acción **Cambiar sección** por bloque con selector de secciones del mismo formulario.
 - Admin UI: en el Paso 3 del wizard “Importar desde PDF”, la acción final ahora incluye opción por defecto **Importación completa** (PDF semántico + parámetros + secciones MDA), manteniendo opciones explícitas para “Crear secciones MDA” y “Solo PDF semántico + parámetros”.
 - Admin UI: el Paso 3 envía `import_mode` al backend para separar flujos reales (`full_import`, `create_sections`, `semantic_only`) en vez de depender solo de un booleano.
+- Admin UI: al editar `form_pdf_code` en parámetros, se muestra confirmación explícita indicando que el cambio queda pendiente hasta ejecutar "Actualizar formularios".
 
 ---
 
