@@ -142,59 +142,63 @@ const GridRow: React.FC<GridRowProps> = React.memo(({
     >
       {/* Controles de fila (solo en modo admin) */}
       {showRowControls && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<KeyboardArrowUpIcon />}
-            onClick={() => onAddRowBefore(row)}
-          >
-            Agregar fila antes
-          </Button>
-          <Chip 
-            label={`Fila ${row}`} 
-            size="small" 
-            sx={{ minWidth: 70, fontWeight: 'medium' }}
-          />
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1, mb: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<KeyboardArrowUpIcon />}
+              onClick={() => onAddRowBefore(row)}
+            >
+              Agregar fila antes
+            </Button>
+            <Chip
+              label={`Fila ${row}`}
+              size="small"
+              sx={{ minWidth: 70, fontWeight: 'medium' }}
+            />
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<KeyboardArrowDownIcon />}
+              onClick={() => onAddRowAfter(row)}
+            >
+              Agregar fila después
+            </Button>
+            <FormControl size="small" sx={{ minWidth: 100 }}>
+              <InputLabel>Columnas</InputLabel>
+              <Select
+                value={rowColumns}
+                label="Columnas"
+                onChange={(e) => onUpdateDisplayConfig(row, Number(e.target.value))}
+              >
+                {[1, 2, 3, 4, 5, 6, 7, 8].map(num => (
+                  <MenuItem key={num} value={num}>{num}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Button
+              size="small"
+              color="error"
+              variant="outlined"
+              startIcon={<DeleteIcon />}
+              onClick={() => onDeleteRow(row)}
+            >
+              Eliminar fila
+            </Button>
+          </Box>
+
           {onInsertEngineAfterRow && (
             <Button
               size="small"
               variant="outlined"
               startIcon={<SettingsIcon />}
               onClick={() => onInsertEngineAfterRow(row)}
+              sx={{ ml: 'auto' }}
             >
-              Insertar motor aquí
+              Insertar motor abajo
             </Button>
           )}
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<KeyboardArrowDownIcon />}
-            onClick={() => onAddRowAfter(row)}
-          >
-            Agregar fila después
-          </Button>
-          <FormControl size="small" sx={{ minWidth: 100 }}>
-            <InputLabel>Columnas</InputLabel>
-            <Select
-              value={rowColumns}
-              label="Columnas"
-              onChange={(e) => onUpdateDisplayConfig(row, Number(e.target.value))}
-            >
-              {[1, 2, 3, 4, 5, 6, 7, 8].map(num => (
-                <MenuItem key={num} value={num}>{num}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <Button
-            size="small"
-            color="error"
-            variant="outlined"
-            startIcon={<DeleteIcon />}
-            onClick={() => onDeleteRow(row)}
-          >
-            Eliminar fila
-          </Button>
         </Box>
       )}
       
