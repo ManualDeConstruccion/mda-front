@@ -1,44 +1,60 @@
-import { User } from './user.types';
-import { ProjectNode } from './project_nodes.types';
+/**
+ * Tipos para colaboradores de nodo (profesionales intervinientes).
+ * Coincide con ProjectCollaboratorSerializer en el backend:
+ *   fields = ['id', 'collaborator', 'role', 'company']
+ */
 
-export interface ProjectCollaborator {
+export interface NodeCollaboratorUser {
   id: number;
-  project: ProjectNode;
-  collaborator: User;
-  role: {
-    id: number;
-    role: 'Propietario/a' | 'Arquitecto' | 'Constructor' | 'Revisor independiente' | 'Calculista' | 'Revisor de Cálculo' | 'Coordinador';
-  } | null;
-  can_edit: boolean;
-  company: {
-    id: number;
-    name: string;
-    mail: string | null;
-    owner: User;
-    partner: User[];
-    rut: string | null;
-    address: string | null;
-    address_number: string | null;
-    comuna: {
-      id: number;
-      comuna: string;
-      region: {
-        id: number;
-        region: string;
-      };
-    } | null;
-    region: {
-      id: number;
-      region: string;
-    } | null;
-    phone: number | null;
-  } | null;
-  is_legal_rep: boolean;
-  is_owner: boolean;
-  created: string;
-  modified: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  rut: string | null;
 }
 
+export interface NodeCollaboratorRole {
+  id: number;
+  role:
+    | 'Propietario/a'
+    | 'Arquitecto'
+    | 'Constructor'
+    | 'Revisor independiente'
+    | 'Calculista'
+    | 'Revisor de Cálculo'
+    | 'Coordinador';
+}
+
+export interface NodeCollaboratorCompany {
+  id: number;
+  name: string;
+}
+
+/** Respuesta de GET /api/projects/project-nodes/{id}/node-collaborators/ */
+export interface NodeCollaborator {
+  id: number;
+  collaborator: NodeCollaboratorUser | null;
+  role: NodeCollaboratorRole | null;
+  company: NodeCollaboratorCompany | null;
+}
+
+/** Payload para POST /node-collaborators/ */
+export interface AddCollaboratorDto {
+  user_id: number;
+  role_id: number;
+  company_id?: number | null;
+}
+
+// ── Tipos legacy (conservados para compatibilidad) ──────────────────────────
+
+/** @deprecated Usar NodeCollaborator */
+export interface ProjectCollaborator {
+  id: number;
+  collaborator: NodeCollaboratorUser | null;
+  role: NodeCollaboratorRole | null;
+  company: NodeCollaboratorCompany | null;
+}
+
+/** @deprecated */
 export interface CreateProjectCollaboratorDto {
   project: number;
   collaborator: number;
@@ -49,10 +65,11 @@ export interface CreateProjectCollaboratorDto {
   is_owner?: boolean;
 }
 
+/** @deprecated */
 export interface UpdateProjectCollaboratorDto {
   role?: number | null;
   can_edit?: boolean;
   company?: number | null;
   is_legal_rep?: boolean;
   is_owner?: boolean;
-} 
+}

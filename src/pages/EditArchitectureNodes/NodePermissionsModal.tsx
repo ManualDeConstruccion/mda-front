@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 import {
-  Dialog, DialogTitle, DialogContent, DialogActions, Button, Table, TableHead, TableRow, TableCell, TableBody, Checkbox, Typography, Box
+  Dialog, DialogTitle, DialogContent, DialogActions,
+  Button, Table, TableHead, TableRow, TableCell, TableBody,
+  Checkbox, Typography, Box, CircularProgress, Alert,
 } from '@mui/material';
 import { useAssignProjectNodePermission, useRemoveProjectNodePermission, useProjectNodeUserPermissions } from '../../hooks/useProjectNodePermissions';
+import { useProjectCollaborators } from '../../hooks/useProjectCollaborators';
+import { NodeCollaborator } from '../../types/project_collaborators.types';
 
 interface NodePermissionsModalProps {
   open: boolean;
@@ -10,38 +14,29 @@ interface NodePermissionsModalProps {
   nodeId: number | undefined;
 }
 
-// Usuarios y roles de prueba
-const roles = [
-  { key: 'arquitecto', label: 'Arquitectos' },
-  { key: 'constructor', label: 'Constructores' },
-  { key: 'revisor', label: 'Revisores' },
-];
-
-const users = [
-  { id: 1, email: 'arq1@email.com', nombre: 'Arq. Ana', role: 'arquitecto' },
-  { id: 2, email: 'arq2@email.com', nombre: 'Arq. Pablo', role: 'arquitecto' },
-  { id: 3, email: 'cons1@email.com', nombre: 'Cons. Juan', role: 'constructor' },
-  { id: 4, email: 'rev1@email.com', nombre: 'Rev. Laura', role: 'revisor' },
-];
-
 const PERMISSIONS = [
   { key: 'view_projectnode', label: 'Puede ver' },
   { key: 'change_projectnode', label: 'Puede editar' },
   { key: 'delete_projectnode', label: 'Puede eliminar' },
 ];
 
-// Componente para mostrar los permisos de un usuario en la tabla principal
-const UserPermissionRow: React.FC<{
-  user: typeof users[0];
+// Fila de la tabla: muestra permisos actuales de un colaborador
+const CollaboratorPermissionRow: React.FC<{
+  collab: NodeCollaborator;
   nodeId: number | undefined;
   onClick: () => void;
-}> = ({ user, nodeId, onClick }) => {
-  const permsQuery = useProjectNodeUserPermissions(nodeId, user.id);
-  const perms = permsQuery.data || [];
+}> = ({ collab, nodeId, onClick }) => {
+  const userId = collab.collaborator?.id;
+  const permsQuery = useProjectNodeUserPermissions(nodeId, userId);
+  const perms = permsQuery.data ?? [];
+  const displayName = collab.collaborator
+    ? `${collab.collaborator.first_name} ${collab.collaborator.last_name}`.trim() || collab.collaborator.email
+    : '—';
+
   return (
     <TableRow hover style={{ cursor: 'pointer' }} onClick={onClick}>
-      <TableCell>{user.email}</TableCell>
-      <TableCell>{user.nombre}</TableCell>
+      <TableCell>{collab.collaborator?.email ?? '—'}</TableCell>
+      <TableCell>{displayName}</TableCell>
       {PERMISSIONS.map(p => (
         <TableCell key={p.key} align="center">
           <Checkbox checked={perms.includes(p.key)} disabled size="small" />
@@ -51,35 +46,41 @@ const UserPermissionRow: React.FC<{
   );
 };
 
-// Componente para editar permisos de un usuario
-const UserPermissionEditor: React.FC<{
-  user: typeof users[0];
+// Editor de permisos para un colaborador específico
+const CollaboratorPermissionEditor: React.FC<{
+  collab: NodeCollaborator;
   nodeId: number;
-  roles: typeof roles;
   onBack: () => void;
-}> = ({ user, nodeId, roles, onBack }) => {
+}> = ({ collab, nodeId, onBack }) => {
   const assignPermission = useAssignProjectNodePermission();
   const removePermission = useRemoveProjectNodePermission();
-  const permsQuery = useProjectNodeUserPermissions(nodeId, user.id);
-  const perms = permsQuery.data || [];
+  const userId = collab.collaborator?.id;
+  const permsQuery = useProjectNodeUserPermissions(nodeId, userId);
+  const perms = permsQuery.data ?? [];
   const isLoading = permsQuery.isLoading || assignPermission.isPending || removePermission.isPending;
+  const displayName = collab.collaborator
+    ? `${collab.collaborator.first_name} ${collab.collaborator.last_name}`.trim() || collab.collaborator.email
+    : '—';
 
   const handleToggle = (permission: string, checked: boolean) => {
-    if (!nodeId) return;
+    if (!userId) return;
     if (checked) {
-      assignPermission.mutate({ nodeId, user_id: user.id, permission });
+      assignPermission.mutate({ nodeId, user_id: userId, permission });
     } else {
-      removePermission.mutate({ nodeId, user_id: user.id, permission });
+      removePermission.mutate({ nodeId, user_id: userId, permission });
     }
   };
 
   return (
     <>
-      <DialogTitle>Permisos de {user.nombre}</DialogTitle>
+      <DialogTitle>Permisos de {displayName}</DialogTitle>
       <DialogContent>
         <Box mb={2}>
-          <Typography variant="subtitle1"><b>Email:</b> {user.email}</Typography>
-          <Typography variant="subtitle1"><b>Rol:</b> {roles.find(r => r.key === user.role)?.label}</Typography>
+          <Typography variant="subtitle1"><b>Email:</b> {collab.collaborator?.email ?? '—'}</Typography>
+          <Typography variant="subtitle1"><b>Rol:</b> {collab.role?.role ?? '—'}</Typography>
+          {collab.company && (
+            <Typography variant="subtitle1"><b>Empresa:</b> {collab.company.name}</Typography>
+          )}
         </Box>
         <Table size="small">
           <TableHead>
@@ -96,7 +97,7 @@ const UserPermissionEditor: React.FC<{
                   <Checkbox
                     checked={perms.includes(p.key)}
                     onChange={e => handleToggle(p.key, e.target.checked)}
-                    disabled={isLoading}
+                    disabled={isLoading || !userId}
                   />
                 </TableCell>
               ))}
@@ -112,25 +113,39 @@ const UserPermissionEditor: React.FC<{
 };
 
 const NodePermissionsModal: React.FC<NodePermissionsModalProps> = ({ open, onClose, nodeId }) => {
-  const [selectedUser, setSelectedUser] = useState<typeof users[0] | null>(null);
+  const [selectedCollab, setSelectedCollab] = useState<NodeCollaborator | null>(null);
+  const { collaborators, isLoading, isError } = useProjectCollaborators(nodeId);
 
-  // Agrupa los usuarios por rol
-  const usersByRole: { [role: string]: typeof users } = {};
-  users.forEach(user => {
-    if (!Array.isArray(usersByRole[user.role])) {
-      usersByRole[user.role] = [];
-    }
-    usersByRole[user.role].push(user);
+  // Agrupar colaboradores por rol
+  const byRole: Record<string, NodeCollaborator[]> = {};
+  collaborators.forEach(c => {
+    const key = c.role?.role ?? 'Sin rol';
+    if (!byRole[key]) byRole[key] = [];
+    byRole[key].push(c);
   });
 
-  // Vista principal: listado de usuarios agrupados por rol
-  const renderUserList = () => (
+  const renderList = () => (
     <>
-      <DialogTitle>Permisos por usuario</DialogTitle>
+      <DialogTitle>Permisos por colaborador</DialogTitle>
       <DialogContent>
-        {roles.map(role => (
-          <Box key={role.key} mb={3}>
-            <Typography variant="h6" gutterBottom>{role.label}</Typography>
+        {isLoading && (
+          <Box display="flex" justifyContent="center" py={3}>
+            <CircularProgress size={32} />
+          </Box>
+        )}
+        {isError && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            No se pudieron cargar los colaboradores.
+          </Alert>
+        )}
+        {!isLoading && !isError && collaborators.length === 0 && (
+          <Typography color="text.secondary" py={2}>
+            Este nodo no tiene colaboradores asignados.
+          </Typography>
+        )}
+        {Object.entries(byRole).map(([roleName, collabs]) => (
+          <Box key={roleName} mb={3}>
+            <Typography variant="h6" gutterBottom>{roleName}</Typography>
             <Table size="small">
               <TableHead>
                 <TableRow>
@@ -142,12 +157,12 @@ const NodePermissionsModal: React.FC<NodePermissionsModalProps> = ({ open, onClo
                 </TableRow>
               </TableHead>
               <TableBody>
-                {usersByRole[role.key]?.map(user => (
-                  <UserPermissionRow
-                    key={user.id}
-                    user={user}
+                {collabs.map(c => (
+                  <CollaboratorPermissionRow
+                    key={c.id}
+                    collab={c}
                     nodeId={nodeId}
-                    onClick={() => setSelectedUser(user)}
+                    onClick={() => setSelectedCollab(c)}
                   />
                 ))}
               </TableBody>
@@ -163,13 +178,17 @@ const NodePermissionsModal: React.FC<NodePermissionsModalProps> = ({ open, onClo
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      {selectedUser && nodeId ? (
-        <UserPermissionEditor user={selectedUser} nodeId={nodeId} roles={roles} onBack={() => setSelectedUser(null)} />
+      {selectedCollab && nodeId ? (
+        <CollaboratorPermissionEditor
+          collab={selectedCollab}
+          nodeId={nodeId}
+          onBack={() => setSelectedCollab(null)}
+        />
       ) : (
-        renderUserList()
+        renderList()
       )}
     </Dialog>
   );
 };
 
-export default NodePermissionsModal; 
+export default NodePermissionsModal;
